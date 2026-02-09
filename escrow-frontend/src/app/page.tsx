@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useConnectors } from "wagmi";
+import DecryptedText from "../components/DecryptedText";
 
 export default function Home() {
   const [isFreelancerView, setIsFreelancerView] = useState(false);
@@ -137,9 +138,14 @@ export default function Home() {
         )}
 
         <h1 className="max-w-4xl text-5xl font-extrabold leading-tight tracking-tight md:text-7xl">
-          {isFreelancerView
-            ? "Be sure that your money is waiting for you."
-            : "Pay the way your project needs."}
+          <DecryptedText
+            text={
+              isFreelancerView
+                ? "Be sure that your money is waiting for you."
+                : "Pay the way your project needs."
+            }
+            animateOn="view"
+          />
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-white/80 md:text-xl">
           Secure escrow payments for freelance work. Fund milestones, approve

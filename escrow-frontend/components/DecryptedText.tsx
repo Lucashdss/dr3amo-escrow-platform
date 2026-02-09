@@ -4,23 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { motion } from "motion/react";
 import type { HTMLMotionProps } from "motion/react";
 
-const styles = {
-  wrapper: {
-    display: "inline-block",
-    whiteSpace: "pre-wrap",
-  },
-  srOnly: {
-    position: "absolute" as const,
-    width: "1px",
-    height: "1px",
-    padding: 0,
-    margin: "-1px",
-    overflow: "hidden",
-    clip: "rect(0,0,0,0)",
-    border: 0,
-  },
-};
-
 interface DecryptedTextProps extends HTMLMotionProps<"span"> {
   text: string;
   speed?: number;
@@ -30,15 +13,15 @@ interface DecryptedTextProps extends HTMLMotionProps<"span"> {
   useOriginalCharsOnly?: boolean;
   characters?: string;
   className?: string;
-  parentClassName?: string;
   encryptedClassName?: string;
+  parentClassName?: string;
   animateOn?: "view" | "hover" | "both";
 }
 
 export default function DecryptedText({
   text,
-  speed = 30,
-  maxIterations = 10,
+  speed = 80,
+  maxIterations = 7,
   sequential = true,
   revealDirection = "start",
   useOriginalCharsOnly = false,
@@ -80,7 +63,6 @@ export default function DecryptedText({
           ) {
             return nextIndex;
           }
-
           for (let i = 0; i < textLength; i++) {
             if (!revealedSet.has(i)) return i;
           }
@@ -92,7 +74,7 @@ export default function DecryptedText({
     };
 
     const availableChars = useOriginalCharsOnly
-      ? Array.from(new Set(text.split(""))).filter((char) => char !== " ")
+      ? Array.from(new Set(text.split(''))).filter(char => char !== ' ')
       : characters.split("");
 
     const shuffleText = (
@@ -217,9 +199,7 @@ export default function DecryptedText({
     }
 
     return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
+      if (currentRef) observer.unobserve(currentRef);
     };
   }, [animateOn, hasAnimated]);
 
@@ -233,13 +213,12 @@ export default function DecryptedText({
 
   return (
     <motion.span
-      className={parentClassName}
       ref={containerRef}
-      style={styles.wrapper}
+      className={`inline-block whitespace-pre-wrap ${parentClassName}`}
       {...hoverProps}
       {...props}
     >
-      <span style={styles.srOnly}>{displayText}</span>
+      <span className="sr-only">{displayText}</span>
 
       <span aria-hidden="true">
         {displayText.split("").map((char, index) => {

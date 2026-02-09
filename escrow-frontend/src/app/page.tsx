@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useConnectors } from "wagmi";
-import DecryptedText from "../components/DecryptedText";
+import DecryptedText from "../../components/DecryptedText";
 
 export default function Home() {
   const [isFreelancerView, setIsFreelancerView] = useState(false);
@@ -40,7 +40,7 @@ export default function Home() {
   ];
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount flag for hydration-safe UI
+
     setIsMounted(true);
   }, []);
 
@@ -57,8 +57,14 @@ export default function Home() {
       reset();
       await mutateAsync({ connector });
 
-    } catch (err: any) {
-      if (err.code === 4001) {
+    } catch (err: unknown) {
+      const isUserRejected = (error: unknown): error is { code: number } =>
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: unknown }).code === 4001;
+
+      if (isUserRejected(err)) {
         setConnectError("Connection cancelled.");
       } else {
         setConnectError("Failed to connect. Please try again.");
@@ -139,6 +145,7 @@ export default function Home() {
 
         <h1 className="max-w-4xl text-5xl font-extrabold leading-tight tracking-tight md:text-7xl">
           <DecryptedText
+            key={isFreelancerView ? "freelancer" : "client"}
             text={
               isFreelancerView
                 ? "Be sure that your money is waiting for you."

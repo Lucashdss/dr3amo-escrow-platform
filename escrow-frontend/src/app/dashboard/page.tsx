@@ -154,6 +154,8 @@ export default function DashboardPage() {
                   <option value="ethereum">Ethereum</option>
                   <option value="polygon">Polygon</option>
                   <option value="base">Base</option>
+                  <option value="arbitrum">Arbitrum</option>
+                  <option value="bnb">BNB</option>
                 </select>
               </div>
 

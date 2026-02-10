@@ -20,10 +20,48 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-        <div className="col-span-4 row-span-2 rounded bg-slate-200 p-4 text-lg font-semibold">
+        <div className="col-span-4 row-span-2 rounded bg-white p-4 text-lg font-semibold">
           <h2 className="text-xl font-semibold text-slate-900">
             Hello, user
           </h2>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+              <div className="text-4xl font-semibold text-slate-900">0</div>
+              <div className="mt-6 flex items-end justify-between gap-3">
+                <div className="text-sm font-semibold text-slate-900">
+                  active escrows
+                </div>
+                <div className="text-xs text-slate-400">Last 24h</div>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+              <div className="text-4xl font-semibold text-slate-900">0</div>
+              <div className="mt-6 flex items-end justify-between gap-3">
+                <div className="text-sm font-semibold text-slate-900">
+                  amount to receive
+                </div>
+                <div className="text-xs text-slate-400">Last 24h</div>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+              <div className="text-4xl font-semibold text-slate-900">0</div>
+              <div className="mt-6 flex items-end justify-between gap-3">
+                <div className="text-sm font-semibold text-slate-900">
+                  amount to release
+                </div>
+                <div className="text-xs text-slate-400">Last 24h</div>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+              <div className="text-4xl font-semibold text-slate-900">0</div>
+              <div className="mt-6 flex items-end justify-between gap-3">
+                <div className="text-sm font-semibold text-slate-900">
+                  waiting to deliver
+                </div>
+                <div className="text-xs text-slate-400">Last 24h</div>
+              </div>
+            </div>
+          </div>
         </div>
         <div className="col-span-3 row-span-3 col-start-2 row-start-3 rounded bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <div className="flex items-center justify-between">
@@ -36,9 +74,11 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-        <div className="row-span-3 col-start-5 row-start-3 rounded bg-slate-200 p-4 text-lg font-semibold">
-          4
-        </div>
+        <aside className="row-span-3 col-start-5 row-start-3 rounded bg-white p-4 shadow-sm ring-1 ring-slate-200">
+          <h3 className="text-2xl font-semibold text-slate-900">
+            Last activities
+          </h3>
+        </aside>
       </div>
     </div>
   );

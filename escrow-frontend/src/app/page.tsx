@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useConnectors } from "wagmi";
 import DecryptedText from "../../components/DecryptedText";
@@ -82,6 +83,14 @@ export default function Home() {
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5 md:px-10">
         <p className="text-xl font-bold tracking-tight">EscrowFreelance</p>
         <div className="flex items-center gap-3">
+          {isMounted && isConnected ? (
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white hover:text-[#2f3136]"
+            >
+              Manage Escrows
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={() => {

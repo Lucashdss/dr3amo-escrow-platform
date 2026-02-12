@@ -10,10 +10,16 @@ export default function Home() {
   const [isFreelancerView, setIsFreelancerView] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isDisconnectModalOpen, setIsDisconnectModalOpen] = useState(false);
+  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [userCheckError, setUserCheckError] = useState<string | null>(null);
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [isCheckingUser, setIsCheckingUser] = useState(false);
   const connectors = useConnectors();
-  const { mutate, status, reset, mutateAsync } = useConnect();
+  const { mutateAsync } = useConnect();
   const { disconnect } = useDisconnect();
   const { address, isConnected, isConnecting: accountIsConnecting } = useAccount();
   const trimmedAddress = address
@@ -46,6 +52,48 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!isConnected || !address) {
+      setIsUsernameModalOpen(false);
+      setUserCheckError(null);
+      setUsernameError(null);
+      setUsername("");
+      setIsCheckingUser(false);
+      return;
+    }
+
+    const checkUser = async () => {
+      setIsCheckingUser(true);
+      setUserCheckError(null);
+
+      try {
+        const response = await fetch(
+          `/api/users/walletaddress?walletAddress=${encodeURIComponent(address)}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.error ?? "Failed to check user.");
+        }
+
+        if (data?.exists && data?.user) {
+          setIsUsernameModalOpen(false);
+          return;
+        }
+
+        setIsUsernameModalOpen(true);
+      } catch (error) {
+        setUserCheckError(
+          error instanceof Error ? error.message : "Failed to check user."
+        );
+      } finally {
+        setIsCheckingUser(false);
+      }
+    };
+
+    void checkUser();
+  }, [address, isConnected]);
+
+  useEffect(() => {
     if (!isLoginModalOpen) return;
     setConnectError(null);
   }, [isLoginModalOpen]);
@@ -54,9 +102,8 @@ export default function Home() {
     setConnectError(null);
 
     try {
-      // Ensure previous connection attempts are wiped
-      reset();
       await mutateAsync({ connector });
+      setIsLoginModalOpen(false);
 
     } catch (err: unknown) {
       const isUserRejected = (error: unknown): error is { code: number } =>
@@ -65,13 +112,63 @@ export default function Home() {
         "code" in error &&
         (error as { code?: unknown }).code === 4001;
 
+      const isRequestPending = (error: unknown): error is { code: number } =>
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: unknown }).code === -32002;
+
       if (isUserRejected(err)) {
         setConnectError("Connection cancelled.");
+      } else if (isRequestPending(err)) {
+        setConnectError("A wallet request is already pending. Open your wallet app.");
       } else {
         setConnectError("Failed to connect. Please try again.");
       }
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!address) {
+      setUsernameError("Wallet is not connected.");
+      return;
+    }
+
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
+      setUsernameError("Username is required.");
+      return;
+    }
+
+    setIsCreatingUser(true);
+    setUsernameError(null);
+
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: trimmedUsername,
+          walletAddress: address,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Failed to create user.");
+      }
+
+      setIsUsernameModalOpen(false);
+      setUsername("");
+    } catch (error) {
+      setUsernameError(
+        error instanceof Error ? error.message : "Failed to create user."
+      );
     } finally {
-      reset();
+      setIsCreatingUser(false);
     }
   };
 
@@ -254,6 +351,14 @@ export default function Home() {
               <p className="mt-3 text-sm text-red-400">{connectError}</p>
             ) : null}
 
+            {isCheckingUser ? (
+              <p className="mt-3 text-sm text-white/70">Checking account...</p>
+            ) : null}
+
+            {userCheckError ? (
+              <p className="mt-3 text-sm text-red-400">{userCheckError}</p>
+            ) : null}
+
             {isConnected ? (
               <p className="mt-3 text-sm text-green-400">
                 Connected: {address}
@@ -292,6 +397,42 @@ export default function Home() {
               className="mt-6 w-full rounded-full bg-[#3a3a3a] px-4 py-3 text-base font-semibold text-white/90 transition hover:bg-[#444]"
             >
               Disconnect
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {isMounted && isConnected && isUsernameModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#1f2c3d] p-6 shadow-2xl">
+            <h2 className="text-2xl font-bold text-white">Create Username</h2>
+            <p className="mt-2 text-sm text-white/70">
+              Your wallet is connected, but no user exists yet.
+            </p>
+
+            <label htmlFor="username" className="mt-5 block text-sm text-white/80">
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="Enter your username"
+              className="mt-2 w-full rounded-xl border border-white/20 bg-[#162334] px-4 py-3 text-white placeholder:text-white/40 focus:border-white/50 focus:outline-none"
+            />
+
+            {usernameError ? (
+              <p className="mt-3 text-sm text-red-400">{usernameError}</p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleCreateUser}
+              disabled={isCreatingUser}
+              className="mt-6 w-full rounded-full bg-white px-4 py-3 text-base font-semibold text-[#1f2c3d] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isCreatingUser ? "Creating..." : "Create Account"}
             </button>
           </div>
         </div>

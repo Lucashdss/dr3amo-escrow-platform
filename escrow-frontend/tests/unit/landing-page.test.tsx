@@ -1,0 +1,120 @@
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import Home from "@/app/page";
+
+const mockUseWalletAuth = jest.fn();
+
+jest.mock("next/image", () => ({
+  __esModule: true,
+  default: ({ alt }: { alt?: string }) =>
+    React.createElement("img", { alt: alt ?? "" }),
+}));
+
+jest.mock("next/link", () => ({
+  __esModule: true,
+  default: ({ href, children }: { href: string; children: React.ReactNode }) =>
+    React.createElement("a", { href }, children),
+}));
+
+jest.mock("@/components/DecryptedText", () => ({
+  __esModule: true,
+  default: ({ text }: { text: string }) => React.createElement("span", null, text),
+}));
+
+jest.mock("@/features/auth/hooks/useWalletAuth", () => ({
+  useWalletAuth: () => mockUseWalletAuth(),
+}));
+
+describe("Home page", () => {
+  const renderPage = () => renderToStaticMarkup(React.createElement(Home));
+
+  const baseAuthState = {
+    address: undefined,
+    connectError: null,
+    connectors: [],
+    handleConnect: jest.fn(),
+    handleCreateUser: jest.fn(),
+    handleDisconnect: jest.fn(),
+    headerLabel: "Connect Wallet",
+    isCheckingUser: false,
+    isConnected: false,
+    isConnectModalOpen: false,
+    isConnecting: false,
+    isCreatingUser: false,
+    isDisconnectOpen: false,
+    isLoginModalOpen: false,
+    isMounted: true,
+    isUsernameModalOpen: false,
+    openDisconnectModal: jest.fn(),
+    openLoginModal: jest.fn(),
+    closeDisconnectModal: jest.fn(),
+    closeLoginModal: jest.fn(),
+    trimmedAddress: "Connect Wallet",
+    userCheckError: null,
+    username: "",
+    setUsername: jest.fn(),
+    usernameError: null,
+  };
+
+  beforeEach(() => {
+    mockUseWalletAuth.mockReturnValue(baseAuthState);
+  });
+
+  it("renders core landing page content", () => {
+    const html = renderPage();
+
+    expect(html).toContain("EscrowFreelance");
+    expect(html).toContain("Pay the way your project needs.");
+    expect(html).toContain("Secure escrow payments for freelance work.");
+  });
+
+  it("shows the connect wallet button by default", () => {
+    const html = renderPage();
+
+    expect(html).toContain("Connect Wallet");
+  });
+
+  it("renders the 3-step escrow flow", () => {
+    const html = renderPage();
+
+    expect(html).toContain("Step 1");
+    expect(html).toContain("Create a contract");
+    expect(html).toContain("Step 2");
+    expect(html).toContain("Fund your milestone");
+    expect(html).toContain("Step 3");
+    expect(html).toContain("Release when approved");
+  });
+
+  it("does not show dashboard action before connection", () => {
+    const html = renderPage();
+
+    expect(html).not.toContain("Manage Escrows");
+  });
+
+  it("shows an error message when a connection is refused", () => {
+    mockUseWalletAuth.mockReturnValue({
+      ...baseAuthState,
+      isConnectModalOpen: true,
+      connectError: "Connection cancelled.",
+    });
+
+    const html = renderPage();
+
+    expect(html).toContain("Connection cancelled.");
+  });
+
+  it("shows create username modal when wallet user does not exist", () => {
+    mockUseWalletAuth.mockReturnValue({
+      ...baseAuthState,
+      address: "0x1234567890abcdef1234567890abcdef12345678",
+      isConnected: true,
+      isUsernameModalOpen: true,
+    });
+
+    const html = renderPage();
+
+    expect(html).toContain("Create Username");
+    expect(html).toContain("no user exists yet");
+  });
+});

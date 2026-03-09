@@ -47,7 +47,7 @@ export default function Home() {
         <div className="flex items-center gap-3">
           {isMounted && isConnected ? (
             <Link
-              href="/dashboard"
+              href="/client"
               className="rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white hover:text-[#2f3136]"
             >
               Manage Escrows

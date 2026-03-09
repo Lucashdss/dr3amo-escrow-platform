@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { ClientFreelancerButtonDashboard } from "@/components/clientFreelancerButtonDashboard";
 
 export default function DashboardPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+      <header className="flex items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold">Dashboard/Freelancer</h1>
+        <ClientFreelancerButtonDashboard />
+      </header>
       <div className="mt-6 grid grid-cols-5 grid-rows-5 gap-2">
         <div className="row-span-5 rounded bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <div className="rounded-2xl border border-slate-200 px-4 py-3 text-slate-500">

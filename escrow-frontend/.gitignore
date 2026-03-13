@@ -34,6 +34,23 @@ yarn-error.log*
 .env*
 .env.local
 .env.development.local
+!.env.example
+
+# database (local artifacts, dumps, and secrets)
+*.sqlite
+*.sqlite3
+*.db
+*.db-*
+*.sql.gz
+*.sql.zip
+*.dump
+*.bak
+db_data/
+database-data/
+mysql-data/
+mariadb-data/
+postgres-data/
+mongodb-data/
 
 # vercel
 .vercel

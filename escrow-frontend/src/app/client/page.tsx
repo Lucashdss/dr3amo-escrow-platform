@@ -116,7 +116,7 @@ export default function DashboardPage() {
                   htmlFor="freelancerAddress"
                   className="text-sm font-semibold text-slate-700"
                 >
-                  Freelancer address
+                  Freelancer address or nickname
                 </label>
                 <input
                   id="freelancerAddress"
@@ -129,17 +129,20 @@ export default function DashboardPage() {
 
               <div className="space-y-2">
                 <label
-                  htmlFor="deadline"
+                  htmlFor="token"
                   className="text-sm font-semibold text-slate-700"
                 >
-                  Deadline
+                  Token
                 </label>
-                <input
-                  id="deadline"
-                  name="deadline"
-                  type="date"
+                <select
+                  id="token"
+                  name="token"
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
+                >
+                  <option value="">Select a token</option>
+                  <option value="usdc">USDC</option>
+                  <option value="eth">ETH</option>
+                </select>
               </div>
 
               <div className="space-y-2">
@@ -165,21 +168,17 @@ export default function DashboardPage() {
 
               <div className="space-y-2">
                 <label
-                  htmlFor="token"
+                  htmlFor="deadline"
                   className="text-sm font-semibold text-slate-700"
                 >
-                  Token
+                  Deadline
                 </label>
-                <select
-                  id="token"
-                  name="token"
+                <input
+                  id="deadline"
+                  name="deadline"
+                  type="date"
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                >
-                  <option value="">Select a token</option>
-                  <option value="usdc">USDC</option>
-                  <option value="usdt">USDT</option>
-                  <option value="eth">ETH</option>
-                </select>
+                />
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">

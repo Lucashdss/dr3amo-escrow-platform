@@ -100,6 +100,44 @@ export const kpis: KpiItem[] = [
   },
 ];
 
+export const kpisFreelancer: KpiItem[] = [
+  {
+    label: "funds to receive",
+    value: "$10.2k",
+    change: "+12.6% receiving this week",
+    tone: "lime",
+    icon: CircleDollarSign,
+  },
+  {
+    label: "Active Contracts",
+    value: "18",
+    change: "5 new this month",
+    tone: "white",
+    icon: ClipboardList,
+  },
+  {
+    label: "waiting deliveries",
+    value: "07",
+    change: "2 waiting on your approval",
+    tone: "amber",
+    icon: FileClock,
+  },
+  {
+    label: "Deadlines Approaching",
+    value: "04",
+    change: "Next delivery due in 2 days",
+    tone: "amber",
+    icon: CalendarClock,
+  },
+  {
+    label: "Completed Contracts",
+    value: "29",
+    change: "93% success rate this quarter",
+    tone: "lime",
+    icon: CheckCheck,
+  },
+];
+
 export const contracts: ContractItem[] = [
   {
     name: "Brand Identity Sprint",

@@ -6,6 +6,7 @@ import {
   ClipboardList,
   FileClock,
   FolderKanban,
+  Handshake,
   Heart,
   LayoutDashboard,
   MessageSquareText,
@@ -57,12 +58,12 @@ export type ActivityItem = {
 };
 
 export const navItems: NavItem[] = [
-  { label: "Overview", icon: LayoutDashboard, active: true },
-  { label: "Contracts", icon: FolderKanban },
+  { label: "Overview", icon: LayoutDashboard },
+  { label: "Contracts", icon: Handshake },
   { label: "Settings", icon: Settings },
 ];
 
-export const kpis: KpiItem[] = [
+export const kpisClient: KpiItem[] = [
   {
     label: "Funds in Escrows",
     value: "$48.2k",

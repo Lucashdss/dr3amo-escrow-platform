@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Plus, UserCircle2 } from "lucide-react";
 import { useAccount } from "wagmi";
-import { activity, kpis, navItems, toneClasses } from "@/components/dashboard-components";
+import { activity, kpisClient, navItems, toneClasses } from "@/components/dashboard-components";
 import { checkUserByWallet, type UserRecord } from "@/features/auth/services/userApi";
 
 export default function DashboardPage() {
   const { address } = useAccount();
   const [clientUser, setClientUser] = useState<UserRecord | null>(null);
+  const activeNavLabel = "Overview";
 
   useEffect(() => {
     if (!address) {
@@ -56,29 +57,37 @@ export default function DashboardPage() {
             </div>
 
             <nav className="flex flex-1 flex-row flex-wrap gap-3 lg:flex-col">
-              {navItems.map(({ label, icon: Icon, active }) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-label={label}
-                  className={`flex h-16 w-16 items-center justify-center rounded-[1.6rem] border transition ${active
-                    ? "border-white/20 bg-white/12 text-white"
-                    : "border-white/10 bg-white/8 text-white/72 hover:bg-white/12"
-                    }`}
-                >
-                  <Icon className="h-6 w-6" />
-                </button>
-              ))}
+              {navItems.map(({ label, icon: Icon }) => {
+                const isActive = label === activeNavLabel;
+
+                return label === "Contracts" ? (
+                  <Link
+                    key={label}
+                    href="/client/contracts"
+                    aria-label={label}
+                    className={`flex h-16 w-16 items-center justify-center rounded-[1.6rem] border transition ${isActive
+                      ? "border-white/20 bg-white/12 text-white"
+                      : "border-white/10 bg-white/8 text-white/72 hover:bg-white/12"
+                      }`}
+                  >
+                    <Icon className="h-6 w-6" />
+                  </Link>
+                ) : (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-label={label}
+                    className={`flex h-16 w-16 items-center justify-center rounded-[1.6rem] border transition ${isActive
+                      ? "border-white/20 bg-white/12 text-white"
+                      : "border-white/10 bg-white/8 text-white/72 hover:bg-white/12"
+                      }`}
+                  >
+                    <Icon className="h-6 w-6" />
+                  </button>
+                );
+              })}
             </nav>
           </div>
-
-          <Link
-            href="#"
-            className="flex min-h-16 min-w-0 items-center justify-center gap-3 rounded-[1.8rem] border border-white/10 bg-white/8 px-5 py-4 text-sm font-semibold text-white transition hover:bg-white/12 lg:min-h-[132px] lg:flex-col lg:px-4 lg:text-center"
-          >
-            <Plus className="h-5 w-5 shrink-0" />
-            <span>Create and manage escrows</span>
-          </Link>
         </aside>
 
         <main className="flex min-w-0 flex-col gap-6">
@@ -123,7 +132,7 @@ export default function DashboardPage() {
           </header>
 
           <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {kpis.map(({ label, value, change, tone, icon: Icon }) => (
+            {kpisClient.map(({ label, value, change, tone, icon: Icon }) => (
               <article
                 key={label}
                 className="rounded-[1.6rem] border border-white/10 bg-[#171717] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"

@@ -1,9 +1,20 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import pool from "@/lib/db";
-import type { EscrowRecord } from "@/features/escrows/types/escrow";
+import type {
+  ClientEscrowStateGroups,
+  ClientEscrowSummaryResult,
+  EscrowRecord,
+} from "@/features/escrows/types/escrow";
 
 type EscrowRow = EscrowRecord & RowDataPacket;
+type ClientEscrowSummaryRow = RowDataPacket & {
+  activeContractsCount: number;
+  deadlinesApproachingCount: number;
+  completedContractsCount: number;
+  pendingReviewsCount: number;
+  totalAmount: number | string;
+};
 
 export type CreateEscrowRecordInput = {
   amount: string;
@@ -57,4 +68,95 @@ export async function findEscrowById(id: number): Promise<EscrowRecord | null> {
   );
 
   return escrows[0] ?? null;
+}
+
+function createStatePlaceholders(states: readonly string[]): string {
+  return states.map(() => "?").join(", ");
+}
+
+function normalizeAmountTotal(value: number | string): string {
+  return typeof value === "number" ? value.toString() : value;
+}
+
+export async function getClientEscrowSummary(
+  clientId: number,
+  stateGroups: ClientEscrowStateGroups
+): Promise<ClientEscrowSummaryResult> {
+  const activeStatePlaceholders = createStatePlaceholders(
+    stateGroups.activeExcluded
+  );
+  const completedStatePlaceholders = createStatePlaceholders(
+    stateGroups.completed
+  );
+  const pendingReviewStatePlaceholders = createStatePlaceholders(
+    stateGroups.pendingReview
+  );
+  const [rows] = await pool.query<ClientEscrowSummaryRow[]>(
+    `SELECT COALESCE(
+              SUM(
+              CASE
+                WHEN LOWER(state) IN (${completedStatePlaceholders}) THEN 1
+                ELSE 0
+              END
+            ),
+              0
+            ) AS completedContractsCount,
+            COALESCE(
+              SUM(
+              CASE
+                WHEN LOWER(state) IN (${pendingReviewStatePlaceholders}) THEN 1
+                ELSE 0
+              END
+            ),
+              0
+            ) AS pendingReviewsCount,
+            COALESCE(
+              SUM(
+              CASE
+                WHEN LOWER(state) NOT IN (${activeStatePlaceholders})
+                  AND DATE(deadline) BETWEEN CURDATE()
+                  AND DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 1
+                ELSE 0
+              END
+            ),
+              0
+            ) AS deadlinesApproachingCount,
+            COALESCE(
+              SUM(
+              CASE
+                WHEN LOWER(state) NOT IN (${activeStatePlaceholders}) THEN 1
+                ELSE 0
+              END
+            ),
+              0
+            ) AS activeContractsCount,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) NOT IN (${activeStatePlaceholders})
+                    THEN CAST(amount AS DECIMAL(18, 8))
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS totalAmount
+     FROM escrows
+     WHERE client_id = ?`,
+    [
+      ...stateGroups.completed,
+      ...stateGroups.pendingReview,
+      ...stateGroups.activeExcluded,
+      ...stateGroups.activeExcluded,
+      ...stateGroups.activeExcluded,
+      clientId,
+    ]
+  );
+
+  return {
+    activeContractsCount: rows[0]?.activeContractsCount ?? 0,
+    deadlinesApproachingCount: rows[0]?.deadlinesApproachingCount ?? 0,
+    completedContractsCount: rows[0]?.completedContractsCount ?? 0,
+    pendingReviewsCount: rows[0]?.pendingReviewsCount ?? 0,
+    totalAmount: normalizeAmountTotal(rows[0]?.totalAmount ?? "0"),
+  };
 }

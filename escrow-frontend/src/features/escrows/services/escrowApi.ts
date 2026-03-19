@@ -1,5 +1,6 @@
 import { fetchApi } from "@/lib/api/fetch";
 import type {
+  ClientEscrowSummaryResult,
   CreateEscrowRequest,
   CreateEscrowResult,
 } from "@/features/escrows/types/escrow";
@@ -14,4 +15,12 @@ export async function persistEscrow(
     },
     body: JSON.stringify(request),
   });
+}
+
+export async function fetchClientEscrowSummary(
+  clientId: number
+): Promise<ClientEscrowSummaryResult> {
+  return fetchApi<ClientEscrowSummaryResult>(
+    `/api/escrows/client-funds?clientId=${clientId}`
+  );
 }

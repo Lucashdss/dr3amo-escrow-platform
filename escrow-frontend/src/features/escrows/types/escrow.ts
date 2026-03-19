@@ -39,6 +39,20 @@ export type EscrowListResult = {
   escrows: EscrowRecord[];
 };
 
+export type ClientEscrowSummaryResult = {
+  activeContractsCount: number;
+  deadlinesApproachingCount: number;
+  completedContractsCount: number;
+  pendingReviewsCount: number;
+  totalAmount: string;
+};
+
+export type ClientEscrowStateGroups = {
+  activeExcluded: readonly string[];
+  completed: readonly string[];
+  pendingReview: readonly string[];
+};
+
 export type EscrowSummary = {
   id: string;
   client: string;

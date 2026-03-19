@@ -168,3 +168,16 @@ export function parseCreateEscrowRequest(
     txHash: txHash.data,
   });
 }
+
+export function parseClientEscrowFundsRequest(
+  request: Request
+): ValidationResult<number> {
+  const clientIdValue = new URL(request.url).searchParams.get("clientId");
+  const clientId = Number.parseInt(clientIdValue ?? "", 10);
+
+  if (!Number.isInteger(clientId) || clientId <= 0) {
+    return createValidationError("clientId query param must be a positive integer.");
+  }
+
+  return createValidationSuccess(clientId);
+}

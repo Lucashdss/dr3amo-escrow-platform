@@ -25,43 +25,51 @@ export const navItems: NavItem[] = [
   { icon: Settings, label: "Settings" },
 ];
 
-export const clientKpis: KpiItem[] = [
-  {
-    change: "+12.6% funded this week",
-    icon: CircleDollarSign,
-    label: "Funds in Escrows",
-    tone: "lime",
-    value: "$48.2k",
-  },
-  {
-    change: "5 are in milestone review",
-    icon: ClipboardList,
-    label: "Active Contracts",
-    tone: "white",
-    value: "18",
-  },
-  {
-    change: "2 waiting on your approval",
-    icon: FileClock,
-    label: "Pending Reviews",
-    tone: "amber",
-    value: "07",
-  },
-  {
-    change: "Next delivery due in 2 days",
-    icon: CalendarClock,
-    label: "Deadlines Approaching",
-    tone: "amber",
-    value: "04",
-  },
-  {
-    change: "93% success rate this quarter",
-    icon: CheckCheck,
-    label: "Completed Contracts",
-    tone: "lime",
-    value: "29",
-  },
-];
+export function createClientKpis(
+  fundsInEscrows: string,
+  activeContractsCount: string,
+  completedContractsCount: string,
+  pendingReviewsCount: string,
+  deadlinesApproachingCount: string
+): KpiItem[] {
+  return [
+    {
+      change: "",
+      icon: CircleDollarSign,
+      label: "Funds in Active Escrows",
+      tone: "lime",
+      value: fundsInEscrows,
+    },
+    {
+      change: "Contracts currently active for this client",
+      icon: ClipboardList,
+      label: "Active Contracts",
+      tone: "white",
+      value: activeContractsCount,
+    },
+    {
+      change: "Contracts currently waiting for your review",
+      icon: FileClock,
+      label: "Pending Reviews",
+      tone: "amber",
+      value: pendingReviewsCount,
+    },
+    {
+      change: "Contracts with a deadline within 2 days",
+      icon: CalendarClock,
+      label: "Deadlines Approaching",
+      tone: "amber",
+      value: deadlinesApproachingCount,
+    },
+    {
+      change: "Contracts finished or closed for this client",
+      icon: CheckCheck,
+      label: "Completed Contracts",
+      tone: "lime",
+      value: completedContractsCount,
+    },
+  ];
+}
 
 export const freelancerKpis: KpiItem[] = [
   {

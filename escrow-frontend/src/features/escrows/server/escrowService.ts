@@ -2,6 +2,8 @@ import { AppError } from "@/lib/errors";
 import type { UserRecord } from "@/features/auth/types/user";
 import { findUserByWalletAddress } from "@/features/auth/server/userRepository";
 import type {
+  ClientEscrowStateGroups,
+  ClientEscrowSummaryResult,
   CreateEscrowRequest,
   CreateEscrowResult,
   EscrowChainKey,
@@ -14,6 +16,7 @@ import * as repository from "./escrowRepository";
 type EscrowRepository = {
   createEscrowRecord: typeof repository.createEscrowRecord;
   findEscrowById: typeof repository.findEscrowById;
+  getClientEscrowSummary: typeof repository.getClientEscrowSummary;
   listEscrows: typeof repository.listEscrows;
 };
 
@@ -35,6 +38,12 @@ const TOKEN_IDS: Record<EscrowChainKey, Record<TokenSymbol, number>> = {
     ETH: 3,
     USDC: 2,
   },
+};
+
+const CLIENT_ESCROW_STATE_GROUPS: ClientEscrowStateGroups = {
+  activeExcluded: ["canceled", "cancelled", "released", "refunded"],
+  completed: ["canceled", "cancelled", "released", "refunded"],
+  pendingReview: ["work submitted"],
 };
 
 function getTokenId(chainKey: EscrowChainKey, tokenSymbol: TokenSymbol): number {
@@ -59,6 +68,13 @@ export async function listEscrows(
   repo: EscrowRepository = defaultRepository
 ): Promise<EscrowListResult> {
   return { escrows: await repo.listEscrows() };
+}
+
+export async function getClientEscrowSummary(
+  clientId: number,
+  repo: EscrowRepository = defaultRepository
+): Promise<ClientEscrowSummaryResult> {
+  return repo.getClientEscrowSummary(clientId, CLIENT_ESCROW_STATE_GROUPS);
 }
 
 export async function createEscrow(

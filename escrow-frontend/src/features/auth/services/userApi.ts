@@ -1,61 +1,46 @@
-export type UserRecord = {
-  id: number;
-  username: string;
-  wallet_address: string;
-  created_at: string;
-};
-
-export type WalletLookupResponse = {
-  exists: boolean;
-  user: UserRecord | null;
-};
-
-export type CreateUserPayload = {
-  username: string;
-  walletAddress: string;
-};
+import { fetchApi } from "@/lib/api/fetch";
+import { normalizeUsername, normalizeWalletAddress } from "@/lib/normalizers";
+import type {
+  CreateUserRequest,
+  CreateUserResult,
+  UserLookupResponse,
+  UserRecord,
+} from "@/features/auth/types/user";
 
 export async function checkUserByWallet(
   walletAddress: string
-): Promise<WalletLookupResponse> {
-  const response = await fetch(
-    `/api/users/walletaddress?walletAddress=${encodeURIComponent(walletAddress)}`
+) : Promise<UserLookupResponse> {
+  const normalizedWalletAddress = normalizeWalletAddress(walletAddress);
+
+  return fetchApi<UserLookupResponse>(
+    `/api/users/walletaddress?walletAddress=${encodeURIComponent(normalizedWalletAddress)}`
   );
-  const data = await response.json();
+}
 
-  if (!response.ok) {
-    throw new Error(data?.error ?? "Failed to check user.");
-  }
+export async function checkUserByUsername(
+  username: string
+): Promise<UserLookupResponse> {
+  const normalizedUsername = normalizeUsername(username);
 
-  return {
-    exists: Boolean(data?.exists),
-    user: data?.user ?? null,
-  };
+  return fetchApi<UserLookupResponse>(
+    `/api/users/username?username=${encodeURIComponent(normalizedUsername)}`
+  );
 }
 
 export async function createUser({
   username,
   walletAddress,
-}: CreateUserPayload): Promise<{ message?: string; user: UserRecord | null }> {
-  const response = await fetch("/api/users", {
+}: CreateUserRequest): Promise<CreateUserResult> {
+  return fetchApi<CreateUserResult>("/api/users", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       username,
-      walletAddress,
+      walletAddress: normalizeWalletAddress(walletAddress),
     }),
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data?.error ?? "Failed to create user.");
-  }
-
-  return {
-    message: data?.message,
-    user: data?.user ?? null,
-  };
 }
+
+export type { CreateUserRequest, CreateUserResult, UserLookupResponse, UserRecord };

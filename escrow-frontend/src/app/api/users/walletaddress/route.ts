@@ -1,32 +1,23 @@
-import { NextResponse } from "next/server";
-import { findUserByWalletAddress } from "@/lib/users";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+} from "@/lib/api/responses";
+import {
+  parseWalletLookupRequest,
+} from "@/features/auth/server/userRequests";
+import { findUserByWallet } from "@/features/auth/server/userService";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get("walletAddress")?.trim()?.toLowerCase();
+    const parsedRequest = parseWalletLookupRequest(request);
 
-    if (!walletAddress) {
-      return NextResponse.json(
-        { error: "walletAddress query param is required." },
-        { status: 400 }
-      );
+    if (!parsedRequest.success) {
+      return createErrorResponse(parsedRequest.error, 400);
     }
 
-    const user = await findUserByWalletAddress(walletAddress);
-
-    return NextResponse.json(
-      {
-        exists: Boolean(user),
-        user,
-      },
-      { status: 200 }
-    );
+    return createSuccessResponse(await findUserByWallet(parsedRequest.data));
   } catch (error) {
     console.error("GET /api/users/walletaddress error:", error);
-    return NextResponse.json(
-      { error: "Failed to check wallet address." },
-      { status: 500 }
-    );
+    return createErrorResponse("Failed to check wallet address.", 500);
   }
 }

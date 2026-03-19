@@ -1,16 +1,14 @@
-const mockQuery = jest.fn();
+const mockCreateUserRecord = jest.fn();
+const mockFindUserById = jest.fn();
 const mockFindUserByWalletAddress = jest.fn();
+const mockListUsers = jest.fn();
 
-jest.mock("@/lib/db", () => ({
-  __esModule: true,
-  default: {
-    query: (...args: unknown[]) => mockQuery(...args),
-  },
-}));
-
-jest.mock("@/lib/users", () => ({
+jest.mock("@/features/auth/server/userRepository", () => ({
+  createUserRecord: (...args: unknown[]) => mockCreateUserRecord(...args),
+  findUserById: (...args: unknown[]) => mockFindUserById(...args),
   findUserByWalletAddress: (...args: unknown[]) =>
     mockFindUserByWalletAddress(...args),
+  listUsers: (...args: unknown[]) => mockListUsers(...args),
 }));
 
 import { GET, POST } from "@/app/api/users/route";
@@ -37,23 +35,31 @@ describe("/api/users route", () => {
       },
     ];
 
-    mockQuery.mockResolvedValueOnce([users]);
+    mockListUsers.mockResolvedValueOnce(users);
 
     const response = await GET();
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({ users });
+    expect(body).toEqual({
+      success: true,
+      data: { users },
+      error: null,
+    });
   });
 
-  it("GET returns 500 on query failure", async () => {
-    mockQuery.mockRejectedValueOnce(new Error("db down"));
+  it("GET returns 500 on repository failure", async () => {
+    mockListUsers.mockRejectedValueOnce(new Error("db down"));
 
     const response = await GET();
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body).toEqual({ error: "Failed to fetch users." });
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "Failed to fetch users." },
+    });
   });
 
   it("POST returns 400 when walletAddress is missing", async () => {
@@ -67,7 +73,11 @@ describe("/api/users route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body).toEqual({ error: "walletAddress is required." });
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "walletAddress is required." },
+    });
     expect(mockFindUserByWalletAddress).not.toHaveBeenCalled();
   });
 
@@ -92,8 +102,12 @@ describe("/api/users route", () => {
     expect(mockFindUserByWalletAddress).toHaveBeenCalledWith("0xabc");
     expect(response.status).toBe(200);
     expect(body).toEqual({
-      message: "User already exists.",
-      user: existingUser,
+      success: true,
+      data: {
+        message: "User already exists.",
+        user: existingUser,
+      },
+      error: null,
     });
   });
 
@@ -110,7 +124,11 @@ describe("/api/users route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body).toEqual({ error: "username is required for new users." });
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "username is required for new users." },
+    });
   });
 
   it("POST creates a user and returns 201", async () => {
@@ -122,8 +140,8 @@ describe("/api/users route", () => {
     };
 
     mockFindUserByWalletAddress.mockResolvedValueOnce(null);
-    mockQuery.mockResolvedValueOnce([{ insertId: 7 }]);
-    mockQuery.mockResolvedValueOnce([[newUser]]);
+    mockCreateUserRecord.mockResolvedValueOnce(7);
+    mockFindUserById.mockResolvedValueOnce(newUser);
 
     const request = new Request("http://localhost/api/users", {
       method: "POST",
@@ -136,8 +154,12 @@ describe("/api/users route", () => {
 
     expect(response.status).toBe(201);
     expect(body).toEqual({
-      message: "User created successfully.",
-      user: newUser,
+      success: true,
+      data: {
+        message: "User created successfully.",
+        user: newUser,
+      },
+      error: null,
     });
   });
 
@@ -154,6 +176,10 @@ describe("/api/users route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body).toEqual({ error: "Failed to process request." });
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "Failed to process request." },
+    });
   });
 });

@@ -1,13 +1,12 @@
-const mockFindUserByWalletAddress = jest.fn();
+const mockFindUserByUsername = jest.fn();
 
 jest.mock("@/features/auth/server/userRepository", () => ({
-  findUserByWalletAddress: (...args: unknown[]) =>
-    mockFindUserByWalletAddress(...args),
+  findUserByUsername: (...args: unknown[]) => mockFindUserByUsername(...args),
 }));
 
-import { GET } from "@/app/api/users/walletaddress/route";
+import { GET } from "@/app/api/users/username/route";
 
-describe("/api/users/walletaddress route", () => {
+describe("/api/users/username route", () => {
   let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -19,8 +18,8 @@ describe("/api/users/walletaddress route", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("returns 400 when walletAddress query param is missing", async () => {
-    const request = new Request("http://localhost/api/users/walletaddress");
+  it("returns 400 when username query param is missing", async () => {
+    const request = new Request("http://localhost/api/users/username");
 
     const response = await GET(request);
     const body = await response.json();
@@ -29,21 +28,21 @@ describe("/api/users/walletaddress route", () => {
     expect(body).toEqual({
       success: false,
       data: null,
-      error: { message: "walletAddress query param is required." },
+      error: { message: "username query param is required." },
     });
   });
 
   it("returns exists=false when user is not found", async () => {
-    mockFindUserByWalletAddress.mockResolvedValueOnce(null);
+    mockFindUserByUsername.mockResolvedValueOnce(null);
 
     const request = new Request(
-      "http://localhost/api/users/walletaddress?walletAddress=0xAbC"
+      "http://localhost/api/users/username?username=alice"
     );
 
     const response = await GET(request);
     const body = await response.json();
 
-    expect(mockFindUserByWalletAddress).toHaveBeenCalledWith("0xabc");
+    expect(mockFindUserByUsername).toHaveBeenCalledWith("alice");
     expect(response.status).toBe(200);
     expect(body).toEqual({
       success: true,
@@ -59,10 +58,10 @@ describe("/api/users/walletaddress route", () => {
       wallet_address: "0xabc",
       created_at: "2026-02-18T00:00:00.000Z",
     };
-    mockFindUserByWalletAddress.mockResolvedValueOnce(user);
+    mockFindUserByUsername.mockResolvedValueOnce(user);
 
     const request = new Request(
-      "http://localhost/api/users/walletaddress?walletAddress=0xAbC"
+      "http://localhost/api/users/username?username=alice"
     );
 
     const response = await GET(request);
@@ -77,10 +76,10 @@ describe("/api/users/walletaddress route", () => {
   });
 
   it("returns 500 when lookup throws", async () => {
-    mockFindUserByWalletAddress.mockRejectedValueOnce(new Error("boom"));
+    mockFindUserByUsername.mockRejectedValueOnce(new Error("boom"));
 
     const request = new Request(
-      "http://localhost/api/users/walletaddress?walletAddress=0xabc"
+      "http://localhost/api/users/username?username=alice"
     );
 
     const response = await GET(request);
@@ -90,7 +89,7 @@ describe("/api/users/walletaddress route", () => {
     expect(body).toEqual({
       success: false,
       data: null,
-      error: { message: "Failed to check wallet address." },
+      error: { message: "Failed to check username." },
     });
   });
 });

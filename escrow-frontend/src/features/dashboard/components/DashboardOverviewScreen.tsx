@@ -6,14 +6,15 @@ import { useAccount } from "wagmi";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import {
   createClientKpis,
+  createFreelancerKpis,
   dashboardActivity,
-  freelancerKpis,
 } from "@/features/dashboard/data/dashboardData";
 import { DashboardActivityFeed } from "@/features/dashboard/components/DashboardActivityFeed";
 import { DashboardKpiGrid } from "@/features/dashboard/components/DashboardKpiGrid";
 import { DashboardShell } from "@/features/dashboard/components/DashboardShell";
 import { DashboardUserCard } from "@/features/dashboard/components/DashboardUserCard";
 import { useClientEscrowFunds } from "@/features/dashboard/hooks/useClientEscrowFunds";
+import { useFreelancerEscrowFunds } from "@/features/dashboard/hooks/useFreelancerEscrowFunds";
 
 type DashboardOverviewScreenProps = {
   switchDashboardHref: string;
@@ -47,6 +48,9 @@ export function DashboardOverviewScreen({
   const clientEscrowFunds = useClientEscrowFunds(
     variant === "client" ? user?.id : undefined
   );
+  const freelancerEscrowFunds = useFreelancerEscrowFunds(
+    variant === "freelancer" ? user?.id : undefined
+  );
   const displayValues = getDisplayValues(address, user?.username);
   const kpis =
     variant === "client"
@@ -57,7 +61,13 @@ export function DashboardOverviewScreen({
           clientEscrowFunds.pendingReviewsCount,
           clientEscrowFunds.deadlinesApproachingCount
         )
-      : freelancerKpis;
+      : createFreelancerKpis(
+          freelancerEscrowFunds.fundsToReceive,
+          freelancerEscrowFunds.activeContractsCount,
+          freelancerEscrowFunds.waitingDeliveriesCount,
+          freelancerEscrowFunds.deadlinesApproachingCount,
+          freelancerEscrowFunds.completedContractsCount
+        );
 
   return (
     <DashboardShell activeNavLabel="Overview">

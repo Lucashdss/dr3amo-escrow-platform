@@ -5,6 +5,8 @@ import type {
   ClientEscrowStateGroups,
   ClientEscrowSummaryResult,
   EscrowRecord,
+  FreelancerEscrowStateGroups,
+  FreelancerEscrowSummaryResult,
 } from "@/features/escrows/types/escrow";
 
 type EscrowRow = EscrowRecord & RowDataPacket;
@@ -14,6 +16,13 @@ type ClientEscrowSummaryRow = RowDataPacket & {
   completedContractsCount: number;
   pendingReviewsCount: number;
   totalAmount: number | string;
+};
+type FreelancerEscrowSummaryRow = RowDataPacket & {
+  activeContractsCount: number;
+  completedContractsCount: number;
+  deadlinesApproachingCount: number;
+  totalAmount: number | string;
+  waitingDeliveriesCount: number;
 };
 
 export type CreateEscrowRecordInput = {
@@ -158,5 +167,93 @@ export async function getClientEscrowSummary(
     completedContractsCount: rows[0]?.completedContractsCount ?? 0,
     pendingReviewsCount: rows[0]?.pendingReviewsCount ?? 0,
     totalAmount: normalizeAmountTotal(rows[0]?.totalAmount ?? "0"),
+  };
+}
+
+export async function getFreelancerEscrowSummary(
+  freelancerId: number,
+  stateGroups: FreelancerEscrowStateGroups
+): Promise<FreelancerEscrowSummaryResult> {
+  const completedStatePlaceholders = createStatePlaceholders(
+    stateGroups.completed
+  );
+  const deadlinesStatePlaceholders = createStatePlaceholders(
+    stateGroups.deadlinesExcluded
+  );
+  const receivableStatePlaceholders = createStatePlaceholders(
+    stateGroups.receivableExcluded
+  );
+  const waitingDeliveryStatePlaceholders = createStatePlaceholders(
+    stateGroups.waitingDeliveryExcluded
+  );
+  const [rows] = await pool.query<FreelancerEscrowSummaryRow[]>(
+    `SELECT COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) IN (${completedStatePlaceholders}) THEN 1
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS completedContractsCount,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) NOT IN (${receivableStatePlaceholders})
+                    THEN 1
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS activeContractsCount,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) NOT IN (${deadlinesStatePlaceholders})
+                    AND DATE(deadline) BETWEEN CURDATE()
+                    AND DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 1
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS deadlinesApproachingCount,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) NOT IN (${waitingDeliveryStatePlaceholders})
+                    THEN 1
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS waitingDeliveriesCount,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) NOT IN (${receivableStatePlaceholders})
+                    THEN CAST(amount AS DECIMAL(18, 8))
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS totalAmount
+     FROM escrows
+     WHERE freelancer_id = ?`,
+    [
+      ...stateGroups.completed,
+      ...stateGroups.deadlinesExcluded,
+      ...stateGroups.receivableExcluded,
+      ...stateGroups.waitingDeliveryExcluded,
+      ...stateGroups.receivableExcluded,
+      freelancerId,
+    ]
+  );
+
+  return {
+    activeContractsCount: rows[0]?.activeContractsCount ?? 0,
+    completedContractsCount: rows[0]?.completedContractsCount ?? 0,
+    deadlinesApproachingCount: rows[0]?.deadlinesApproachingCount ?? 0,
+    totalAmount: normalizeAmountTotal(rows[0]?.totalAmount ?? "0"),
+    waitingDeliveriesCount: rows[0]?.waitingDeliveriesCount ?? 0,
   };
 }

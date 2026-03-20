@@ -34,7 +34,7 @@ export function createClientKpis(
 ): KpiItem[] {
   return [
     {
-      change: "",
+      change: "Funds currently held in active escrows",
       icon: CircleDollarSign,
       label: "Funds in Active Escrows",
       tone: "lime",
@@ -71,43 +71,51 @@ export function createClientKpis(
   ];
 }
 
-export const freelancerKpis: KpiItem[] = [
-  {
-    change: "+12.6% receiving this week",
-    icon: CircleDollarSign,
-    label: "Funds to Receive",
-    tone: "lime",
-    value: "$10.2k",
-  },
-  {
-    change: "5 new this month",
-    icon: ClipboardList,
-    label: "Active Contracts",
-    tone: "white",
-    value: "18",
-  },
-  {
-    change: "2 waiting on your approval",
-    icon: FileClock,
-    label: "Waiting Deliveries",
-    tone: "amber",
-    value: "07",
-  },
-  {
-    change: "Next delivery due in 2 days",
-    icon: CalendarClock,
-    label: "Deadlines Approaching",
-    tone: "amber",
-    value: "04",
-  },
-  {
-    change: "93% success rate this quarter",
-    icon: CheckCheck,
-    label: "Completed Contracts",
-    tone: "lime",
-    value: "29",
-  },
-];
+export function createFreelancerKpis(
+  fundsToReceive: string,
+  activeContractsCount: string,
+  waitingDeliveriesCount: string,
+  deadlinesApproachingCount: string,
+  completedContractsCount: string
+): KpiItem[] {
+  return [
+    {
+      change: "Funds still available to be released to you",
+      icon: CircleDollarSign,
+      label: "Funds to Receive",
+      tone: "lime",
+      value: fundsToReceive,
+    },
+    {
+      change: "Contracts currently active for this freelancer",
+      icon: ClipboardList,
+      label: "Active Contracts",
+      tone: "white",
+      value: activeContractsCount,
+    },
+    {
+      change: "Contracts for this freelancer not in work submitted",
+      icon: FileClock,
+      label: "Waiting Deliveries",
+      tone: "amber",
+      value: waitingDeliveriesCount,
+    },
+    {
+      change: "Contracts due within 2 days and still in progress",
+      icon: CalendarClock,
+      label: "Deadlines Approaching",
+      tone: "amber",
+      value: deadlinesApproachingCount,
+    },
+    {
+      change: "Contracts done",
+      icon: CheckCheck,
+      label: "Completed Contracts",
+      tone: "lime",
+      value: completedContractsCount,
+    },
+  ];
+}
 
 export const dashboardActivity: ActivityItem[] = [
   {

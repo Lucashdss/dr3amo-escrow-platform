@@ -56,8 +56,8 @@ describe("/api/escrows/client-funds route", () => {
 
     expect(response.status).toBe(200);
     expect(mockGetClientEscrowSummary).toHaveBeenCalledWith(7, {
-      activeExcluded: ["canceled", "cancelled", "released", "refunded"],
-      completed: ["canceled", "cancelled", "released", "refunded"],
+      activeExcluded: ["cancelled", "released", "refunded"],
+      completed: ["cancelled", "released", "refunded"],
       pendingReview: ["work submitted"],
     });
     expect(body).toEqual({

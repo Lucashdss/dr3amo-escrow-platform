@@ -8,6 +8,8 @@ import type {
   CreateEscrowResult,
   EscrowChainKey,
   EscrowListResult,
+  FreelancerEscrowStateGroups,
+  FreelancerEscrowSummaryResult,
   TokenSymbol,
 } from "@/features/escrows/types/escrow";
 
@@ -17,6 +19,7 @@ type EscrowRepository = {
   createEscrowRecord: typeof repository.createEscrowRecord;
   findEscrowById: typeof repository.findEscrowById;
   getClientEscrowSummary: typeof repository.getClientEscrowSummary;
+  getFreelancerEscrowSummary: typeof repository.getFreelancerEscrowSummary;
   listEscrows: typeof repository.listEscrows;
 };
 
@@ -41,9 +44,15 @@ const TOKEN_IDS: Record<EscrowChainKey, Record<TokenSymbol, number>> = {
 };
 
 const CLIENT_ESCROW_STATE_GROUPS: ClientEscrowStateGroups = {
-  activeExcluded: ["canceled", "cancelled", "released", "refunded"],
-  completed: ["canceled", "cancelled", "released", "refunded"],
+  activeExcluded: ["cancelled", "released", "refunded"],
+  completed: ["cancelled", "released", "refunded"],
   pendingReview: ["work submitted"],
+};
+const FREELANCER_ESCROW_STATE_GROUPS: FreelancerEscrowStateGroups = {
+  completed: ["released"],
+  deadlinesExcluded: ["work submitted", "cancelled", "released", "refunded"],
+  receivableExcluded: ["cancelled", "released", "refunded"],
+  waitingDeliveryExcluded: ["work submitted"],
 };
 
 function getTokenId(chainKey: EscrowChainKey, tokenSymbol: TokenSymbol): number {
@@ -75,6 +84,16 @@ export async function getClientEscrowSummary(
   repo: EscrowRepository = defaultRepository
 ): Promise<ClientEscrowSummaryResult> {
   return repo.getClientEscrowSummary(clientId, CLIENT_ESCROW_STATE_GROUPS);
+}
+
+export async function getFreelancerEscrowSummary(
+  freelancerId: number,
+  repo: EscrowRepository = defaultRepository
+): Promise<FreelancerEscrowSummaryResult> {
+  return repo.getFreelancerEscrowSummary(
+    freelancerId,
+    FREELANCER_ESCROW_STATE_GROUPS
+  );
 }
 
 export async function createEscrow(

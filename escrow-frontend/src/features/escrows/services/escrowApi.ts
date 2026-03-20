@@ -3,6 +3,7 @@ import type {
   ClientEscrowSummaryResult,
   CreateEscrowRequest,
   CreateEscrowResult,
+  FreelancerEscrowSummaryResult,
 } from "@/features/escrows/types/escrow";
 
 export async function persistEscrow(
@@ -22,5 +23,13 @@ export async function fetchClientEscrowSummary(
 ): Promise<ClientEscrowSummaryResult> {
   return fetchApi<ClientEscrowSummaryResult>(
     `/api/escrows/client-funds?clientId=${clientId}`
+  );
+}
+
+export async function fetchFreelancerEscrowSummary(
+  freelancerId: number
+): Promise<FreelancerEscrowSummaryResult> {
+  return fetchApi<FreelancerEscrowSummaryResult>(
+    `/api/escrows/freelancer-funds?freelancerId=${freelancerId}`
   );
 }

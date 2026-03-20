@@ -172,12 +172,25 @@ export function parseCreateEscrowRequest(
 export function parseClientEscrowFundsRequest(
   request: Request
 ): ValidationResult<number> {
-  const clientIdValue = new URL(request.url).searchParams.get("clientId");
-  const clientId = Number.parseInt(clientIdValue ?? "", 10);
+  return parsePositiveIntegerQueryParam(request, "clientId");
+}
 
-  if (!Number.isInteger(clientId) || clientId <= 0) {
-    return createValidationError("clientId query param must be a positive integer.");
+function parsePositiveIntegerQueryParam(
+  request: Request,
+  key: "clientId" | "freelancerId"
+): ValidationResult<number> {
+  const value = new URL(request.url).searchParams.get(key);
+  const parsedValue = Number.parseInt(value ?? "", 10);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    return createValidationError(`${key} query param must be a positive integer.`);
   }
 
-  return createValidationSuccess(clientId);
+  return createValidationSuccess(parsedValue);
+}
+
+export function parseFreelancerEscrowFundsRequest(
+  request: Request
+): ValidationResult<number> {
+  return parsePositiveIntegerQueryParam(request, "freelancerId");
 }

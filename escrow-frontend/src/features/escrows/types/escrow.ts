@@ -53,6 +53,21 @@ export type ClientEscrowStateGroups = {
   pendingReview: readonly string[];
 };
 
+export type FreelancerEscrowSummaryResult = {
+  activeContractsCount: number;
+  completedContractsCount: number;
+  deadlinesApproachingCount: number;
+  totalAmount: string;
+  waitingDeliveriesCount: number;
+};
+
+export type FreelancerEscrowStateGroups = {
+  completed: readonly string[];
+  deadlinesExcluded: readonly string[];
+  receivableExcluded: readonly string[];
+  waitingDeliveryExcluded: readonly string[];
+};
+
 export type EscrowSummary = {
   id: string;
   client: string;

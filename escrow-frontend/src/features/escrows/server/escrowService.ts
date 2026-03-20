@@ -7,6 +7,8 @@ import type {
   CreateEscrowRequest,
   CreateEscrowResult,
   EscrowChainKey,
+  EscrowManagementDetailResult,
+  EscrowManagementListResult,
   EscrowListResult,
   FreelancerEscrowStateGroups,
   FreelancerEscrowSummaryResult,
@@ -17,10 +19,12 @@ import * as repository from "./escrowRepository";
 
 type EscrowRepository = {
   createEscrowRecord: typeof repository.createEscrowRecord;
+  findEscrowManagementByIdForUser: typeof repository.findEscrowManagementByIdForUser;
   findEscrowById: typeof repository.findEscrowById;
   getClientEscrowSummary: typeof repository.getClientEscrowSummary;
   getFreelancerEscrowSummary: typeof repository.getFreelancerEscrowSummary;
   listEscrows: typeof repository.listEscrows;
+  listEscrowsForUser: typeof repository.listEscrowsForUser;
 };
 
 type UserLookup = (walletAddress: string) => Promise<UserRecord | null>;
@@ -79,6 +83,27 @@ export async function listEscrows(
   return { escrows: await repo.listEscrows() };
 }
 
+export async function listEscrowsForUser(
+  userId: number,
+  repo: EscrowRepository = defaultRepository
+): Promise<EscrowManagementListResult> {
+  return { escrows: await repo.listEscrowsForUser(userId) };
+}
+
+export async function getEscrowManagementDetail(
+  id: number,
+  userId: number,
+  repo: EscrowRepository = defaultRepository
+): Promise<EscrowManagementDetailResult> {
+  const escrow = await repo.findEscrowManagementByIdForUser(id, userId);
+
+  if (!escrow) {
+    throw new AppError("Escrow not found.", 404);
+  }
+
+  return { escrow };
+}
+
 export async function getClientEscrowSummary(
   clientId: number,
   repo: EscrowRepository = defaultRepository
@@ -117,6 +142,7 @@ export async function createEscrow(
     clientId: clientUser.id,
     contractAddress: request.contractAddress,
     deadline: request.deadline,
+    escrowName: request.escrowName,
     freelancerId: freelancerUser.id,
     state: request.state,
     tokenId: getTokenId(request.chainKey, request.tokenSymbol),

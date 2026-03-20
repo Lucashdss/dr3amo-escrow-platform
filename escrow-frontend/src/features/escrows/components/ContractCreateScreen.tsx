@@ -1,13 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
-
 import { DashboardUserCard } from "@/features/dashboard/components/DashboardUserCard";
 import { DashboardShell } from "@/features/dashboard/components/DashboardShell";
 import { useCreateEscrow } from "@/features/escrows/hooks/useCreateEscrow";
 import { EscrowFormFields } from "@/features/escrows/components/EscrowFormFields";
-import { EscrowRequirementsCard } from "@/features/escrows/components/EscrowRequirementsCard";
 import { EscrowStatusBanner } from "@/features/escrows/components/EscrowStatusBanner";
 import { EscrowSubmissionFooter } from "@/features/escrows/components/EscrowSubmissionFooter";
 
@@ -25,18 +21,7 @@ export function ContractCreateScreen() {
   } = useCreateEscrow();
 
   return (
-    <DashboardShell
-      activeNavLabel="Contracts"
-      sideAction={
-        <Link
-          href="/client"
-          className="flex min-h-16 min-w-0 items-center justify-center gap-3 rounded-[1.8rem] border border-[#b6ef5f]/30 bg-[#b6ef5f]/12 px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#b6ef5f]/18 lg:min-h-[132px] lg:flex-col lg:px-4 lg:text-center"
-        >
-          <ShieldCheck className="h-5 w-5 shrink-0 text-[#b6ef5f]" />
-          <span>Back to dashboard</span>
-        </Link>
-      }
-    >
+    <DashboardShell activeNavLabel="Contracts">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -65,7 +50,7 @@ export function ContractCreateScreen() {
         />
       </header>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <section>
         <article className="rounded-[2.2rem] border border-white/10 bg-[#171717] p-6">
           <div className="border-b border-white/10 pb-6">
             <p className="text-sm font-semibold uppercase tracking-[0.28em] text-white/50">
@@ -83,9 +68,11 @@ export function ContractCreateScreen() {
           <form className="mt-8 grid gap-5" onSubmit={handleSubmit}>
             <EscrowFormFields
               deadline={form.deadline}
+              escrowName={form.escrowName}
               freelancerInput={form.freelancerInput}
               selectedChain={form.selectedChain}
               setDeadline={form.setDeadline}
+              setEscrowName={form.setEscrowName}
               setFreelancerInput={form.setFreelancerInput}
               setSelectedChain={form.setSelectedChain}
               setTokenSymbol={form.setTokenSymbol}
@@ -102,19 +89,15 @@ export function ContractCreateScreen() {
             />
 
             <EscrowSubmissionFooter
-              deliveryDaysPreview={form.deliveryDaysPreview}
               handleSwitchChain={handleSwitchChain}
               isLoadingClientUser={isLoadingClientUser}
               isSubmitting={form.isSubmitting}
               isSwitchingChain={isSwitchingChain}
               isWrongNetwork={isWrongNetwork}
               selectedChainDisplayName={selectedChainConfig.displayName}
-              upfrontBpsPreview={form.upfrontBpsPreview}
             />
           </form>
         </article>
-
-        <EscrowRequirementsCard />
       </section>
     </DashboardShell>
   );

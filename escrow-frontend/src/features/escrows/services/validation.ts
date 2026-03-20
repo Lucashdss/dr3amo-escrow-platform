@@ -16,16 +16,34 @@ import {
 
 export const CHAIN_OPTIONS = ESCROW_CHAIN_KEYS;
 export const TOKEN_OPTIONS = TOKEN_SYMBOLS;
+export const MAX_ESCROW_NAME_LENGTH = 50;
 
 export type EscrowSubmissionInput = {
   clientUser: UserRecord | null;
   deadline: string;
+  escrowName: string;
   isConnected: boolean;
   isWrongNetwork: boolean;
   selectedChain: EscrowChainKey;
   upfrontPercentage: string;
   walletAddress?: string;
 };
+
+export function validateEscrowName(value: string): ValidationResult<string> {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return createValidationError("Contract name is required.");
+  }
+
+  if (trimmedValue.length > MAX_ESCROW_NAME_LENGTH) {
+    return createValidationError(
+      `Contract name must be ${MAX_ESCROW_NAME_LENGTH} characters or fewer.`
+    );
+  }
+
+  return createValidationSuccess(trimmedValue);
+}
 
 export function parseUpfrontPercentage(value: string): number | null {
   const trimmedValue = value.trim();
@@ -81,7 +99,11 @@ export function getEscrowErrorMessage(error: unknown, fallback: string): string 
 
 export function validateEscrowSubmission(
   input: EscrowSubmissionInput
-): ValidationResult<{ deliveryDays: number; upfrontPercentage: number }> {
+): ValidationResult<{
+  deliveryDays: number;
+  escrowName: string;
+  upfrontPercentage: number;
+}> {
   if (!input.walletAddress || !input.isConnected) {
     return createValidationError("Connect your wallet before creating an escrow.");
   }
@@ -104,6 +126,12 @@ export function validateEscrowSubmission(
     );
   }
 
+  const escrowName = validateEscrowName(input.escrowName);
+
+  if (!escrowName.success) {
+    return escrowName;
+  }
+
   const upfrontPercentage = parseUpfrontPercentage(input.upfrontPercentage);
 
   if (upfrontPercentage === null) {
@@ -120,5 +148,9 @@ export function validateEscrowSubmission(
     );
   }
 
-  return createValidationSuccess({ deliveryDays, upfrontPercentage });
+  return createValidationSuccess({
+    deliveryDays,
+    escrowName: escrowName.data,
+    upfrontPercentage,
+  });
 }

@@ -22,6 +22,7 @@ import type {
 export const navItems: NavItem[] = [
   { href: "/client", icon: LayoutDashboard, label: "Overview" },
   { href: "/client/contracts", icon: Handshake, label: "Contracts" },
+  { href: "/client/management", icon: Wallet, label: "Management" },
   { icon: Settings, label: "Settings" },
 ];
 

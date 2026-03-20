@@ -17,12 +17,14 @@ type EscrowFormState = {
   deadline: string;
   deliveryDaysPreview: number | null;
   errorMessage: string | null;
+  escrowName: string;
   freelancerInput: string;
   isSubmitting: boolean;
   selectedChain: EscrowChainKey;
   setCreatedEscrowAddress: (value: string | null) => void;
   setDeadline: (value: string) => void;
   setErrorMessage: (value: string | null) => void;
+  setEscrowName: (value: string) => void;
   setFreelancerInput: (value: string) => void;
   setIsSubmitting: (value: boolean) => void;
   setSelectedChain: (value: EscrowChainKey) => void;
@@ -39,6 +41,7 @@ type EscrowFormState = {
 
 export function useEscrowForm(): EscrowFormState {
   const [selectedChain, setSelectedChain] = useState<EscrowChainKey>("base");
+  const [escrowName, setEscrowName] = useState("");
   const [freelancerInput, setFreelancerInput] = useState("");
   const [deadline, setDeadline] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState<TokenSymbol>("USDC");
@@ -65,12 +68,14 @@ export function useEscrowForm(): EscrowFormState {
     deadline,
     deliveryDaysPreview,
     errorMessage,
+    escrowName,
     freelancerInput,
     isSubmitting,
     selectedChain,
     setCreatedEscrowAddress,
     setDeadline,
     setErrorMessage,
+    setEscrowName,
     setFreelancerInput,
     setIsSubmitting,
     setSelectedChain,

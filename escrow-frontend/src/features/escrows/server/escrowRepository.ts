@@ -4,12 +4,28 @@ import pool from "@/lib/db";
 import type {
   ClientEscrowStateGroups,
   ClientEscrowSummaryResult,
+  EscrowManagementItem,
   EscrowRecord,
   FreelancerEscrowStateGroups,
   FreelancerEscrowSummaryResult,
 } from "@/features/escrows/types/escrow";
 
 type EscrowRow = EscrowRecord & RowDataPacket;
+type EscrowManagementRow = RowDataPacket & {
+  id: number;
+  amount: string;
+  chainId: number;
+  clientId: number;
+  clientUsername: string | null;
+  contractAddress: string;
+  createdAt: string;
+  deadline: string;
+  escrowName: string;
+  freelancerId: number;
+  freelancerUsername: string | null;
+  state: string;
+  tokenId: number;
+};
 type ClientEscrowSummaryRow = RowDataPacket & {
   activeContractsCount: number;
   deadlinesApproachingCount: number;
@@ -31,10 +47,27 @@ export type CreateEscrowRecordInput = {
   clientId: number;
   contractAddress: string;
   deadline: string;
+  escrowName: string;
   freelancerId: number;
   state: string;
   tokenId: number;
 };
+
+const ESCROW_SELECT_FIELDS =
+  "id, contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, deadline, state, created_at";
+const MANAGEMENT_SELECT_FIELDS = `escrows.id AS id,
+  escrows.amount AS amount,
+  escrows.chain_id AS chainId,
+  escrows.client_id AS clientId,
+  client_user.username AS clientUsername,
+  escrows.contract_address AS contractAddress,
+  escrows.created_at AS createdAt,
+  escrows.deadline AS deadline,
+  escrows.escrow_name AS escrowName,
+  escrows.freelancer_id AS freelancerId,
+  freelancer_user.username AS freelancerUsername,
+  escrows.state AS state,
+  escrows.token_id AS tokenId`;
 
 async function queryEscrows(
   sql: string,
@@ -44,9 +77,63 @@ async function queryEscrows(
   return rows;
 }
 
+function getEscrowRole(
+  clientId: number,
+  freelancerId: number,
+  userId: number
+): EscrowManagementItem["role"] {
+  if (clientId === userId && freelancerId === userId) {
+    return "client_and_freelancer";
+  }
+
+  return clientId === userId ? "client" : "freelancer";
+}
+
+function mapManagementRow(
+  row: EscrowManagementRow,
+  userId: number
+): EscrowManagementItem {
+  return {
+    amount: row.amount,
+    chainId: row.chainId,
+    clientUsername: row.clientUsername ?? "Unknown client",
+    contractAddress: row.contractAddress,
+    createdAt: row.createdAt,
+    deadline: row.deadline,
+    escrowName: row.escrowName,
+    freelancerUsername: row.freelancerUsername ?? "Unknown freelancer",
+    id: row.id,
+    role: getEscrowRole(row.clientId, row.freelancerId, userId),
+    state: row.state,
+    tokenId: row.tokenId,
+  };
+}
+
+async function queryManagementEscrows(
+  sql: string,
+  values: readonly unknown[],
+  userId: number
+): Promise<EscrowManagementItem[]> {
+  const [rows] = await pool.query<EscrowManagementRow[]>(sql, values);
+  return rows.map((row) => mapManagementRow(row, userId));
+}
+
 export async function listEscrows(): Promise<EscrowRecord[]> {
-  return queryEscrows(
-    "SELECT id, contract_address, client_id, freelancer_id, token_id, chain_id, amount, deadline, state, created_at FROM escrows ORDER BY created_at DESC"
+  return queryEscrows(`SELECT ${ESCROW_SELECT_FIELDS} FROM escrows ORDER BY created_at DESC`);
+}
+
+export async function listEscrowsForUser(
+  userId: number
+): Promise<EscrowManagementItem[]> {
+  return queryManagementEscrows(
+    `SELECT ${MANAGEMENT_SELECT_FIELDS}
+     FROM escrows
+     LEFT JOIN users AS client_user ON client_user.id = escrows.client_id
+     LEFT JOIN users AS freelancer_user ON freelancer_user.id = escrows.freelancer_id
+     WHERE escrows.client_id = ? OR escrows.freelancer_id = ?
+     ORDER BY escrows.created_at DESC`,
+    [userId, userId],
+    userId
   );
 }
 
@@ -54,9 +141,10 @@ export async function createEscrowRecord(
   input: CreateEscrowRecordInput
 ): Promise<number> {
   const [result] = await pool.query<ResultSetHeader>(
-    "INSERT INTO escrows (contract_address, client_id, freelancer_id, token_id, chain_id, amount, deadline, state, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())",
+    "INSERT INTO escrows (contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, deadline, state, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())",
     [
       input.contractAddress,
+      input.escrowName,
       input.clientId,
       input.freelancerId,
       input.tokenId,
@@ -72,8 +160,27 @@ export async function createEscrowRecord(
 
 export async function findEscrowById(id: number): Promise<EscrowRecord | null> {
   const escrows = await queryEscrows(
-    "SELECT id, contract_address, client_id, freelancer_id, token_id, chain_id, amount, deadline, state, created_at FROM escrows WHERE id = ? LIMIT 1",
+    `SELECT ${ESCROW_SELECT_FIELDS} FROM escrows WHERE id = ? LIMIT 1`,
     [id]
+  );
+
+  return escrows[0] ?? null;
+}
+
+export async function findEscrowManagementByIdForUser(
+  id: number,
+  userId: number
+): Promise<EscrowManagementItem | null> {
+  const escrows = await queryManagementEscrows(
+    `SELECT ${MANAGEMENT_SELECT_FIELDS}
+     FROM escrows
+     LEFT JOIN users AS client_user ON client_user.id = escrows.client_id
+     LEFT JOIN users AS freelancer_user ON freelancer_user.id = escrows.freelancer_id
+     WHERE escrows.id = ?
+       AND (escrows.client_id = ? OR escrows.freelancer_id = ?)
+     LIMIT 1`,
+    [id, userId, userId],
+    userId
   );
 
   return escrows[0] ?? null;

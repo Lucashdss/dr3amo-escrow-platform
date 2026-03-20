@@ -59,6 +59,7 @@ export function useCreateEscrow() {
     const validation = validateEscrowSubmission({
       clientUser,
       deadline: form.deadline,
+      escrowName: form.escrowName,
       isConnected: account.isConnected,
       isWrongNetwork,
       selectedChain: form.selectedChain,
@@ -92,6 +93,7 @@ export function useCreateEscrow() {
         clientWalletAddress: account.address ?? "",
         contractAddress: deployment.escrowAddress,
         deadline: form.deadline,
+        escrowName: validation.data.escrowName,
         freelancerWalletAddress: freelancer.user.wallet_address,
         state: "created",
         tokenSymbol: form.tokenSymbol,

@@ -68,6 +68,30 @@ function parseContractAddress(value: string): ValidationResult<string> {
   return createValidationSuccess(value);
 }
 
+function parseEscrowName(value: string): ValidationResult<string> {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return createValidationError("escrowName is required.");
+  }
+
+  if (trimmedValue.length > 50) {
+    return createValidationError("escrowName must be 50 characters or fewer.");
+  }
+
+  return createValidationSuccess(trimmedValue);
+}
+
+function parseEscrowId(value: string): ValidationResult<number> {
+  const parsedValue = Number.parseInt(value, 10);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    return createValidationError("id must be a positive integer.");
+  }
+
+  return createValidationSuccess(parsedValue);
+}
+
 export function parseCreateEscrowRequest(
   body: unknown
 ): ValidationResult<CreateEscrowRequest> {
@@ -81,6 +105,11 @@ export function parseCreateEscrowRequest(
     payload,
     "contractAddress",
     "A valid contractAddress is required."
+  );
+  const escrowName = getRequiredString(
+    payload,
+    "escrowName",
+    "escrowName is required."
   );
   const clientWalletAddress = getRequiredString(
     payload,
@@ -104,6 +133,10 @@ export function parseCreateEscrowRequest(
 
   if (!contractAddress.success) {
     return contractAddress;
+  }
+
+  if (!escrowName.success) {
+    return escrowName;
   }
 
   if (!clientWalletAddress.success) {
@@ -135,6 +168,7 @@ export function parseCreateEscrowRequest(
   }
 
   const parsedContractAddress = parseContractAddress(contractAddress.data);
+  const parsedEscrowName = parseEscrowName(escrowName.data);
   const parsedClientWallet = parseWalletAddress(
     clientWalletAddress.data,
     "clientWalletAddress"
@@ -146,6 +180,10 @@ export function parseCreateEscrowRequest(
 
   if (!parsedContractAddress.success) {
     return parsedContractAddress;
+  }
+
+  if (!parsedEscrowName.success) {
+    return parsedEscrowName;
   }
 
   if (!parsedClientWallet.success) {
@@ -162,10 +200,41 @@ export function parseCreateEscrowRequest(
     clientWalletAddress: parsedClientWallet.data,
     contractAddress: parsedContractAddress.data,
     deadline: deadline.data,
+    escrowName: parsedEscrowName.data,
     freelancerWalletAddress: parsedFreelancerWallet.data,
     state: state.data,
     tokenSymbol: tokenSymbol.data,
     txHash: txHash.data,
+  });
+}
+
+export function parseEscrowManagementRequest(
+  request: Request
+): ValidationResult<number> {
+  return parsePositiveIntegerQueryParam(request, "userId");
+}
+
+export function parseEscrowManagementDetailRequest(
+  request: Request,
+  id: string
+): ValidationResult<{
+  id: number;
+  userId: number;
+}> {
+  const userId = parsePositiveIntegerQueryParam(request, "userId");
+  const escrowId = parseEscrowId(id);
+
+  if (!userId.success) {
+    return userId;
+  }
+
+  if (!escrowId.success) {
+    return escrowId;
+  }
+
+  return createValidationSuccess({
+    id: escrowId.data,
+    userId: userId.data,
   });
 }
 
@@ -177,7 +246,7 @@ export function parseClientEscrowFundsRequest(
 
 function parsePositiveIntegerQueryParam(
   request: Request,
-  key: "clientId" | "freelancerId"
+  key: "clientId" | "freelancerId" | "userId"
 ): ValidationResult<number> {
   const value = new URL(request.url).searchParams.get(key);
   const parsedValue = Number.parseInt(value ?? "", 10);

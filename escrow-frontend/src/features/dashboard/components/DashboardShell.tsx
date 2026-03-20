@@ -14,7 +14,7 @@ export function DashboardShell({
   sideAction,
 }: DashboardShellProps) {
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-[1800px] flex-col bg-black p-4 shadow-[0_30px_120px_rgba(0,0,0,0.35)] sm:p-6 lg:p-8">
+    <div className="flex min-h-screen w-full flex-col bg-black p-4 shadow-[0_30px_120px_rgba(0,0,0,0.35)] sm:p-6 lg:p-8">
       <div className="grid flex-1 gap-6 lg:grid-cols-[104px_minmax(0,1fr)]">
         <aside className="flex flex-row gap-4 lg:flex-col lg:justify-between">
           <div className="flex flex-1 flex-row items-start gap-4 lg:flex-col">

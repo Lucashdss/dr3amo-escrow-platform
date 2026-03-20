@@ -1,47 +1,23 @@
 type EscrowSubmissionFooterProps = {
-  deliveryDaysPreview: number | null;
   handleSwitchChain: () => Promise<void>;
   isLoadingClientUser: boolean;
   isSubmitting: boolean;
   isSwitchingChain: boolean;
   isWrongNetwork: boolean;
   selectedChainDisplayName: string;
-  upfrontBpsPreview: number | null;
 };
 
 export function EscrowSubmissionFooter({
-  deliveryDaysPreview,
   handleSwitchChain,
   isLoadingClientUser,
   isSubmitting,
   isSwitchingChain,
   isWrongNetwork,
   selectedChainDisplayName,
-  upfrontBpsPreview,
 }: EscrowSubmissionFooterProps) {
   return (
     <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
-      <div className="flex flex-col gap-2 text-sm leading-6 text-white/48">
-        <p>
-          Client status:{" "}
-          {isLoadingClientUser ? "checking account record..." : "ready for submission"}
-        </p>
-        <p>Active network: {selectedChainDisplayName}</p>
-        <p>
-          Delivery period preview:{" "}
-          {deliveryDaysPreview && deliveryDaysPreview > 0
-            ? `${deliveryDaysPreview} day${deliveryDaysPreview === 1 ? "" : "s"}`
-            : "select a future date"}
-        </p>
-        <p>BPS preview: {upfrontBpsPreview === null ? "enter 0-100" : upfrontBpsPreview}</p>
-      </div>
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm leading-6 text-white/48">
-          The factory call uses the selected freelancer, derived delivery days,
-          the chosen Base network data feed, selected token, fixed admin, and
-          computed bps.
-        </p>
         <div className="flex flex-col gap-3 sm:flex-row">
           {isWrongNetwork ? (
             <button

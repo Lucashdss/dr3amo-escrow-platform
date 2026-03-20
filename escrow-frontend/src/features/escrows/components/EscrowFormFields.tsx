@@ -1,12 +1,18 @@
 import { ESCROW_DEPLOYMENT_CONFIGS } from "@/features/escrows/config/deployment";
-import { CHAIN_OPTIONS, TOKEN_OPTIONS } from "@/features/escrows/services/validation";
+import {
+  CHAIN_OPTIONS,
+  MAX_ESCROW_NAME_LENGTH,
+  TOKEN_OPTIONS,
+} from "@/features/escrows/services/validation";
 import type { EscrowChainKey, TokenSymbol } from "@/features/escrows/types/escrow";
 
 type EscrowFormFieldsProps = {
   deadline: string;
+  escrowName: string;
   freelancerInput: string;
   selectedChain: EscrowChainKey;
   setDeadline: (value: string) => void;
+  setEscrowName: (value: string) => void;
   setFreelancerInput: (value: string) => void;
   setSelectedChain: (value: EscrowChainKey) => void;
   setTokenSymbol: (value: TokenSymbol) => void;
@@ -17,9 +23,11 @@ type EscrowFormFieldsProps = {
 
 export function EscrowFormFields({
   deadline,
+  escrowName,
   freelancerInput,
   selectedChain,
   setDeadline,
+  setEscrowName,
   setFreelancerInput,
   setSelectedChain,
   setTokenSymbol,
@@ -31,6 +39,20 @@ export function EscrowFormFields({
     <>
       <label className="grid gap-3">
         <span className="text-sm font-semibold uppercase tracking-[0.18em] text-white/62">
+          Contract name
+        </span>
+        <input
+          type="text"
+          value={escrowName}
+          onChange={(event) => setEscrowName(event.target.value)}
+          placeholder="Website redesign milestone"
+          maxLength={MAX_ESCROW_NAME_LENGTH}
+          className="rounded-[1.4rem] border border-white/10 bg-black/25 px-4 py-4 text-base text-white outline-none transition placeholder:text-white/28 focus:border-[#b6ef5f]/45"
+        />
+      </label>
+
+      <label className="grid gap-3">
+        <span className="text-sm font-semibold uppercase tracking-[0.18em] text-white/62">
           Freelancer address or username
         </span>
         <input
@@ -40,10 +62,6 @@ export function EscrowFormFields({
           placeholder="0x1234...abcd or freelancer_username"
           className="rounded-[1.4rem] border border-white/10 bg-black/25 px-4 py-4 text-base text-white outline-none transition placeholder:text-white/28 focus:border-[#b6ef5f]/45"
         />
-        <span className="text-sm leading-6 text-white/45">
-          Direct wallet input is allowed, but the freelancer still needs an
-          existing app account so the escrow can be persisted.
-        </span>
       </label>
 
       <div className="grid gap-5 md:grid-cols-2">
@@ -57,10 +75,6 @@ export function EscrowFormFields({
             onChange={(event) => setDeadline(event.target.value)}
             className="rounded-[1.4rem] border border-white/10 bg-black/25 px-4 py-4 text-base text-white outline-none transition [color-scheme:dark] focus:border-[#b6ef5f]/45"
           />
-          <span className="text-sm leading-6 text-white/45">
-            The selected date is converted into whole days until deadline for
-            `deliveryPeriod`.
-          </span>
         </label>
 
         <label className="grid gap-3">
@@ -78,10 +92,6 @@ export function EscrowFormFields({
               </option>
             ))}
           </select>
-          <span className="text-sm leading-6 text-white/45">
-            Choose Base Mainnet or Base Sepolia. Sepolia uses its own data feed,
-            token addresses, and factory address.
-          </span>
         </label>
       </div>
 
@@ -101,9 +111,6 @@ export function EscrowFormFields({
               </option>
             ))}
           </select>
-          <span className="text-sm leading-6 text-white/45">
-            ETH maps to the zero address and USDC follows the selected chain.
-          </span>
         </label>
 
         <label className="grid gap-3">
@@ -120,9 +127,6 @@ export function EscrowFormFields({
             placeholder="20"
             className="rounded-[1.4rem] border border-white/10 bg-black/25 px-4 py-4 text-base text-white outline-none transition placeholder:text-white/28 focus:border-[#b6ef5f]/45"
           />
-          <span className="text-sm leading-6 text-white/45">
-            Whole-number percentages are converted to basis points for `bps`.
-          </span>
         </label>
       </div>
     </>

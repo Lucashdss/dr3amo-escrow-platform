@@ -9,6 +9,14 @@ jest.mock("@/features/escrows/server/escrowRepository", () => ({
   getFreelancerEscrowSummary: jest.fn(),
   listEscrows: jest.fn(),
   listEscrowsForUser: jest.fn(),
+  updateEscrowSnapshot: jest.fn(),
+}));
+
+jest.mock("@/features/escrows/services/escrowContract", () => ({
+  decodeEscrowReceiptEventNames: jest.fn(),
+  getFundReceiptUpdate: jest.fn(),
+  getEscrowSyncReceipt: jest.fn(),
+  readEscrowSyncSnapshot: jest.fn(),
 }));
 
 import { GET } from "@/app/api/escrows/[id]/route";

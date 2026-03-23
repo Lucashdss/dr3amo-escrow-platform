@@ -19,7 +19,36 @@ jest.mock("@/features/escrows/hooks/useEscrowManagementDetail", () => ({
   useEscrowManagementDetail: () => ({
     error: null,
     escrow: null,
+    isLoadingLiveEscrowState: false,
+    isLoadingLiveSnapshot: false,
     isLoading: false,
+    liveEscrowState: null,
+    liveSnapshot: null,
+    refresh: jest.fn(),
+    refreshLiveEscrowState: jest.fn(),
+  }),
+}));
+
+jest.mock("@/features/escrows/hooks/useEscrowManagementActions", () => ({
+  useEscrowManagementActions: () => ({
+    actionError: null,
+    actionSuccess: null,
+    actions: [],
+    amountInput: "",
+    closeActionMenu: jest.fn(),
+    closeSelectedAction: jest.fn(),
+    deadlineExtensionInput: "",
+    isActionMenuOpen: false,
+    isExecuting: false,
+    openActionMenu: jest.fn(),
+    selectAction: jest.fn(),
+    selectedAction: null,
+    setAmountInput: jest.fn(),
+    setDeadlineExtensionInput: jest.fn(),
+    setUsdAmountInput: jest.fn(),
+    submitSelectedAction: jest.fn(),
+    submittedHash: null,
+    usdAmountInput: "",
   }),
 }));
 
@@ -42,14 +71,40 @@ const displayValues = {
   trimmedAddress: "0x1234...abcd",
 };
 
+const contentProps = {
+  actionError: null,
+  actionSuccess: null,
+  actions: [],
+  amountInput: "",
+  deadlineExtensionInput: "",
+  displayValues,
+  errorMessage: null,
+  hasUser: true,
+  isActionMenuOpen: false,
+  isExecuting: false,
+  isLoading: false,
+  isLoadingLiveEscrowState: false,
+  isLoadingLiveSnapshot: false,
+  liveSnapshot: null,
+  onAmountInputChange: jest.fn(),
+  onCloseActionMenu: jest.fn(),
+  onCloseSelectedAction: jest.fn(),
+  onDeadlineExtensionInputChange: jest.fn(),
+  onOpenActionMenu: jest.fn(),
+  onSelectAction: jest.fn(),
+  onSubmitSelectedAction: jest.fn(),
+  onUsdAmountInputChange: jest.fn(),
+  selectedAction: null,
+  submittedHash: null,
+  usdAmountInput: "",
+};
+
 describe("ClientManagementDetailScreenContent", () => {
   it("renders the loading state", () => {
     const html = renderToStaticMarkup(
       React.createElement(ClientManagementDetailScreenContent, {
-        displayValues,
-        errorMessage: null,
+        ...contentProps,
         escrow: null,
-        hasUser: true,
         isLoading: true,
       })
     );
@@ -60,11 +115,8 @@ describe("ClientManagementDetailScreenContent", () => {
   it("renders the empty state", () => {
     const html = renderToStaticMarkup(
       React.createElement(ClientManagementDetailScreenContent, {
-        displayValues,
-        errorMessage: null,
+        ...contentProps,
         escrow: null,
-        hasUser: true,
-        isLoading: false,
       })
     );
 
@@ -74,8 +126,7 @@ describe("ClientManagementDetailScreenContent", () => {
   it("renders populated escrow detail", () => {
     const html = renderToStaticMarkup(
       React.createElement(ClientManagementDetailScreenContent, {
-        displayValues,
-        errorMessage: null,
+        ...contentProps,
         escrow: {
           id: 7,
           amount: "0",
@@ -90,8 +141,10 @@ describe("ClientManagementDetailScreenContent", () => {
           state: "created",
           tokenId: 1,
         },
-        hasUser: true,
-        isLoading: false,
+        liveSnapshot: {
+          minimumPriceUsd: "1000000000000000000",
+          modificationsRequested: 1,
+        },
       })
     );
 
@@ -99,5 +152,7 @@ describe("ClientManagementDetailScreenContent", () => {
     expect(html).toContain("Back to Management");
     expect(html).toContain("Base");
     expect(html).toContain("USDC");
+    expect(html).toContain("Minimum price");
+    expect(html).toContain("Modifications requested");
   });
 });

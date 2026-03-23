@@ -1,5 +1,11 @@
 import { AppError } from "@/lib/errors";
 import type { UserRecord } from "@/features/auth/types/user";
+import {
+  decodeEscrowReceiptEventNames,
+  getFundReceiptUpdate,
+  getEscrowSyncReceipt,
+  readEscrowSyncSnapshot,
+} from "@/features/escrows/services/escrowContract";
 import { findUserByWalletAddress } from "@/features/auth/server/userRepository";
 import type {
   ClientEscrowStateGroups,
@@ -7,11 +13,13 @@ import type {
   CreateEscrowRequest,
   CreateEscrowResult,
   EscrowChainKey,
+  EscrowActionKey,
   EscrowManagementDetailResult,
   EscrowManagementListResult,
   EscrowListResult,
   FreelancerEscrowStateGroups,
   FreelancerEscrowSummaryResult,
+  SyncEscrowActionResult,
   TokenSymbol,
 } from "@/features/escrows/types/escrow";
 
@@ -25,6 +33,7 @@ type EscrowRepository = {
   getFreelancerEscrowSummary: typeof repository.getFreelancerEscrowSummary;
   listEscrows: typeof repository.listEscrows;
   listEscrowsForUser: typeof repository.listEscrowsForUser;
+  updateEscrowSnapshot: typeof repository.updateEscrowSnapshot;
 };
 
 type UserLookup = (walletAddress: string) => Promise<UserRecord | null>;
@@ -102,6 +111,49 @@ export async function getEscrowManagementDetail(
   }
 
   return { escrow };
+}
+
+export async function syncEscrowAction(
+  id: number,
+  userId: number,
+  txHash: string,
+  action: EscrowActionKey,
+  repo: EscrowRepository = defaultRepository
+): Promise<SyncEscrowActionResult> {
+  const escrow = await repo.findEscrowManagementByIdForUser(id, userId);
+
+  if (!escrow) {
+    throw new AppError("Escrow not found.", 404);
+  }
+
+  const receipt = await getEscrowSyncReceipt(escrow.chainId, txHash);
+
+  if (receipt.status !== "success") {
+    throw new AppError("The escrow transaction was not successful.", 400);
+  }
+
+  const decodedEventNames = decodeEscrowReceiptEventNames(receipt.logs);
+
+  if (!decodedEventNames.length && action !== "fund") {
+    throw new AppError("Failed to decode a relevant escrow event.", 400);
+  }
+
+  const snapshot =
+    action === "fund"
+      ? await getFundReceiptUpdate(escrow, txHash, receipt.logs)
+      : await readEscrowSyncSnapshot(escrow);
+
+  await repo.updateEscrowSnapshot({
+    amount: snapshot.amount,
+    deadline: snapshot.deadline,
+    id,
+    state: snapshot.state,
+  });
+
+  return {
+    escrow: await repo.findEscrowManagementByIdForUser(id, userId),
+    txHash,
+  };
 }
 
 export async function getClientEscrowSummary(

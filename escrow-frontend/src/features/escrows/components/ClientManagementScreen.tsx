@@ -11,8 +11,6 @@ import {
   formatEscrowDate,
   formatEscrowRole,
   formatEscrowState,
-  getCounterpartyLabel,
-  getCounterpartyTitle,
   trimContractAddress,
 } from "@/features/escrows/services/managementDisplay";
 import type { EscrowManagementItem } from "@/features/escrows/types/escrow";
@@ -117,9 +115,6 @@ function renderEscrowContent(
           <h2 className="mt-5 text-2xl font-black uppercase text-white">
             {escrow.escrowName}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-white/60">
-            {getCounterpartyTitle(escrow.role)}: {getCounterpartyLabel(escrow)}
-          </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div>

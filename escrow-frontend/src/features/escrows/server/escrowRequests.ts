@@ -8,9 +8,12 @@ import {
 } from "@/lib/validation";
 import {
   ESCROW_CHAIN_KEYS,
+  ESCROW_ACTION_KEYS,
   TOKEN_SYMBOLS,
   type CreateEscrowRequest,
+  type EscrowActionKey,
   type EscrowChainKey,
+  type SyncEscrowActionRequest,
   type TokenSymbol,
 } from "@/features/escrows/types/escrow";
 
@@ -90,6 +93,28 @@ function parseEscrowId(value: string): ValidationResult<number> {
   }
 
   return createValidationSuccess(parsedValue);
+}
+
+function parseTxHash(value: unknown): ValidationResult<string> {
+  if (
+    typeof value !== "string" ||
+    !/^0x[a-fA-F0-9]{64}$/.test(value.trim())
+  ) {
+    return createValidationError("A valid txHash is required.");
+  }
+
+  return createValidationSuccess(value.trim());
+}
+
+function parseEscrowAction(value: unknown): ValidationResult<EscrowActionKey> {
+  if (
+    typeof value !== "string" ||
+    !ESCROW_ACTION_KEYS.includes(value as EscrowActionKey)
+  ) {
+    return createValidationError("A valid action is required.");
+  }
+
+  return createValidationSuccess(value as EscrowActionKey);
 }
 
 export function parseCreateEscrowRequest(
@@ -238,6 +263,41 @@ export function parseEscrowManagementDetailRequest(
   });
 }
 
+export function parseEscrowRouteId(id: string): ValidationResult<number> {
+  return parseEscrowId(id);
+}
+
+export function parseEscrowSyncRequest(
+  body: unknown
+): ValidationResult<SyncEscrowActionRequest> {
+  if (!body || typeof body !== "object") {
+    return createValidationError("Request body must be an object.");
+  }
+
+  const payload = body as Record<string, unknown>;
+  const action = parseEscrowAction(payload.action);
+  const txHash = parseTxHash(payload.txHash);
+  const userId = parsePositiveInteger(payload.userId, "userId");
+
+  if (!action.success) {
+    return action;
+  }
+
+  if (!txHash.success) {
+    return txHash;
+  }
+
+  if (!userId.success) {
+    return userId;
+  }
+
+  return createValidationSuccess({
+    action: action.data,
+    txHash: txHash.data,
+    userId: userId.data,
+  });
+}
+
 export function parseClientEscrowFundsRequest(
   request: Request
 ): ValidationResult<number> {
@@ -253,6 +313,20 @@ function parsePositiveIntegerQueryParam(
 
   if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
     return createValidationError(`${key} query param must be a positive integer.`);
+  }
+
+  return createValidationSuccess(parsedValue);
+}
+
+function parsePositiveInteger(
+  value: unknown,
+  key: "userId"
+): ValidationResult<number> {
+  const parsedValue =
+    typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    return createValidationError(`${key} must be a positive integer.`);
   }
 
   return createValidationSuccess(parsedValue);

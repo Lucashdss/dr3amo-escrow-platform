@@ -29,10 +29,6 @@ export function formatEscrowDate(value: string): string {
 }
 
 export function formatEscrowRole(role: EscrowManagementRole): string {
-  if (role === "client_and_freelancer") {
-    return "Client + Freelancer";
-  }
-
   return role === "client" ? "Client" : "Freelancer";
 }
 
@@ -57,11 +53,7 @@ export function getCounterpartyLabel(escrow: EscrowManagementItem): string {
     return escrow.freelancerUsername;
   }
 
-  if (escrow.role === "freelancer") {
-    return escrow.clientUsername;
-  }
-
-  return `${escrow.clientUsername} / ${escrow.freelancerUsername}`;
+  return escrow.clientUsername;
 }
 
 export function getCounterpartyTitle(role: EscrowManagementRole): string {
@@ -69,11 +61,7 @@ export function getCounterpartyTitle(role: EscrowManagementRole): string {
     return "Freelancer";
   }
 
-  if (role === "freelancer") {
-    return "Client";
-  }
-
-  return "Participants";
+  return "Client";
 }
 
 export function trimContractAddress(address: string): string {

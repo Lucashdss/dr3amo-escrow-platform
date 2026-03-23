@@ -64,7 +64,7 @@ describe("/api/escrows/management route", () => {
         deadline: "2026-03-24",
         escrowName: "Handoff audit",
         freelancerUsername: "client",
-        role: "client_and_freelancer",
+        role: "client",
         state: "work submitted",
         tokenId: 3,
       },

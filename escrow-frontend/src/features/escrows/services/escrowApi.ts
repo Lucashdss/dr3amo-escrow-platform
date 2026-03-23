@@ -6,6 +6,8 @@ import type {
   EscrowManagementDetailResult,
   EscrowManagementListResult,
   FreelancerEscrowSummaryResult,
+  SyncEscrowActionRequest,
+  SyncEscrowActionResult,
 } from "@/features/escrows/types/escrow";
 
 export async function persistEscrow(
@@ -51,4 +53,17 @@ export async function fetchEscrowManagementDetail(
   return fetchApi<EscrowManagementDetailResult>(
     `/api/escrows/${id}?userId=${userId}`
   );
+}
+
+export async function syncEscrowManagementAction(
+  id: number,
+  request: SyncEscrowActionRequest
+): Promise<SyncEscrowActionResult> {
+  return fetchApi<SyncEscrowActionResult>(`/api/escrows/${id}/sync`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
 }

@@ -1,8 +1,28 @@
 export const ESCROW_CHAIN_KEYS = ["base", "baseSepolia"] as const;
 export const TOKEN_SYMBOLS = ["ETH", "USDC"] as const;
+export const ESCROW_ACTION_KEYS = [
+  "fund",
+  "confirmDelivery",
+  "requestModificationAndUpdateDeadline",
+  "initiateDispute",
+  "setMinimumPriceUSD",
+  "markWorkSubmitted",
+] as const;
+export const ESCROW_LIVE_STATES = [
+  "created",
+  "funded",
+  "work submitted",
+  "pending modification",
+  "released",
+  "refunded",
+  "dispute",
+  "canceled",
+] as const;
 
 export type EscrowChainKey = (typeof ESCROW_CHAIN_KEYS)[number];
 export type TokenSymbol = (typeof TOKEN_SYMBOLS)[number];
+export type EscrowActionKey = (typeof ESCROW_ACTION_KEYS)[number];
+export type EscrowLiveState = (typeof ESCROW_LIVE_STATES)[number];
 
 export type EscrowRecord = {
   id: number;
@@ -41,11 +61,7 @@ export type EscrowListResult = {
   escrows: EscrowRecord[];
 };
 
-export const ESCROW_MANAGEMENT_ROLES = [
-  "client",
-  "freelancer",
-  "client_and_freelancer",
-] as const;
+export const ESCROW_MANAGEMENT_ROLES = ["client", "freelancer"] as const;
 
 export type EscrowManagementRole = (typeof ESCROW_MANAGEMENT_ROLES)[number];
 
@@ -70,6 +86,31 @@ export type EscrowManagementListResult = {
 
 export type EscrowManagementDetailResult = {
   escrow: EscrowManagementItem | null;
+};
+
+export type EscrowLiveSnapshot = {
+  minimumPriceUsd: string | null;
+  modificationsRequested: number | null;
+};
+
+export type EscrowActionAvailability = {
+  description: string;
+  disabled: boolean;
+  disabledReason: string | null;
+  inputKind: "none" | "amount" | "days" | "usd";
+  key: EscrowActionKey;
+  label: string;
+};
+
+export type SyncEscrowActionRequest = {
+  action: EscrowActionKey;
+  txHash: string;
+  userId: number;
+};
+
+export type SyncEscrowActionResult = {
+  escrow: EscrowManagementItem | null;
+  txHash: string;
 };
 
 export type ClientEscrowSummaryResult = {

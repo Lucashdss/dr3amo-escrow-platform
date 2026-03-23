@@ -53,6 +53,13 @@ export type CreateEscrowRecordInput = {
   tokenId: number;
 };
 
+export type UpdateEscrowSnapshotInput = {
+  amount: string;
+  deadline: string;
+  id: number;
+  state: string;
+};
+
 const ESCROW_SELECT_FIELDS =
   "id, contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, deadline, state, created_at";
 const MANAGEMENT_SELECT_FIELDS = `escrows.id AS id,
@@ -82,10 +89,6 @@ function getEscrowRole(
   freelancerId: number,
   userId: number
 ): EscrowManagementItem["role"] {
-  if (clientId === userId && freelancerId === userId) {
-    return "client_and_freelancer";
-  }
-
   return clientId === userId ? "client" : "freelancer";
 }
 
@@ -165,6 +168,15 @@ export async function findEscrowById(id: number): Promise<EscrowRecord | null> {
   );
 
   return escrows[0] ?? null;
+}
+
+export async function updateEscrowSnapshot(
+  input: UpdateEscrowSnapshotInput
+): Promise<void> {
+  await pool.query<ResultSetHeader>(
+    "UPDATE escrows SET amount = ?, deadline = ?, state = ? WHERE id = ?",
+    [input.amount, input.deadline, input.state, input.id]
+  );
 }
 
 export async function findEscrowManagementByIdForUser(

@@ -8,23 +8,24 @@ type FreelancerEscrowFundsState = {
   activeContractsCount: string;
   completedContractsCount: string;
   deadlinesApproachingCount: string;
-  fundsToReceive: string;
+  fundsToReceiveEth: string;
+  fundsToReceiveUsdc: string;
   waitingDeliveriesCount: string;
 };
 
-function formatEscrowFunds(amount: string): string {
+function formatTokenAmount(amount: string, token: "ETH" | "USDC"): string {
   const parsedAmount = Number.parseFloat(amount);
+  const minimumFractionDigits = token === "ETH" ? 4 : 2;
 
   if (Number.isNaN(parsedAmount)) {
-    return "$0.00";
+    return token === "ETH" ? "0.0000 ETH" : "0.00 USDC";
   }
 
   return new Intl.NumberFormat("en-US", {
-    currency: "USD",
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-    style: "currency",
-  }).format(parsedAmount);
+    maximumFractionDigits: minimumFractionDigits,
+    minimumFractionDigits,
+  }).format(parsedAmount)
+    .concat(` ${token}`);
 }
 
 export function useFreelancerEscrowFunds(
@@ -33,7 +34,8 @@ export function useFreelancerEscrowFunds(
   const [activeContractsCount, setActiveContractsCount] = useState("0");
   const [completedContractsCount, setCompletedContractsCount] = useState("0");
   const [deadlinesApproachingCount, setDeadlinesApproachingCount] = useState("0");
-  const [fundsToReceive, setFundsToReceive] = useState("$0.00");
+  const [fundsToReceiveEth, setFundsToReceiveEth] = useState("0.0000 ETH");
+  const [fundsToReceiveUsdc, setFundsToReceiveUsdc] = useState("0.00 USDC");
   const [waitingDeliveriesCount, setWaitingDeliveriesCount] = useState("0");
 
   useEffect(() => {
@@ -41,7 +43,8 @@ export function useFreelancerEscrowFunds(
       setActiveContractsCount("0");
       setCompletedContractsCount("0");
       setDeadlinesApproachingCount("0");
-      setFundsToReceive("$0.00");
+      setFundsToReceiveEth("0.0000 ETH");
+      setFundsToReceiveUsdc("0.00 USDC");
       setWaitingDeliveriesCount("0");
       return;
     }
@@ -59,7 +62,8 @@ export function useFreelancerEscrowFunds(
           setDeadlinesApproachingCount(
             result.deadlinesApproachingCount.toString()
           );
-          setFundsToReceive(formatEscrowFunds(result.totalAmount));
+          setFundsToReceiveEth(formatTokenAmount(result.ethAmount, "ETH"));
+          setFundsToReceiveUsdc(formatTokenAmount(result.usdcAmount, "USDC"));
           setWaitingDeliveriesCount(result.waitingDeliveriesCount.toString());
         }
       } catch {
@@ -67,7 +71,8 @@ export function useFreelancerEscrowFunds(
           setActiveContractsCount("0");
           setCompletedContractsCount("0");
           setDeadlinesApproachingCount("0");
-          setFundsToReceive("$0.00");
+          setFundsToReceiveEth("0.0000 ETH");
+          setFundsToReceiveUsdc("0.00 USDC");
           setWaitingDeliveriesCount("0");
         }
       }
@@ -84,7 +89,8 @@ export function useFreelancerEscrowFunds(
     activeContractsCount,
     completedContractsCount,
     deadlinesApproachingCount,
-    fundsToReceive,
+    fundsToReceiveEth,
+    fundsToReceiveUsdc,
     waitingDeliveriesCount,
   };
 }

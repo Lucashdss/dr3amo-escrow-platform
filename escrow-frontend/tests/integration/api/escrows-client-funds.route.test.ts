@@ -43,8 +43,10 @@ describe("/api/escrows/client-funds route", () => {
       activeContractsCount: 4,
       deadlinesApproachingCount: 1,
       completedContractsCount: 3,
+      ethAmount: "0.45",
       pendingReviewsCount: 2,
       totalAmount: "1250.50",
+      usdcAmount: "1250.50",
     });
 
     const request = new Request(
@@ -66,8 +68,10 @@ describe("/api/escrows/client-funds route", () => {
         activeContractsCount: 4,
         deadlinesApproachingCount: 1,
         completedContractsCount: 3,
+        ethAmount: "0.45",
         pendingReviewsCount: 2,
         totalAmount: "1250.50",
+        usdcAmount: "1250.50",
       },
       error: null,
     });

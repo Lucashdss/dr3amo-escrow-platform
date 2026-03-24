@@ -5,7 +5,6 @@ import {
   ESCROW_TERMINAL_STATES,
   getEscrowActionDefinition,
 } from "@/features/escrows/config/escrowContract";
-import { calculateDeliveryDays } from "@/features/escrows/services/validation";
 import type {
   EscrowActionAvailability,
   EscrowActionKey,
@@ -240,8 +239,4 @@ export function formatMinimumPriceValue(value: string | null): string {
   } catch {
     return value;
   }
-}
-
-export function getModificationExtensionDays(value: string): number | null {
-  return calculateDeliveryDays(value);
 }

@@ -55,14 +55,20 @@ export function DashboardOverviewScreen({
   const kpis =
     variant === "client"
       ? createClientKpis(
-          clientEscrowFunds.fundsInEscrows,
+          {
+            ETH: clientEscrowFunds.fundsInEscrowsEth,
+            USDC: clientEscrowFunds.fundsInEscrowsUsdc,
+          },
           clientEscrowFunds.activeContractsCount,
           clientEscrowFunds.completedContractsCount,
           clientEscrowFunds.pendingReviewsCount,
           clientEscrowFunds.deadlinesApproachingCount
         )
       : createFreelancerKpis(
-          freelancerEscrowFunds.fundsToReceive,
+          {
+            ETH: freelancerEscrowFunds.fundsToReceiveEth,
+            USDC: freelancerEscrowFunds.fundsToReceiveUsdc,
+          },
           freelancerEscrowFunds.activeContractsCount,
           freelancerEscrowFunds.waitingDeliveriesCount,
           freelancerEscrowFunds.deadlinesApproachingCount,

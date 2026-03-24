@@ -15,6 +15,7 @@ import {
 import type {
   ActivityItem,
   KpiItem,
+  KpiValueOptions,
   NavItem,
   ToneClasses,
 } from "@/features/dashboard/types/dashboard";
@@ -27,7 +28,7 @@ export const navItems: NavItem[] = [
 ];
 
 export function createClientKpis(
-  fundsInEscrows: string,
+  fundsInEscrows: KpiValueOptions,
   activeContractsCount: string,
   completedContractsCount: string,
   pendingReviewsCount: string,
@@ -39,7 +40,8 @@ export function createClientKpis(
       icon: CircleDollarSign,
       label: "Funds in Active Escrows",
       tone: "lime",
-      value: fundsInEscrows,
+      value: fundsInEscrows.USDC,
+      valueOptions: fundsInEscrows,
     },
     {
       change: "Contracts currently active for this client",
@@ -73,7 +75,7 @@ export function createClientKpis(
 }
 
 export function createFreelancerKpis(
-  fundsToReceive: string,
+  fundsToReceive: KpiValueOptions,
   activeContractsCount: string,
   waitingDeliveriesCount: string,
   deadlinesApproachingCount: string,
@@ -85,7 +87,8 @@ export function createFreelancerKpis(
       icon: CircleDollarSign,
       label: "Funds to Receive",
       tone: "lime",
-      value: fundsToReceive,
+      value: fundsToReceive.USDC,
+      valueOptions: fundsToReceive,
     },
     {
       change: "Contracts currently active for this freelancer",

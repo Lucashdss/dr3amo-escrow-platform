@@ -23,6 +23,7 @@ type EscrowManagementRow = RowDataPacket & {
   escrowName: string;
   freelancerId: number;
   freelancerUsername: string | null;
+  modificationsRequested: number | null;
   state: string;
   tokenId: number;
 };
@@ -30,14 +31,18 @@ type ClientEscrowSummaryRow = RowDataPacket & {
   activeContractsCount: number;
   deadlinesApproachingCount: number;
   completedContractsCount: number;
+  ethAmount: number | string;
   pendingReviewsCount: number;
   totalAmount: number | string;
+  usdcAmount: number | string;
 };
 type FreelancerEscrowSummaryRow = RowDataPacket & {
   activeContractsCount: number;
   completedContractsCount: number;
   deadlinesApproachingCount: number;
+  ethAmount: number | string;
   totalAmount: number | string;
+  usdcAmount: number | string;
   waitingDeliveriesCount: number;
 };
 
@@ -49,6 +54,7 @@ export type CreateEscrowRecordInput = {
   deadline: string;
   escrowName: string;
   freelancerId: number;
+  modificationsRequested: number;
   state: string;
   tokenId: number;
 };
@@ -57,11 +63,12 @@ export type UpdateEscrowSnapshotInput = {
   amount: string;
   deadline: string;
   id: number;
+  modificationsRequested: number;
   state: string;
 };
 
 const ESCROW_SELECT_FIELDS =
-  "id, contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, deadline, state, created_at";
+  "id, contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested` AS modifications_requested, deadline, state, created_at";
 const MANAGEMENT_SELECT_FIELDS = `escrows.id AS id,
   escrows.amount AS amount,
   escrows.chain_id AS chainId,
@@ -73,6 +80,7 @@ const MANAGEMENT_SELECT_FIELDS = `escrows.id AS id,
   escrows.escrow_name AS escrowName,
   escrows.freelancer_id AS freelancerId,
   freelancer_user.username AS freelancerUsername,
+  escrows.\`ModificationsRequested\` AS modificationsRequested,
   escrows.state AS state,
   escrows.token_id AS tokenId`;
 
@@ -106,6 +114,7 @@ function mapManagementRow(
     escrowName: row.escrowName,
     freelancerUsername: row.freelancerUsername ?? "Unknown freelancer",
     id: row.id,
+    modificationsRequested: row.modificationsRequested ?? 0,
     role: getEscrowRole(row.clientId, row.freelancerId, userId),
     state: row.state,
     tokenId: row.tokenId,
@@ -144,7 +153,7 @@ export async function createEscrowRecord(
   input: CreateEscrowRecordInput
 ): Promise<number> {
   const [result] = await pool.query<ResultSetHeader>(
-    "INSERT INTO escrows (contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, deadline, state, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())",
+    "INSERT INTO escrows (contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested`, deadline, state, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())",
     [
       input.contractAddress,
       input.escrowName,
@@ -153,6 +162,7 @@ export async function createEscrowRecord(
       input.tokenId,
       input.chainId,
       input.amount,
+      input.modificationsRequested,
       input.deadline,
       input.state,
     ]
@@ -174,8 +184,14 @@ export async function updateEscrowSnapshot(
   input: UpdateEscrowSnapshotInput
 ): Promise<void> {
   await pool.query<ResultSetHeader>(
-    "UPDATE escrows SET amount = ?, deadline = ?, state = ? WHERE id = ?",
-    [input.amount, input.deadline, input.state, input.id]
+    "UPDATE escrows SET amount = ?, deadline = ?, state = ?, `ModificationsRequested` = ? WHERE id = ?",
+    [
+      input.amount,
+      input.deadline,
+      input.state,
+      input.modificationsRequested,
+      input.id,
+    ]
   );
 }
 
@@ -203,7 +219,13 @@ function createStatePlaceholders(states: readonly string[]): string {
 }
 
 function normalizeAmountTotal(value: number | string): string {
-  return typeof value === "number" ? value.toString() : value;
+  const normalizedValue = typeof value === "number" ? value.toString() : value;
+
+  if (!normalizedValue.includes(".")) {
+    return normalizedValue;
+  }
+
+  return normalizedValue.replace(/\.?0+$/, "") || "0";
 }
 
 export async function getClientEscrowSummary(
@@ -262,17 +284,39 @@ export async function getClientEscrowSummary(
               SUM(
                 CASE
                   WHEN LOWER(state) NOT IN (${activeStatePlaceholders})
-                    THEN CAST(amount AS DECIMAL(18, 8))
+                    THEN CAST(amount AS DECIMAL(36, 18))
                   ELSE 0
                 END
               ),
               0
-            ) AS totalAmount
+            ) AS totalAmount,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) NOT IN (${activeStatePlaceholders})
+                    AND token_id IN (1, 2) THEN CAST(amount AS DECIMAL(36, 6))
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS usdcAmount,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) NOT IN (${activeStatePlaceholders})
+                    AND token_id = 3 THEN CAST(amount AS DECIMAL(36, 18))
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS ethAmount
      FROM escrows
      WHERE client_id = ?`,
     [
       ...stateGroups.completed,
       ...stateGroups.pendingReview,
+      ...stateGroups.activeExcluded,
+      ...stateGroups.activeExcluded,
       ...stateGroups.activeExcluded,
       ...stateGroups.activeExcluded,
       ...stateGroups.activeExcluded,
@@ -284,8 +328,10 @@ export async function getClientEscrowSummary(
     activeContractsCount: rows[0]?.activeContractsCount ?? 0,
     deadlinesApproachingCount: rows[0]?.deadlinesApproachingCount ?? 0,
     completedContractsCount: rows[0]?.completedContractsCount ?? 0,
+    ethAmount: normalizeAmountTotal(rows[0]?.ethAmount ?? "0"),
     pendingReviewsCount: rows[0]?.pendingReviewsCount ?? 0,
     totalAmount: normalizeAmountTotal(rows[0]?.totalAmount ?? "0"),
+    usdcAmount: normalizeAmountTotal(rows[0]?.usdcAmount ?? "0"),
   };
 }
 
@@ -350,19 +396,41 @@ export async function getFreelancerEscrowSummary(
               SUM(
                 CASE
                   WHEN LOWER(state) NOT IN (${receivableStatePlaceholders})
-                    THEN CAST(amount AS DECIMAL(18, 8))
+                    THEN CAST(amount AS DECIMAL(36, 18))
                   ELSE 0
                 END
               ),
               0
-            ) AS totalAmount
+            ) AS totalAmount,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) NOT IN (${receivableStatePlaceholders})
+                    AND token_id IN (1, 2) THEN CAST(amount AS DECIMAL(36, 6))
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS usdcAmount,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN LOWER(state) NOT IN (${receivableStatePlaceholders})
+                    AND token_id = 3 THEN CAST(amount AS DECIMAL(36, 18))
+                  ELSE 0
+                END
+              ),
+              0
+            ) AS ethAmount
      FROM escrows
      WHERE freelancer_id = ?`,
     [
       ...stateGroups.completed,
-      ...stateGroups.deadlinesExcluded,
       ...stateGroups.receivableExcluded,
+      ...stateGroups.deadlinesExcluded,
       ...stateGroups.waitingDeliveryExcluded,
+      ...stateGroups.receivableExcluded,
+      ...stateGroups.receivableExcluded,
       ...stateGroups.receivableExcluded,
       freelancerId,
     ]
@@ -372,7 +440,9 @@ export async function getFreelancerEscrowSummary(
     activeContractsCount: rows[0]?.activeContractsCount ?? 0,
     completedContractsCount: rows[0]?.completedContractsCount ?? 0,
     deadlinesApproachingCount: rows[0]?.deadlinesApproachingCount ?? 0,
+    ethAmount: normalizeAmountTotal(rows[0]?.ethAmount ?? "0"),
     totalAmount: normalizeAmountTotal(rows[0]?.totalAmount ?? "0"),
+    usdcAmount: normalizeAmountTotal(rows[0]?.usdcAmount ?? "0"),
     waitingDeliveriesCount: rows[0]?.waitingDeliveriesCount ?? 0,
   };
 }

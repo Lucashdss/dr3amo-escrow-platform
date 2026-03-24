@@ -6,7 +6,9 @@ import {
 } from "@wagmi/core";
 import {
   decodeFunctionData,
+  formatUnits,
   parseEventLogs,
+  parseUnits,
   type Address,
   type Hex,
   type Log,
@@ -16,10 +18,9 @@ import {
   ESCROW_ABI,
   getEscrowLiveStateFromIndex,
 } from "@/features/escrows/config/escrowContract";
-import { getEscrowErrorMessage, getTokenAddress } from "@/features/escrows/services/validation";
+import { getEscrowErrorMessage } from "@/features/escrows/services/validation";
 import type {
   EscrowActionKey,
-  EscrowChainKey,
   EscrowLiveSnapshot,
   EscrowLiveState,
   EscrowManagementItem,
@@ -43,18 +44,20 @@ type ExecuteEscrowActionInput = {
 type EscrowSyncSnapshot = {
   amount: string;
   deadline: string;
+  modificationsRequested: number;
   state: string;
 };
 
 type FundReceiptUpdate = {
   amount: string;
   deadline: string;
+  modificationsRequested: number;
   state: string;
 };
 
-const DATABASE_TO_CHAIN_KEY: Record<number, EscrowChainKey> = {
-  1: "base",
-  2: "baseSepolia",
+type ModificationReceiptUpdate = {
+  deadline: string;
+  state: string;
 };
 
 const DATABASE_TO_SUPPORTED_CHAIN_ID: Record<number, SupportedChainId> = {
@@ -88,16 +91,6 @@ export function getSupportedChainIdForEscrow(
   return getSupportedChainId(databaseChainId);
 }
 
-export function getEscrowChainKey(databaseChainId: number): EscrowChainKey {
-  const chainKey = DATABASE_TO_CHAIN_KEY[databaseChainId];
-
-  if (!chainKey) {
-    throw new AppError("Unsupported escrow chain.", 400);
-  }
-
-  return chainKey;
-}
-
 export function getEscrowTokenSymbol(tokenId: number): TokenSymbol {
   if (tokenId === 3) {
     return "ETH";
@@ -106,12 +99,39 @@ export function getEscrowTokenSymbol(tokenId: number): TokenSymbol {
   return "USDC";
 }
 
+function getEscrowTokenDecimals(tokenId: number): number {
+  return getEscrowTokenSymbol(tokenId) === "USDC" ? 6 : 18;
+}
+
 function getContractAddress(address: string): Address {
   return address as Address;
 }
 
 function formatContractDeadline(deadline: bigint): string {
   return new Date(Number(deadline) * 1000).toISOString().slice(0, 10);
+}
+
+function formatDatabaseDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function normalizeStoredAmount(value: string): string {
+  const normalizedValue = value.replace(/(?:\.0+|(\.\d*?[1-9])0+)$/, "$1");
+  return normalizedValue === "" ? "0" : normalizedValue;
+}
+
+function formatEscrowAmountForStorage(value: bigint, tokenId: number): string {
+  return normalizeStoredAmount(formatUnits(value, getEscrowTokenDecimals(tokenId)));
+}
+
+function parseStoredEscrowAmount(value: string, tokenId: number): bigint {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return BigInt(0);
+  }
+
+  return parseUnits(trimmedValue, getEscrowTokenDecimals(tokenId));
 }
 
 export function mapEscrowLiveStateToDatabaseState(
@@ -291,6 +311,26 @@ function parseFundTransactionAmount(input: Hex): bigint | null {
   }
 }
 
+function parseModificationExtensionDays(input: Hex): bigint | null {
+  try {
+    const decodedTransaction = decodeFunctionData({
+      abi: ESCROW_ABI,
+      data: input,
+    });
+
+    if (
+      decodedTransaction.functionName !== "requestModificationAndUpdateDeadline"
+    ) {
+      return null;
+    }
+
+    const [extensionDays] = decodedTransaction.args;
+    return typeof extensionDays === "bigint" ? extensionDays : null;
+  } catch {
+    return null;
+  }
+}
+
 function getUpdatedStateFromLogs(
   logs: readonly Log[],
   currentState: string
@@ -348,8 +388,9 @@ export async function readEscrowSyncSnapshot(
   const liveState = getEscrowLiveStateFromIndex(Number(stateIndex));
 
   return {
-    amount: amountToRelease.toString(),
+    amount: formatEscrowAmountForStorage(amountToRelease, escrow.tokenId),
     deadline: formatContractDeadline(deadline),
+    modificationsRequested: escrow.modificationsRequested ?? 0,
     state: mapEscrowLiveStateToDatabaseState(liveState) ?? escrow.state,
   };
 }
@@ -392,15 +433,45 @@ export async function getFundReceiptUpdate(
   }
 
   return {
-    amount: (BigInt(escrow.amount) + fundedAmount).toString(),
+    amount: formatEscrowAmountForStorage(
+      parseStoredEscrowAmount(escrow.amount, escrow.tokenId) + fundedAmount,
+      escrow.tokenId
+    ),
     deadline: escrow.deadline,
+    modificationsRequested: escrow.modificationsRequested ?? 0,
     state: getUpdatedStateFromLogs(logs, escrow.state),
   };
 }
 
-export function getEscrowTokenContractAddress(
-  tokenId: number,
-  chainId: number
-): Address {
-  return getTokenAddress(getEscrowTokenSymbol(tokenId), getEscrowChainKey(chainId));
+export async function getModificationReceiptUpdate(
+  escrow: EscrowManagementItem,
+  txHash: string
+): Promise<ModificationReceiptUpdate> {
+  const publicClient = getPublicClient(config, {
+    chainId: getSupportedChainId(escrow.chainId),
+  });
+  const transaction = await publicClient.getTransaction({
+    hash: txHash as Hex,
+  });
+  const extensionDays = parseModificationExtensionDays(transaction.input);
+
+  if (extensionDays === null) {
+    throw new AppError(
+      "Failed to decode the modification extension from the transaction.",
+      400
+    );
+  }
+
+  const deadline = new Date(`${escrow.deadline}T00:00:00.000Z`);
+
+  if (Number.isNaN(deadline.getTime())) {
+    throw new AppError("The escrow deadline could not be parsed.", 400);
+  }
+
+  deadline.setUTCDate(deadline.getUTCDate() + Number(extensionDays));
+
+  return {
+    deadline: formatDatabaseDate(deadline),
+    state: "pending modification",
+  };
 }

@@ -3,6 +3,7 @@ import type { UserRecord } from "@/features/auth/types/user";
 import {
   decodeEscrowReceiptEventNames,
   getFundReceiptUpdate,
+  getModificationReceiptUpdate,
   getEscrowSyncReceipt,
   readEscrowSyncSnapshot,
 } from "@/features/escrows/services/escrowContract";
@@ -67,6 +68,59 @@ const FREELANCER_ESCROW_STATE_GROUPS: FreelancerEscrowStateGroups = {
   receivableExcluded: ["cancelled", "released", "refunded"],
   waitingDeliveryExcluded: ["work submitted"],
 };
+
+function getDirectActionSnapshot(
+  action: EscrowActionKey,
+  escrow: {
+    amount: string;
+    deadline: string;
+    modificationsRequested?: number;
+  }
+): {
+  amount: string;
+  deadline: string;
+  modificationsRequested: number;
+  state: string;
+} | null {
+  if (action === "markWorkSubmitted") {
+    return {
+      amount: escrow.amount,
+      deadline: escrow.deadline,
+      modificationsRequested: escrow.modificationsRequested ?? 0,
+      state: "work submitted",
+    };
+  }
+
+  if (action === "initiateDispute") {
+    return {
+      amount: escrow.amount,
+      deadline: escrow.deadline,
+      modificationsRequested: escrow.modificationsRequested ?? 0,
+      state: "dispute",
+    };
+  }
+
+  if (action === "confirmDelivery") {
+    return {
+      amount: escrow.amount,
+      deadline: escrow.deadline,
+      modificationsRequested: escrow.modificationsRequested ?? 0,
+      state: "released",
+    };
+  }
+
+  return null;
+}
+
+function isDirectSyncAction(action: EscrowActionKey): boolean {
+  return (
+    action === "fund" ||
+    action === "markWorkSubmitted" ||
+    action === "initiateDispute" ||
+    action === "confirmDelivery" ||
+    action === "requestModificationAndUpdateDeadline"
+  );
+}
 
 function getTokenId(chainKey: EscrowChainKey, tokenSymbol: TokenSymbol): number {
   return TOKEN_IDS[chainKey][tokenSymbol];
@@ -133,20 +187,38 @@ export async function syncEscrowAction(
   }
 
   const decodedEventNames = decodeEscrowReceiptEventNames(receipt.logs);
+  const directActionSnapshot = getDirectActionSnapshot(action, escrow);
 
-  if (!decodedEventNames.length && action !== "fund") {
+  if (!decodedEventNames.length && !isDirectSyncAction(action)) {
     throw new AppError("Failed to decode a relevant escrow event.", 400);
   }
 
-  const snapshot =
-    action === "fund"
-      ? await getFundReceiptUpdate(escrow, txHash, receipt.logs)
-      : await readEscrowSyncSnapshot(escrow);
+  let snapshot: {
+    amount: string;
+    deadline: string;
+    modificationsRequested: number;
+    state: string;
+  };
+
+  if (action === "fund") {
+    snapshot = await getFundReceiptUpdate(escrow, txHash, receipt.logs);
+  } else if (action === "requestModificationAndUpdateDeadline") {
+    const modificationSnapshot = await getModificationReceiptUpdate(escrow, txHash);
+    snapshot = {
+      amount: escrow.amount,
+      deadline: modificationSnapshot.deadline,
+      modificationsRequested: (escrow.modificationsRequested ?? 0) + 1,
+      state: modificationSnapshot.state,
+    };
+  } else {
+    snapshot = directActionSnapshot ?? (await readEscrowSyncSnapshot(escrow));
+  }
 
   await repo.updateEscrowSnapshot({
     amount: snapshot.amount,
     deadline: snapshot.deadline,
     id,
+    modificationsRequested: snapshot.modificationsRequested,
     state: snapshot.state,
   });
 
@@ -196,6 +268,7 @@ export async function createEscrow(
     deadline: request.deadline,
     escrowName: request.escrowName,
     freelancerId: freelancerUser.id,
+    modificationsRequested: 0,
     state: request.state,
     tokenId: getTokenId(request.chainKey, request.tokenSymbol),
   });

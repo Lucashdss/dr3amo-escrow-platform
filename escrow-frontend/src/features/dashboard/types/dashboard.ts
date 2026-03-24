@@ -1,6 +1,8 @@
 import type { ComponentType, ReactNode } from "react";
 
 export type DashboardTone = "amber" | "lime" | "white";
+export type KpiValueOption = "ETH" | "USDC";
+export type KpiValueOptions = Record<KpiValueOption, string>;
 
 export type NavItem = {
   href?: string;
@@ -14,6 +16,7 @@ export type KpiItem = {
   label: string;
   tone: DashboardTone;
   value: string;
+  valueOptions?: KpiValueOptions;
 };
 
 export type ActivityItem = {

@@ -33,6 +33,7 @@ export type EscrowRecord = {
   token_id: number;
   chain_id: number;
   amount: string;
+  modifications_requested?: number;
   deadline: string;
   state: string;
   created_at: string;
@@ -75,6 +76,7 @@ export type EscrowManagementItem = {
   deadline: string;
   escrowName: string;
   freelancerUsername: string;
+  modificationsRequested?: number;
   role: EscrowManagementRole;
   state: string;
   tokenId: number;
@@ -117,8 +119,10 @@ export type ClientEscrowSummaryResult = {
   activeContractsCount: number;
   deadlinesApproachingCount: number;
   completedContractsCount: number;
+  ethAmount: string;
   pendingReviewsCount: number;
   totalAmount: string;
+  usdcAmount: string;
 };
 
 export type ClientEscrowStateGroups = {
@@ -131,7 +135,9 @@ export type FreelancerEscrowSummaryResult = {
   activeContractsCount: number;
   completedContractsCount: number;
   deadlinesApproachingCount: number;
+  ethAmount: string;
   totalAmount: string;
+  usdcAmount: string;
   waitingDeliveriesCount: number;
 };
 

@@ -9,24 +9,25 @@ type ClientEscrowFundsState = {
   completedContractsCount: string;
   deadlinesApproachingCount: string;
   error: string | null;
+  fundsInEscrowsEth: string;
+  fundsInEscrowsUsdc: string;
   isLoading: boolean;
-  fundsInEscrows: string;
   pendingReviewsCount: string;
 };
 
-function formatEscrowFunds(amount: string): string {
+function formatTokenAmount(amount: string, token: "ETH" | "USDC"): string {
   const parsedAmount = Number.parseFloat(amount);
+  const minimumFractionDigits = token === "ETH" ? 4 : 2;
 
   if (Number.isNaN(parsedAmount)) {
-    return "$0.00";
+    return token === "ETH" ? "0.0000 ETH" : "0.00 USDC";
   }
 
   return new Intl.NumberFormat("en-US", {
-    currency: "USD",
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-    style: "currency",
-  }).format(parsedAmount);
+    maximumFractionDigits: minimumFractionDigits,
+    minimumFractionDigits,
+  }).format(parsedAmount)
+    .concat(` ${token}`);
 }
 
 export function useClientEscrowFunds(
@@ -35,7 +36,8 @@ export function useClientEscrowFunds(
   const [activeContractsCount, setActiveContractsCount] = useState("0");
   const [completedContractsCount, setCompletedContractsCount] = useState("0");
   const [deadlinesApproachingCount, setDeadlinesApproachingCount] = useState("0");
-  const [fundsInEscrows, setFundsInEscrows] = useState("$0.00");
+  const [fundsInEscrowsEth, setFundsInEscrowsEth] = useState("0.0000 ETH");
+  const [fundsInEscrowsUsdc, setFundsInEscrowsUsdc] = useState("0.00 USDC");
   const [pendingReviewsCount, setPendingReviewsCount] = useState("0");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +47,8 @@ export function useClientEscrowFunds(
       setActiveContractsCount("0");
       setCompletedContractsCount("0");
       setDeadlinesApproachingCount("0");
-      setFundsInEscrows("$0.00");
+      setFundsInEscrowsEth("0.0000 ETH");
+      setFundsInEscrowsUsdc("0.00 USDC");
       setPendingReviewsCount("0");
       setError(null);
       setIsLoading(false);
@@ -67,7 +70,8 @@ export function useClientEscrowFunds(
           setDeadlinesApproachingCount(
             result.deadlinesApproachingCount.toString()
           );
-          setFundsInEscrows(formatEscrowFunds(result.totalAmount));
+          setFundsInEscrowsEth(formatTokenAmount(result.ethAmount, "ETH"));
+          setFundsInEscrowsUsdc(formatTokenAmount(result.usdcAmount, "USDC"));
           setPendingReviewsCount(result.pendingReviewsCount.toString());
         }
       } catch (loadError) {
@@ -75,7 +79,8 @@ export function useClientEscrowFunds(
           setActiveContractsCount("0");
           setCompletedContractsCount("0");
           setDeadlinesApproachingCount("0");
-          setFundsInEscrows("$0.00");
+          setFundsInEscrowsEth("0.0000 ETH");
+          setFundsInEscrowsUsdc("0.00 USDC");
           setPendingReviewsCount("0");
           setError(
             loadError instanceof Error
@@ -102,7 +107,8 @@ export function useClientEscrowFunds(
     completedContractsCount,
     deadlinesApproachingCount,
     error,
-    fundsInEscrows,
+    fundsInEscrowsEth,
+    fundsInEscrowsUsdc,
     isLoading,
     pendingReviewsCount,
   };

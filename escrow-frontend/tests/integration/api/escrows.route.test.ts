@@ -14,6 +14,14 @@ jest.mock("@/features/auth/server/userRepository", () => ({
     mockFindUserByWalletAddress(...args),
 }));
 
+jest.mock("@/features/escrows/services/escrowContract", () => ({
+  decodeEscrowReceiptEventNames: jest.fn(),
+  getFundReceiptUpdate: jest.fn(),
+  getModificationReceiptUpdate: jest.fn(),
+  getEscrowSyncReceipt: jest.fn(),
+  readEscrowSyncSnapshot: jest.fn(),
+}));
+
 import { GET, POST } from "@/app/api/escrows/route";
 
 describe("/api/escrows route", () => {
@@ -174,6 +182,7 @@ describe("/api/escrows route", () => {
       deadline: "2026-03-20",
       escrowName: "Landing page refresh",
       freelancerId: 22,
+      modificationsRequested: 0,
       state: "created",
       tokenId: 1,
     });
@@ -245,6 +254,7 @@ describe("/api/escrows route", () => {
       deadline: "2026-03-20",
       escrowName: "Platform migration",
       freelancerId: 22,
+      modificationsRequested: 0,
       state: "created",
       tokenId: 2,
     });

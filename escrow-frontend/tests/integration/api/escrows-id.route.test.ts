@@ -15,6 +15,7 @@ jest.mock("@/features/escrows/server/escrowRepository", () => ({
 jest.mock("@/features/escrows/services/escrowContract", () => ({
   decodeEscrowReceiptEventNames: jest.fn(),
   getFundReceiptUpdate: jest.fn(),
+  getModificationReceiptUpdate: jest.fn(),
   getEscrowSyncReceipt: jest.fn(),
   readEscrowSyncSnapshot: jest.fn(),
 }));

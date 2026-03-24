@@ -44,7 +44,9 @@ describe("/api/escrows/freelancer-funds route", () => {
       activeContractsCount: 6,
       completedContractsCount: 4,
       deadlinesApproachingCount: 2,
+      ethAmount: "1.2",
       totalAmount: "4200.00",
+      usdcAmount: "4200.00",
       waitingDeliveriesCount: 5,
     });
 
@@ -68,7 +70,9 @@ describe("/api/escrows/freelancer-funds route", () => {
         activeContractsCount: 6,
         completedContractsCount: 4,
         deadlinesApproachingCount: 2,
+        ethAmount: "1.2",
         totalAmount: "4200.00",
+        usdcAmount: "4200.00",
         waitingDeliveriesCount: 5,
       },
       error: null,

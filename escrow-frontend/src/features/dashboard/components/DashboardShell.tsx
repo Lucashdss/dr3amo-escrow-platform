@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { DashboardNav } from "@/features/dashboard/components/DashboardNav";
@@ -18,9 +19,12 @@ export function DashboardShell({
       <div className="grid flex-1 gap-6 lg:grid-cols-[104px_minmax(0,1fr)]">
         <aside className="flex flex-row gap-4 lg:flex-col lg:justify-between">
           <div className="flex flex-1 flex-row items-start gap-4 lg:flex-col">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white text-black">
-              <div className="text-3xl font-black tracking-[-0.08em]">N</div>
-            </div>
+            <Link
+              href="/"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:opacity-90"
+            >
+              <div className="text-3xl font-black tracking-[-0.08em]">D</div>
+            </Link>
             <DashboardNav activeLabel={activeNavLabel} />
           </div>
           {sideAction ?? null}

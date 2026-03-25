@@ -17,11 +17,8 @@ import {
   formatEscrowDate,
   formatEscrowRole,
   formatEscrowState,
-  getCounterpartyLabel,
-  getCounterpartyTitle,
   getEscrowChainLabel,
   getEscrowTokenLabel,
-  trimContractAddress,
 } from "@/features/escrows/services/managementDisplay";
 import type {
   EscrowActionAvailability,
@@ -262,15 +259,6 @@ function renderActionMenu(
   return (
     <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-black/20 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-            Contract actions
-          </p>
-          <p className="mt-2 text-sm text-white/60">
-            Display methods available to the connected contract participant.
-          </p>
-        </div>
-
         <button
           type="button"
           onClick={isActionMenuOpen ? onCloseActionMenu : onOpenActionMenu}
@@ -378,10 +366,6 @@ function renderEscrowDetail(
         <h2 className="mt-5 text-3xl font-black uppercase text-white">
           {props.escrow.escrowName}
         </h2>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-white/60">
-          {getCounterpartyTitle(props.escrow.role)}:{" "}
-          {getCounterpartyLabel(props.escrow)}
-        </p>
 
         {renderActionMenu(
           props.actions,
@@ -412,7 +396,7 @@ function renderEscrowDetail(
               Contract address
             </p>
             <p className="mt-2 text-sm text-white">
-              {trimContractAddress(props.escrow.contractAddress)}
+              {props.escrow.contractAddress}
             </p>
           </div>
           <div className="rounded-[1.4rem] border border-white/10 bg-black/20 p-4">
@@ -512,19 +496,12 @@ export function ClientManagementDetailScreenContent(
             >
               Back to Management
             </Link>
-            <div className="rounded-full border border-[#b6ef5f]/20 bg-[#b6ef5f]/10 px-4 py-3 text-sm font-medium text-[#d8f5a7]">
-              Action-enabled detail
-            </div>
           </div>
 
           <div>
             <h1 className="max-w-4xl text-4xl font-black uppercase tracking-tight text-white sm:text-5xl xl:text-6xl">
               Escrow Detail
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-white/60 sm:text-base">
-              Review contract identity, live pricing and modification data, then
-              execute role-based contract actions with post-transaction sync.
-            </p>
           </div>
         </div>
 

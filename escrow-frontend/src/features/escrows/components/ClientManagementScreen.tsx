@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
@@ -21,6 +22,13 @@ type ManagementDisplayValues = {
   trimmedAddress: string;
 };
 
+type EscrowContentState = {
+  errorMessage: string | null;
+  escrows: EscrowManagementItem[];
+  hasUser: boolean;
+  isLoading: boolean;
+};
+
 export type ClientManagementScreenContentProps = {
   displayValues: ManagementDisplayValues;
   errorMessage: string | null;
@@ -28,6 +36,8 @@ export type ClientManagementScreenContentProps = {
   hasUser: boolean;
   isLoading: boolean;
 };
+
+const ESCROWS_PER_PAGE = 6;
 
 function getDisplayValues(
   address: string | undefined,
@@ -56,13 +66,26 @@ function getRoleBadgeClassName(role: EscrowManagementItem["role"]): string {
   return "border-white/15 bg-white/8 text-white/80";
 }
 
-function renderEscrowContent(
-  isLoading: boolean,
-  errorMessage: string | null,
-  hasUser: boolean,
-  escrows: EscrowManagementItem[]
-) {
-  if (isLoading) {
+export function getEscrowPageCount(totalEscrows: number): number {
+  return Math.max(1, Math.ceil(totalEscrows / ESCROWS_PER_PAGE));
+}
+
+export function clampEscrowPage(page: number, pageCount: number): number {
+  return Math.min(Math.max(page, 1), pageCount);
+}
+
+export function getEscrowsForPage(
+  escrows: EscrowManagementItem[],
+  page: number
+): EscrowManagementItem[] {
+  const pageNumber = clampEscrowPage(page, getEscrowPageCount(escrows.length));
+  const startIndex = (pageNumber - 1) * ESCROWS_PER_PAGE;
+
+  return escrows.slice(startIndex, startIndex + ESCROWS_PER_PAGE);
+}
+
+function renderEscrowState(input: EscrowContentState) {
+  if (input.isLoading) {
     return (
       <div className="rounded-[1.8rem] border border-white/10 bg-black/20 p-6 text-sm text-white/70">
         Loading related escrows...
@@ -70,7 +93,7 @@ function renderEscrowContent(
     );
   }
 
-  if (!hasUser) {
+  if (!input.hasUser) {
     return (
       <div className="rounded-[1.8rem] border border-white/10 bg-black/20 p-6 text-sm text-white/70">
         Connect a wallet linked to a registered user to manage related escrows.
@@ -78,15 +101,15 @@ function renderEscrowContent(
     );
   }
 
-  if (errorMessage) {
+  if (input.errorMessage) {
     return (
       <div className="rounded-[1.8rem] border border-[#ff7b7b]/25 bg-[#ff7b7b]/10 p-6 text-sm text-[#ffc5c5]">
-        {errorMessage}
+        {input.errorMessage}
       </div>
     );
   }
 
-  if (!escrows.length) {
+  if (!input.escrows.length) {
     return (
       <div className="rounded-[1.8rem] border border-white/10 bg-black/20 p-6 text-sm text-white/70">
         No escrows are related to this user yet.
@@ -94,6 +117,50 @@ function renderEscrowContent(
     );
   }
 
+  return null;
+}
+
+function EscrowPaginationControls({
+  currentPage,
+  pageCount,
+  onPageChange,
+}: {
+  currentPage: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (pageCount <= 1) {
+    return null;
+  }
+
+  return (
+    <div className="mt-6 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-white/60">
+        Page {currentPage} of {pageCount}
+      </p>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="rounded-[1.2rem] border border-white/10 bg-white/8 px-4 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === pageCount}
+          className="rounded-[1.2rem] border border-[#b6ef5f]/35 bg-[#b6ef5f] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-black transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EscrowCardGrid({ escrows }: { escrows: EscrowManagementItem[] }) {
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       {escrows.map((escrow) => (
@@ -174,6 +241,20 @@ export function ClientManagementScreenContent({
   hasUser,
   isLoading,
 }: ClientManagementScreenContentProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageCount = getEscrowPageCount(escrows.length);
+  const visibleEscrows = getEscrowsForPage(escrows, currentPage);
+  const escrowState = renderEscrowState({
+    errorMessage,
+    escrows,
+    hasUser,
+    isLoading,
+  });
+
+  useEffect(() => {
+    setCurrentPage((page) => clampEscrowPage(page, pageCount));
+  }, [pageCount]);
+
   return (
     <DashboardShell activeNavLabel="Management">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -215,14 +296,18 @@ export function ClientManagementScreenContent({
             <h2 className="mt-3 text-3xl font-black uppercase text-white">
               Related Escrows
             </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-white/60">
-              Every row shows how the current user is connected to the escrow and
-              links into a read-only management detail page.
-            </p>
           </div>
-
           <div className="mt-8">
-            {renderEscrowContent(isLoading, errorMessage, hasUser, escrows)}
+            {escrowState ?? (
+              <>
+                <EscrowCardGrid escrows={visibleEscrows} />
+                <EscrowPaginationControls
+                  currentPage={currentPage}
+                  onPageChange={setCurrentPage}
+                  pageCount={pageCount}
+                />
+              </>
+            )}
           </div>
         </article>
       </section>

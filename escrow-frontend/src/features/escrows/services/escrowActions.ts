@@ -84,6 +84,16 @@ export function deriveEscrowActionAvailability(
   const modificationsRequested = input.liveSnapshot?.modificationsRequested ?? null;
 
   return ESCROW_ROLE_ACTIONS[input.escrow.role].map((actionKey) => {
+    if (actionKey === "cancelEscrow") {
+      const disabled = normalizeState(liveState) !== "created";
+
+      return createDisabledAction(
+        actionKey,
+        disabled,
+        disabled ? "Escrow can only be canceled while still created." : null
+      );
+    }
+
     if (actionKey === "setMinimumPriceUSD") {
       return createDisabledAction(
         actionKey,

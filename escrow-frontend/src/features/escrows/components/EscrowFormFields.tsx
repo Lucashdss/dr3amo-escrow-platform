@@ -53,13 +53,13 @@ export function EscrowFormFields({
 
       <label className="grid gap-3">
         <span className="text-sm font-semibold uppercase tracking-[0.18em] text-white/62">
-          Freelancer address or username
+          Seller address or username
         </span>
         <input
           type="text"
           value={freelancerInput}
           onChange={(event) => setFreelancerInput(event.target.value)}
-          placeholder="0x1234...abcd or freelancer_username"
+          placeholder="0x1234...abcd or seller_username"
           className="rounded-[1.4rem] border border-white/10 bg-black/25 px-4 py-4 text-base text-white outline-none transition placeholder:text-white/28 focus:border-[#b6ef5f]/45"
         />
       </label>

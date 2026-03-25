@@ -20,11 +20,11 @@ describe("ClientFreelancerButtonDashboard", () => {
   const renderComponent = () =>
     renderToStaticMarkup(React.createElement(ClientFreelancerButtonDashboard));
 
-  it("renders client and freelancer buttons", () => {
+  it("renders buyer and seller buttons", () => {
     const html = renderComponent();
 
-    expect(html).toContain(">Client<");
-    expect(html).toContain(">Freelancer<");
+    expect(html).toContain(">Buyer<");
+    expect(html).toContain(">Seller<");
   });
 
   it("renders links to client and freelancer dashboards", () => {

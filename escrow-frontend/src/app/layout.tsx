@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EscrowFreelance",
+  title: "Dr3amo",
   description: "Secure escrow payments for freelance projects.",
 };
 

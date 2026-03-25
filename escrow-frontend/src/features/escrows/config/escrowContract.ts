@@ -7,6 +7,13 @@ import type {
 export const ESCROW_ABI = [
   {
     type: "function",
+    name: "cancelEscrow",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "confirmDelivery",
     inputs: [],
     outputs: [],
@@ -209,6 +216,12 @@ const ESCROW_ACTION_DEFINITIONS: Record<
   EscrowActionKey,
   Omit<EscrowActionAvailability, "disabled" | "disabledReason">
 > = {
+  cancelEscrow: {
+    description: "Cancel the escrow while it is still in the created state.",
+    inputKind: "none",
+    key: "cancelEscrow",
+    label: "Cancel Escrow",
+  },
   confirmDelivery: {
     description: "Confirm the submitted work and release the contract flow.",
     inputKind: "none",
@@ -228,7 +241,7 @@ const ESCROW_ACTION_DEFINITIONS: Record<
     label: "Initiate Dispute",
   },
   markWorkSubmitted: {
-    description: "Mark the freelancer work as submitted for client review.",
+    description: "Mark the seller work as submitted for buyer review.",
     inputKind: "none",
     key: "markWorkSubmitted",
     label: "Mark Work Submitted",
@@ -249,6 +262,7 @@ const ESCROW_ACTION_DEFINITIONS: Record<
 
 export const ESCROW_ROLE_ACTIONS = {
   client: [
+    "cancelEscrow",
     "fund",
     "confirmDelivery",
     "requestModificationAndUpdateDeadline",
@@ -290,4 +304,3 @@ export function getEscrowLiveStateFromIndex(
 ): EscrowLiveState | null {
   return ESCROW_STATE_INDEX[stateIndex] ?? null;
 }
-

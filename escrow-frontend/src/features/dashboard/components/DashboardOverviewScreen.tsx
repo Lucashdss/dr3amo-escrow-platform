@@ -55,25 +55,25 @@ export function DashboardOverviewScreen({
   const kpis =
     variant === "client"
       ? createClientKpis(
-          {
-            ETH: clientEscrowFunds.fundsInEscrowsEth,
-            USDC: clientEscrowFunds.fundsInEscrowsUsdc,
-          },
-          clientEscrowFunds.activeContractsCount,
-          clientEscrowFunds.completedContractsCount,
-          clientEscrowFunds.pendingReviewsCount,
-          clientEscrowFunds.deadlinesApproachingCount
-        )
+        {
+          ETH: clientEscrowFunds.fundsInEscrowsEth,
+          USDC: clientEscrowFunds.fundsInEscrowsUsdc,
+        },
+        clientEscrowFunds.activeContractsCount,
+        clientEscrowFunds.completedContractsCount,
+        clientEscrowFunds.pendingReviewsCount,
+        clientEscrowFunds.deadlinesApproachingCount
+      )
       : createFreelancerKpis(
-          {
-            ETH: freelancerEscrowFunds.fundsToReceiveEth,
-            USDC: freelancerEscrowFunds.fundsToReceiveUsdc,
-          },
-          freelancerEscrowFunds.activeContractsCount,
-          freelancerEscrowFunds.waitingDeliveriesCount,
-          freelancerEscrowFunds.deadlinesApproachingCount,
-          freelancerEscrowFunds.completedContractsCount
-        );
+        {
+          ETH: freelancerEscrowFunds.fundsToReceiveEth,
+          USDC: freelancerEscrowFunds.fundsToReceiveUsdc,
+        },
+        freelancerEscrowFunds.activeContractsCount,
+        freelancerEscrowFunds.waitingDeliveriesCount,
+        freelancerEscrowFunds.deadlinesApproachingCount,
+        freelancerEscrowFunds.completedContractsCount
+      );
 
   return (
     <DashboardShell activeNavLabel="Overview">
@@ -86,9 +86,6 @@ export function DashboardOverviewScreen({
             >
               {switchDashboardLabel}
             </Link>
-            <div className="rounded-full border border-white/10 bg-white/8 px-4 py-3 text-sm font-medium text-white/72">
-              Visual skeleton
-            </div>
           </div>
 
           <div>

@@ -387,13 +387,13 @@ function renderEscrowDetail(
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-[1.4rem] border border-white/10 bg-black/20 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-              Client
+              Buyer
             </p>
             <p className="mt-2 text-sm text-white">{props.escrow.clientUsername}</p>
           </div>
           <div className="rounded-[1.4rem] border border-white/10 bg-black/20 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-              Freelancer
+              Seller
             </p>
             <p className="mt-2 text-sm text-white">
               {props.escrow.freelancerUsername}

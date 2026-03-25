@@ -1,6 +1,7 @@
 export const ESCROW_CHAIN_KEYS = ["base", "baseSepolia"] as const;
 export const TOKEN_SYMBOLS = ["ETH", "USDC"] as const;
 export const ESCROW_ACTION_KEYS = [
+  "cancelEscrow",
   "fund",
   "confirmDelivery",
   "requestModificationAndUpdateDeadline",

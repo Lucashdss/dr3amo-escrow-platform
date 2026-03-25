@@ -119,13 +119,13 @@ function renderEscrowContent(
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-                Client
+                Buyer
               </p>
               <p className="mt-2 text-sm text-white">{escrow.clientUsername}</p>
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-                Freelancer
+                Seller
               </p>
               <p className="mt-2 text-sm text-white">{escrow.freelancerUsername}</p>
             </div>

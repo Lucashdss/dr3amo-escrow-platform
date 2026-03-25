@@ -4,8 +4,8 @@ export default function DashboardPage() {
   return (
     <DashboardOverviewScreen
       switchDashboardHref="/freelancer"
-      switchDashboardLabel="Freelancer Dashboard"
-      title="Client Dashboard"
+      switchDashboardLabel="Seller Dashboard"
+      title="Buyer Dashboard"
       variant="client"
     />
   );

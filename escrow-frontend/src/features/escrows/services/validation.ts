@@ -110,7 +110,7 @@ export function validateEscrowSubmission(
 
   if (!input.clientUser) {
     return createValidationError(
-      "Your connected wallet must be linked to a registered client user."
+      "Your connected wallet must be linked to a registered buyer user."
     );
   }
 

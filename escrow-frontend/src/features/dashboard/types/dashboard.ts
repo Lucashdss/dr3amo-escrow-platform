@@ -11,7 +11,6 @@ export type NavItem = {
 };
 
 export type KpiItem = {
-  change: string;
   icon: ComponentType<{ className?: string }>;
   label: string;
   tone: DashboardTone;

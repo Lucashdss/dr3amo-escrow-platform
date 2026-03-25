@@ -56,7 +56,7 @@ export function WalletModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-xl rounded-2xl border border-white/15 bg-[#1f2c3d] p-6 shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-3xl font-bold">Welcome to EscrowFreelance</h2>
+              <h2 className="text-3xl font-bold">Welcome to Dr3amo</h2>
               <button
                 type="button"
                 onClick={onCloseConnectModal}

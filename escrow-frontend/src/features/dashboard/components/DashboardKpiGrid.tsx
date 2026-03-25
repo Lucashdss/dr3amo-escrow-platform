@@ -20,7 +20,7 @@ export function DashboardKpiGrid({ items }: DashboardKpiGridProps) {
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {items.map(({ change, icon: Icon, label, tone, value, valueOptions }) => {
+      {items.map(({ icon: Icon, label, tone, value, valueOptions }) => {
         const displayValue = valueOptions
           ? valueOptions[selectedValueOption]
           : value;
@@ -71,7 +71,6 @@ export function DashboardKpiGrid({ items }: DashboardKpiGridProps) {
             <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/58">
               {label}
             </p>
-            <p className="mt-4 text-xs leading-5 text-white/52">{change}</p>
           </article>
         );
       })}

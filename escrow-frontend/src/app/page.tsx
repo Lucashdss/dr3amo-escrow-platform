@@ -43,7 +43,7 @@ export default function Home() {
         }`}
     >
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5 md:px-10">
-        <p className="text-xl font-bold tracking-tight">EscrowFreelance</p>
+        <p className="text-xl font-bold tracking-tight">Dr3amo</p>
         <div className="flex items-center gap-3">
           {isMounted && isConnected ? (
             <Link
@@ -84,7 +84,7 @@ export default function Home() {
                 : "scale-125 bg-white text-[#2f3136]"
                 }`}
             >
-              Clients
+              Buyer
             </button>
             <button
               type="button"
@@ -94,7 +94,7 @@ export default function Home() {
                 : "text-white/90 hover:bg-white/10"
                 }`}
             >
-              Freelancers
+              Seller
             </button>
           </div>
         ) : (
@@ -104,14 +104,14 @@ export default function Home() {
               disabled
               className="w-36 rounded-full bg-white px-5 py-2 text-center text-[#2f3136] opacity-90"
             >
-              Clients
+              Buyer
             </button>
             <button
               type="button"
               disabled
               className="w-36 rounded-full px-5 py-2 text-center text-white/70 opacity-80"
             >
-              Freelancers
+              Seller
             </button>
           </div>
         )}

@@ -66,8 +66,10 @@ const DATABASE_TO_SUPPORTED_CHAIN_ID: Record<number, SupportedChainId> = {
 };
 
 const RELEVANT_ESCROW_EVENTS = new Set([
+  "ContractFunded",
   "DeliveryConfirmed",
   "DisputeInitiated",
+  "FeeCharged",
   "FundsRefunded",
   "FundsReleased",
   "MinimumPriceUpdated",
@@ -190,6 +192,17 @@ export async function executeEscrowAction(
   const chainId = getSupportedChainId(input.databaseChainId);
   const address = getContractAddress(input.contractAddress);
   const tokenSymbol = getEscrowTokenSymbol(input.tokenId);
+
+  if (input.action === "cancelEscrow") {
+    const txHash = await writeContract(config, {
+      abi: ESCROW_ABI,
+      address,
+      chainId,
+      functionName: "cancelEscrow",
+    });
+
+    return { txHash };
+  }
 
   if (input.action === "fund" && input.amount !== null) {
     const txHash = await writeContract(config, {

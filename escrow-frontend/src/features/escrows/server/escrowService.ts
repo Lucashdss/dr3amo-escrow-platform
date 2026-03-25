@@ -82,6 +82,15 @@ function getDirectActionSnapshot(
   modificationsRequested: number;
   state: string;
 } | null {
+  if (action === "cancelEscrow") {
+    return {
+      amount: escrow.amount,
+      deadline: escrow.deadline,
+      modificationsRequested: escrow.modificationsRequested ?? 0,
+      state: "canceled",
+    };
+  }
+
   if (action === "markWorkSubmitted") {
     return {
       amount: escrow.amount,
@@ -114,6 +123,7 @@ function getDirectActionSnapshot(
 
 function isDirectSyncAction(action: EscrowActionKey): boolean {
   return (
+    action === "cancelEscrow" ||
     action === "fund" ||
     action === "markWorkSubmitted" ||
     action === "initiateDispute" ||

@@ -36,7 +36,6 @@ export function createClientKpis(
 ): KpiItem[] {
   return [
     {
-      change: "Funds currently held in active escrows",
       icon: CircleDollarSign,
       label: "Funds in Active Escrows",
       tone: "lime",
@@ -44,28 +43,24 @@ export function createClientKpis(
       valueOptions: fundsInEscrows,
     },
     {
-      change: "Contracts currently active for this client",
       icon: ClipboardList,
       label: "Active Contracts",
       tone: "white",
       value: activeContractsCount,
     },
     {
-      change: "Contracts currently waiting for your review",
       icon: FileClock,
       label: "Pending Reviews",
       tone: "amber",
       value: pendingReviewsCount,
     },
     {
-      change: "Contracts with a deadline within 2 days",
       icon: CalendarClock,
-      label: "Deadlines Approaching",
+      label: "Deadlines Approaching within 2 days",
       tone: "amber",
       value: deadlinesApproachingCount,
     },
     {
-      change: "Contracts finished or closed for this client",
       icon: CheckCheck,
       label: "Completed Contracts",
       tone: "lime",
@@ -83,7 +78,6 @@ export function createFreelancerKpis(
 ): KpiItem[] {
   return [
     {
-      change: "Funds still available to be released to you",
       icon: CircleDollarSign,
       label: "Funds to Receive",
       tone: "lime",
@@ -91,28 +85,24 @@ export function createFreelancerKpis(
       valueOptions: fundsToReceive,
     },
     {
-      change: "Contracts currently active for this freelancer",
       icon: ClipboardList,
       label: "Active Contracts",
       tone: "white",
       value: activeContractsCount,
     },
     {
-      change: "Contracts for this freelancer not in work submitted",
       icon: FileClock,
       label: "Waiting Deliveries",
       tone: "amber",
       value: waitingDeliveriesCount,
     },
     {
-      change: "Contracts due within 2 days and still in progress",
       icon: CalendarClock,
-      label: "Deadlines Approaching",
+      label: "Deadlines Approaching within 2 days",
       tone: "amber",
       value: deadlinesApproachingCount,
     },
     {
-      change: "Contracts done",
       icon: CheckCheck,
       label: "Completed Contracts",
       tone: "lime",

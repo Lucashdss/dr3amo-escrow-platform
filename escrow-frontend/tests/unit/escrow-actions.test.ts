@@ -32,11 +32,38 @@ describe("deriveEscrowActionAvailability", () => {
     });
 
     expect(actions.map((action) => action.key)).toEqual([
+      "cancelEscrow",
       "fund",
       "confirmDelivery",
       "requestModificationAndUpdateDeadline",
       "initiateDispute",
     ]);
+  });
+
+  it("enables cancelEscrow only while the escrow is still created", () => {
+    const createdActions = deriveEscrowActionAvailability({
+      escrow: baseEscrow,
+      liveEscrowState: "created",
+      liveSnapshot: {
+        minimumPriceUsd: "0",
+        modificationsRequested: 0,
+      },
+    });
+    const fundedActions = deriveEscrowActionAvailability({
+      escrow: baseEscrow,
+      liveEscrowState: "funded",
+      liveSnapshot: {
+        minimumPriceUsd: "0",
+        modificationsRequested: 0,
+      },
+    });
+
+    expect(
+      createdActions.find((action) => action.key === "cancelEscrow")
+    ).toMatchObject({ disabled: false });
+    expect(
+      fundedActions.find((action) => action.key === "cancelEscrow")
+    ).toMatchObject({ disabled: true });
   });
 
   it("disables fund only for terminal live states", () => {

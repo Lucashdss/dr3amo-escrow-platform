@@ -64,9 +64,9 @@ describe("Home page", () => {
   it("renders core landing page content", () => {
     const html = renderPage();
 
-    expect(html).toContain("EscrowFreelance");
+    expect(html).toContain("Dr3amo");
     expect(html).toContain("Pay the way your project needs.");
-    expect(html).toContain("Secure escrow payments for freelance work.");
+    expect(html).toContain("Secure escrow payments for any service.");
   });
 
   it("shows the connect wallet button by default", () => {

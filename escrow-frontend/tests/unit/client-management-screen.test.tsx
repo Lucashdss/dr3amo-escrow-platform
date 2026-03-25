@@ -94,7 +94,7 @@ describe("ClientManagementScreenContent", () => {
     );
 
     expect(html).toContain("Landing page refresh");
-    expect(html).toContain("Freelancer");
+    expect(html).toContain("Seller");
     expect(html).toContain("Manage Escrow");
     expect(html).toContain('href="/client/management/7"');
   });

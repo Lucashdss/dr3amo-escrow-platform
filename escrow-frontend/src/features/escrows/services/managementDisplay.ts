@@ -29,7 +29,7 @@ export function formatEscrowDate(value: string): string {
 }
 
 export function formatEscrowRole(role: EscrowManagementRole): string {
-  return role === "client" ? "Client" : "Freelancer";
+  return role === "client" ? "Buyer" : "Seller";
 }
 
 export function formatEscrowState(state: string): string {
@@ -58,10 +58,10 @@ export function getCounterpartyLabel(escrow: EscrowManagementItem): string {
 
 export function getCounterpartyTitle(role: EscrowManagementRole): string {
   if (role === "client") {
-    return "Freelancer";
+    return "Seller";
   }
 
-  return "Client";
+  return "Buyer";
 }
 
 export function trimContractAddress(address: string): string {

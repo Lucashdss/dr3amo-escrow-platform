@@ -17,6 +17,7 @@ const baseEscrow = {
   freelancerUsername: "freelancer",
   role: "client" as const,
   state: "created",
+  tokenAddress: "0x0000000000000000000000000000000000000020",
   tokenId: 3,
 };
 

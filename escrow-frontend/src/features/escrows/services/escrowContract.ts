@@ -5,6 +5,7 @@ import {
   writeContract,
 } from "@wagmi/core";
 import {
+  getAddress,
   decodeFunctionData,
   formatUnits,
   parseEventLogs,
@@ -39,6 +40,15 @@ type ExecuteEscrowActionInput = {
   deadlineExtensionDays: bigint | null;
   tokenId: number;
   usdAmount: bigint | null;
+};
+
+type ApproveEscrowFundingInput = {
+  amount: bigint;
+  contractAddress: string;
+  databaseChainId: number;
+  tokenAddress: string;
+  tokenId: number;
+  walletAddress: string;
 };
 
 type EscrowSyncSnapshot = {
@@ -77,6 +87,32 @@ const RELEVANT_ESCROW_EVENTS = new Set([
   "UpfrontPaymentSent",
 ]);
 
+const ERC20_ABI = [
+  {
+    type: "function",
+    name: "allowance",
+    inputs: [
+      { name: "owner", type: "address", internalType: "address" },
+      { name: "spender", type: "address", internalType: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "approve",
+    inputs: [
+      { name: "spender", type: "address", internalType: "address" },
+      { name: "value", type: "uint256", internalType: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool", internalType: "bool" }],
+    stateMutability: "nonpayable",
+  },
+] as const;
+
+const ALLOWANCE_RECHECK_ATTEMPTS = 5;
+const ALLOWANCE_RECHECK_DELAY_MS = 1000;
+
 function getSupportedChainId(databaseChainId: number): SupportedChainId {
   const supportedChainId = DATABASE_TO_SUPPORTED_CHAIN_ID[databaseChainId];
 
@@ -106,7 +142,110 @@ function getEscrowTokenDecimals(tokenId: number): number {
 }
 
 function getContractAddress(address: string): Address {
-  return address as Address;
+  return getAddress(address);
+}
+
+function isEthEscrowToken(tokenId: number): boolean {
+  return getEscrowTokenSymbol(tokenId) === "ETH";
+}
+
+async function readTokenAllowance(
+  tokenAddress: Address,
+  walletAddress: Address,
+  spenderAddress: Address,
+  chainId: SupportedChainId
+): Promise<bigint> {
+  return readContract(config, {
+    abi: ERC20_ABI,
+    address: tokenAddress,
+    args: [walletAddress, spenderAddress],
+    chainId,
+    functionName: "allowance",
+  });
+}
+
+async function waitForAllowanceRefresh() {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, ALLOWANCE_RECHECK_DELAY_MS);
+  });
+}
+
+async function verifyAllowanceAfterApproval(
+  tokenAddress: Address,
+  walletAddress: Address,
+  escrowAddress: Address,
+  chainId: SupportedChainId,
+  amount: bigint
+): Promise<void> {
+  for (let attempt = 0; attempt < ALLOWANCE_RECHECK_ATTEMPTS; attempt += 1) {
+    const allowance = await readTokenAllowance(
+      tokenAddress,
+      walletAddress,
+      escrowAddress,
+      chainId
+    );
+
+    if (allowance >= amount) {
+      return;
+    }
+
+    if (attempt < ALLOWANCE_RECHECK_ATTEMPTS - 1) {
+      await waitForAllowanceRefresh();
+    }
+  }
+
+  throw new AppError("Approval was confirmed but allowance is not visible yet.", 400);
+}
+
+async function waitForChainReceipt(
+  databaseChainId: number,
+  txHash: Hex
+) {
+  return waitForTransactionReceipt(config, {
+    chainId: getSupportedChainId(databaseChainId),
+    hash: txHash,
+  });
+}
+
+export async function approveEscrowFundingIfNeeded(
+  input: ApproveEscrowFundingInput
+): Promise<Hex | null> {
+  if (isEthEscrowToken(input.tokenId)) {
+    return null;
+  }
+
+  const chainId = getSupportedChainId(input.databaseChainId);
+  const escrowAddress = getContractAddress(input.contractAddress);
+  const walletAddress = getContractAddress(input.walletAddress);
+  const tokenAddress = getContractAddress(input.tokenAddress);
+  const allowance = await readTokenAllowance(
+    tokenAddress,
+    walletAddress,
+    escrowAddress,
+    chainId
+  );
+
+  if (allowance >= input.amount) {
+    return null;
+  }
+
+  const txHash = await writeContract(config, {
+    abi: ERC20_ABI,
+    address: tokenAddress,
+    args: [escrowAddress, input.amount],
+    chainId,
+    functionName: "approve",
+  });
+  await waitForChainReceipt(input.databaseChainId, txHash);
+  await verifyAllowanceAfterApproval(
+    tokenAddress,
+    walletAddress,
+    escrowAddress,
+    chainId,
+    input.amount
+  );
+
+  return txHash;
 }
 
 function formatContractDeadline(deadline: bigint): string {
@@ -191,7 +330,6 @@ export async function executeEscrowAction(
 ): Promise<{ txHash: Hex }> {
   const chainId = getSupportedChainId(input.databaseChainId);
   const address = getContractAddress(input.contractAddress);
-  const tokenSymbol = getEscrowTokenSymbol(input.tokenId);
 
   if (input.action === "cancelEscrow") {
     const txHash = await writeContract(config, {
@@ -211,7 +349,7 @@ export async function executeEscrowAction(
       args: [input.amount],
       chainId,
       functionName: "fund",
-      value: tokenSymbol === "ETH" ? input.amount : BigInt(0),
+      value: isEthEscrowToken(input.tokenId) ? input.amount : BigInt(0),
     });
 
     return { txHash };
@@ -284,10 +422,7 @@ export async function waitForEscrowActionReceipt(
   databaseChainId: number,
   txHash: Hex
 ) {
-  return waitForTransactionReceipt(config, {
-    chainId: getSupportedChainId(databaseChainId),
-    hash: txHash,
-  });
+  return waitForChainReceipt(databaseChainId, txHash);
 }
 
 export function decodeEscrowReceiptEventNames(logs: readonly Log[]): string[] {

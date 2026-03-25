@@ -32,6 +32,7 @@ jest.mock("@/features/escrows/hooks/useEscrowManagementDetail", () => ({
 jest.mock("@/features/escrows/hooks/useEscrowManagementActions", () => ({
   useEscrowManagementActions: () => ({
     actionError: null,
+    actionStatus: null,
     actionSuccess: null,
     actions: [],
     amountInput: "",
@@ -73,6 +74,7 @@ const displayValues = {
 
 const contentProps = {
   actionError: null,
+  actionStatus: null,
   actionSuccess: null,
   actions: [],
   amountInput: "",
@@ -139,6 +141,7 @@ describe("ClientManagementDetailScreenContent", () => {
           freelancerUsername: "freelancer",
           role: "client",
           state: "created",
+          tokenAddress: "0x0000000000000000000000000000000000000020",
           tokenId: 1,
         },
         liveSnapshot: {

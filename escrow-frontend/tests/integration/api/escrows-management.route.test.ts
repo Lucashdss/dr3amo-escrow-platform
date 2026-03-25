@@ -10,6 +10,20 @@ jest.mock("@/features/escrows/server/escrowRepository", () => ({
   listEscrowsForUser: (...args: unknown[]) => mockListEscrowsForUser(...args),
 }));
 
+jest.mock("@/features/escrows/services/escrowContract", () => ({
+  approveEscrowFundingIfNeeded: jest.fn(),
+  decodeEscrowReceiptEventNames: jest.fn(),
+  executeEscrowAction: jest.fn(),
+  getFundReceiptUpdate: jest.fn(),
+  getModificationReceiptUpdate: jest.fn(),
+  getEscrowSyncReceipt: jest.fn(),
+  getSupportedChainIdForEscrow: jest.fn(),
+  readEscrowLiveSnapshot: jest.fn(),
+  readEscrowLiveState: jest.fn(),
+  readEscrowSyncSnapshot: jest.fn(),
+  waitForEscrowActionReceipt: jest.fn(),
+}));
+
 import { GET } from "@/app/api/escrows/management/route";
 
 describe("/api/escrows/management route", () => {
@@ -52,6 +66,7 @@ describe("/api/escrows/management route", () => {
         freelancerUsername: "freelancer",
         role: "client",
         state: "created",
+        tokenAddress: "0x0000000000000000000000000000000000000020",
         tokenId: 1,
       },
       {
@@ -66,6 +81,7 @@ describe("/api/escrows/management route", () => {
         freelancerUsername: "client",
         role: "client",
         state: "work submitted",
+        tokenAddress: "0x0000000000000000000000000000000000000000",
         tokenId: 3,
       },
     ];

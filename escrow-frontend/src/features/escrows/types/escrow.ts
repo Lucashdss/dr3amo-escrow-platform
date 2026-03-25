@@ -80,6 +80,7 @@ export type EscrowManagementItem = {
   modificationsRequested?: number;
   role: EscrowManagementRole;
   state: string;
+  tokenAddress: string;
   tokenId: number;
 };
 

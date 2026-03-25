@@ -85,6 +85,7 @@ describe("ClientManagementScreenContent", () => {
             freelancerUsername: "freelancer",
             role: "client",
             state: "created",
+            tokenAddress: "0x0000000000000000000000000000000000000020",
             tokenId: 1,
           },
         ],

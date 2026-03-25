@@ -99,6 +99,7 @@ describe("/api/escrows/[id]/sync route", () => {
       freelancerUsername: "freelancer",
       role: "client",
       state: "created",
+      tokenAddress: "0x0000000000000000000000000000000000000000",
       tokenId: 3,
     };
     const refreshedEscrow = {
@@ -168,6 +169,7 @@ describe("/api/escrows/[id]/sync route", () => {
       freelancerUsername: "freelancer",
       role: "client",
       state: "created",
+      tokenAddress: "0x0000000000000000000000000000000000000000",
       tokenId: 3,
     };
     const refreshedEscrow = {
@@ -230,6 +232,7 @@ describe("/api/escrows/[id]/sync route", () => {
       freelancerUsername: "freelancer",
       role: "freelancer",
       state: "funded",
+      tokenAddress: "0x0000000000000000000000000000000000000000",
       tokenId: 3,
     };
     const refreshedEscrow = {
@@ -292,6 +295,7 @@ describe("/api/escrows/[id]/sync route", () => {
       freelancerUsername: "freelancer",
       role: "client",
       state: "funded",
+      tokenAddress: "0x0000000000000000000000000000000000000000",
       tokenId: 3,
     };
     const refreshedEscrow = {
@@ -354,6 +358,7 @@ describe("/api/escrows/[id]/sync route", () => {
       freelancerUsername: "freelancer",
       role: "client",
       state: "work submitted",
+      tokenAddress: "0x0000000000000000000000000000000000000000",
       tokenId: 3,
     };
     const refreshedEscrow = {
@@ -417,6 +422,7 @@ describe("/api/escrows/[id]/sync route", () => {
       modificationsRequested: 0,
       role: "client",
       state: "work submitted",
+      tokenAddress: "0x0000000000000000000000000000000000000000",
       tokenId: 3,
     };
     const refreshedEscrow = {

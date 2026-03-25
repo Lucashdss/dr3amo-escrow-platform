@@ -25,6 +25,7 @@ type EscrowManagementRow = RowDataPacket & {
   freelancerUsername: string | null;
   modificationsRequested: number | null;
   state: string;
+  tokenAddress: string | null;
   tokenId: number;
 };
 type ClientEscrowSummaryRow = RowDataPacket & {
@@ -82,6 +83,7 @@ const MANAGEMENT_SELECT_FIELDS = `escrows.id AS id,
   freelancer_user.username AS freelancerUsername,
   escrows.\`ModificationsRequested\` AS modificationsRequested,
   escrows.state AS state,
+  token_record.token_address AS tokenAddress,
   escrows.token_id AS tokenId`;
 
 async function queryEscrows(
@@ -117,6 +119,7 @@ function mapManagementRow(
     modificationsRequested: row.modificationsRequested ?? 0,
     role: getEscrowRole(row.clientId, row.freelancerId, userId),
     state: row.state,
+    tokenAddress: row.tokenAddress ?? "",
     tokenId: row.tokenId,
   };
 }
@@ -142,6 +145,7 @@ export async function listEscrowsForUser(
      FROM escrows
      LEFT JOIN users AS client_user ON client_user.id = escrows.client_id
      LEFT JOIN users AS freelancer_user ON freelancer_user.id = escrows.freelancer_id
+     LEFT JOIN tokens AS token_record ON token_record.id = escrows.token_id
      WHERE escrows.client_id = ? OR escrows.freelancer_id = ?
      ORDER BY escrows.created_at DESC`,
     [userId, userId],
@@ -204,6 +208,7 @@ export async function findEscrowManagementByIdForUser(
      FROM escrows
      LEFT JOIN users AS client_user ON client_user.id = escrows.client_id
      LEFT JOIN users AS freelancer_user ON freelancer_user.id = escrows.freelancer_id
+     LEFT JOIN tokens AS token_record ON token_record.id = escrows.token_id
      WHERE escrows.id = ?
        AND (escrows.client_id = ? OR escrows.freelancer_id = ?)
      LIMIT 1`,

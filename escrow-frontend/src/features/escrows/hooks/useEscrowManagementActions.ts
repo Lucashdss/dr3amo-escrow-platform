@@ -8,8 +8,10 @@ import {
   validateEscrowActionInput,
 } from "@/features/escrows/services/escrowActions";
 import {
+  approveEscrowFundingIfNeeded,
   executeEscrowAction,
   getSupportedChainIdForEscrow,
+  getEscrowTokenSymbol,
   waitForEscrowActionReceipt,
 } from "@/features/escrows/services/escrowContract";
 import { syncEscrowManagementAction } from "@/features/escrows/services/escrowApi";
@@ -33,6 +35,7 @@ type UseEscrowManagementActionsInput = {
 
 type UseEscrowManagementActionsResult = {
   actionError: string | null;
+  actionStatus: string | null;
   actionSuccess: string | null;
   actions: EscrowActionAvailability[];
   amountInput: string;
@@ -75,6 +78,7 @@ export function useEscrowManagementActions(
   const [usdAmountInput, setUsdAmountInput] = useState("");
   const [deadlineExtensionInput, setDeadlineExtensionInput] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionStatus, setActionStatus] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [submittedHash, setSubmittedHash] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -89,6 +93,7 @@ export function useEscrowManagementActions(
 
   async function openActionMenu(): Promise<void> {
     setActionError(null);
+    setActionStatus(null);
     setActionSuccess(null);
     setIsActionMenuOpen(true);
 
@@ -104,6 +109,7 @@ export function useEscrowManagementActions(
   function closeSelectedAction(): void {
     setSelectedAction(null);
     setActionError(null);
+    setActionStatus(null);
     setActionSuccess(null);
   }
 
@@ -113,7 +119,28 @@ export function useEscrowManagementActions(
     setUsdAmountInput("");
     setDeadlineExtensionInput("");
     setActionError(null);
+    setActionStatus(null);
     setActionSuccess(null);
+  }
+
+  async function approveFundingIfNeeded(amount: bigint): Promise<void> {
+    if (!input.escrow || !account.address) {
+      return;
+    }
+
+    if (getEscrowTokenSymbol(input.escrow.tokenId) === "ETH") {
+      return;
+    }
+
+    setActionStatus("Approve USDC in your wallet...");
+    await approveEscrowFundingIfNeeded({
+      amount,
+      contractAddress: input.escrow.contractAddress,
+      databaseChainId: input.escrow.chainId,
+      tokenAddress: input.escrow.tokenAddress,
+      tokenId: input.escrow.tokenId,
+      walletAddress: account.address,
+    });
   }
 
   async function submitSelectedAction(): Promise<void> {
@@ -147,10 +174,16 @@ export function useEscrowManagementActions(
 
     setIsExecuting(true);
     setActionError(null);
+    setActionStatus(null);
     setActionSuccess(null);
     setSubmittedHash(null);
 
     try {
+      if (selectedAction === "fund" && validation.data !== null) {
+        await approveFundingIfNeeded(validation.data);
+        setActionStatus("Funding escrow...");
+      }
+
       const execution = await executeEscrowAction({
         action: selectedAction,
         amount: selectedAction === "fund" ? validation.data : null,
@@ -172,8 +205,10 @@ export function useEscrowManagementActions(
         userId: input.userId,
       });
       await input.refreshDetail();
+      setActionStatus(null);
       setActionSuccess("Escrow action confirmed and synced.");
     } catch (error) {
+      setActionStatus(null);
       const message = getEscrowErrorMessage(error, "Failed to execute escrow action.");
       setActionError(message);
 
@@ -187,6 +222,7 @@ export function useEscrowManagementActions(
 
   return {
     actionError,
+    actionStatus,
     actionSuccess,
     actions,
     amountInput,

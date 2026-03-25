@@ -38,6 +38,7 @@ type ManagementDetailDisplayValues = {
 
 export type ClientManagementDetailScreenContentProps = {
   actionError: string | null;
+  actionStatus: string | null;
   actionSuccess: string | null;
   actions: EscrowActionAvailability[];
   amountInput: string;
@@ -157,6 +158,7 @@ function renderActionModal(
   usdAmountInput: string,
   deadlineExtensionInput: string,
   actionError: string | null,
+  actionStatus: string | null,
   actionSuccess: string | null,
   submittedHash: string | null,
   isExecuting: boolean,
@@ -207,6 +209,12 @@ function renderActionModal(
             onDeadlineExtensionInputChange
           )}
         </div>
+
+        {actionStatus ? (
+          <div className="mt-5 rounded-[1.2rem] border border-white/12 bg-white/6 p-4 text-sm text-white/75">
+            {actionStatus}
+          </div>
+        ) : null}
 
         {actionError ? (
           <div className="mt-5 rounded-[1.2rem] border border-[#ff7b7b]/25 bg-[#ff7b7b]/10 p-4 text-sm text-[#ffc5c5]">
@@ -476,6 +484,7 @@ function renderEscrowDetail(
         props.usdAmountInput,
         props.deadlineExtensionInput,
         props.actionError,
+        props.actionStatus,
         props.actionSuccess,
         props.submittedHash,
         props.isExecuting,
@@ -553,6 +562,7 @@ export function ClientManagementDetailScreen() {
   return (
     <ClientManagementDetailScreenContent
       actionError={actions.actionError}
+      actionStatus={actions.actionStatus}
       actionSuccess={actions.actionSuccess}
       actions={actions.actions}
       amountInput={actions.amountInput}

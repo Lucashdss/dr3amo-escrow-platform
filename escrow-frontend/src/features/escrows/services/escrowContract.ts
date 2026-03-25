@@ -256,6 +256,30 @@ function formatDatabaseDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+function parseStoredDeadline(value: Date | string): Date | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : new Date(value.getTime());
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const datePortionMatch = trimmedValue.match(/^(\d{4}-\d{2}-\d{2})/);
+  const normalizedValue = datePortionMatch
+    ? `${datePortionMatch[1]}T00:00:00.000Z`
+    : trimmedValue;
+  const deadline = new Date(normalizedValue);
+
+  if (Number.isNaN(deadline.getTime())) {
+    return null;
+  }
+
+  return deadline;
+}
+
 function normalizeStoredAmount(value: string): string {
   const normalizedValue = value.replace(/(?:\.0+|(\.\d*?[1-9])0+)$/, "$1");
   return normalizedValue === "" ? "0" : normalizedValue;
@@ -610,9 +634,9 @@ export async function getModificationReceiptUpdate(
     );
   }
 
-  const deadline = new Date(`${escrow.deadline}T00:00:00.000Z`);
+  const deadline = parseStoredDeadline(escrow.deadline);
 
-  if (Number.isNaN(deadline.getTime())) {
+  if (!deadline) {
     throw new AppError("The escrow deadline could not be parsed.", 400);
   }
 

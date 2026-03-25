@@ -1,9 +1,12 @@
+import { encodeFunctionData } from "viem";
+
+const mockGetPublicClient = jest.fn();
 const mockReadContract = jest.fn();
 const mockWaitForTransactionReceipt = jest.fn();
 const mockWriteContract = jest.fn();
 
 jest.mock("@wagmi/core", () => ({
-  getPublicClient: jest.fn(),
+  getPublicClient: (...args: unknown[]) => mockGetPublicClient(...args),
   readContract: (...args: unknown[]) => mockReadContract(...args),
   waitForTransactionReceipt: (...args: unknown[]) =>
     mockWaitForTransactionReceipt(...args),
@@ -14,7 +17,10 @@ jest.mock("@/lib/web3/wagmi", () => ({
   config: {},
 }));
 
-import { approveEscrowFundingIfNeeded } from "@/features/escrows/services/escrowContract";
+import {
+  approveEscrowFundingIfNeeded,
+  getModificationReceiptUpdate,
+} from "@/features/escrows/services/escrowContract";
 
 describe("approveEscrowFundingIfNeeded", () => {
   beforeEach(() => {
@@ -112,5 +118,164 @@ describe("approveEscrowFundingIfNeeded", () => {
     await rejectionExpectation;
     expect(mockReadContract).toHaveBeenCalledTimes(6);
     jest.useRealTimers();
+  });
+});
+
+describe("getModificationReceiptUpdate", () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it("extends a date-only deadline", async () => {
+    mockGetPublicClient.mockReturnValue({
+      getTransaction: jest.fn().mockResolvedValue({
+        input: encodeFunctionData({
+          abi: [
+            {
+              type: "function",
+              name: "requestModificationAndUpdateDeadline",
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "deadlineExtension",
+                  type: "uint256",
+                },
+              ],
+              outputs: [],
+              stateMutability: "nonpayable",
+            },
+          ],
+          functionName: "requestModificationAndUpdateDeadline",
+          args: [BigInt(3)],
+        }),
+      }),
+    });
+
+    const result = await getModificationReceiptUpdate(
+      {
+        amount: "0.01",
+        chainId: 1,
+        clientUsername: "client",
+        contractAddress: "0x0000000000000000000000000000000000000010",
+        createdAt: "2026-03-16T00:00:00.000Z",
+        deadline: "2026-03-20",
+        escrowName: "Modification request",
+        freelancerUsername: "freelancer",
+        id: 11,
+        modificationsRequested: 0,
+        role: "client",
+        state: "work submitted",
+        tokenAddress: "0x0000000000000000000000000000000000000000",
+        tokenId: 3,
+      },
+      `0x${"5".repeat(64)}`
+    );
+
+    expect(result).toEqual({
+      deadline: "2026-03-23",
+      state: "pending modification",
+    });
+  });
+
+  it("extends a stored datetime deadline", async () => {
+    mockGetPublicClient.mockReturnValue({
+      getTransaction: jest.fn().mockResolvedValue({
+        input: encodeFunctionData({
+          abi: [
+            {
+              type: "function",
+              name: "requestModificationAndUpdateDeadline",
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "deadlineExtension",
+                  type: "uint256",
+                },
+              ],
+              outputs: [],
+              stateMutability: "nonpayable",
+            },
+          ],
+          functionName: "requestModificationAndUpdateDeadline",
+          args: [BigInt(2)],
+        }),
+      }),
+    });
+
+    const result = await getModificationReceiptUpdate(
+      {
+        amount: "0.01",
+        chainId: 1,
+        clientUsername: "client",
+        contractAddress: "0x0000000000000000000000000000000000000010",
+        createdAt: "2026-03-16T00:00:00.000Z",
+        deadline: "2026-03-20 00:00:00",
+        escrowName: "Modification request",
+        freelancerUsername: "freelancer",
+        id: 11,
+        modificationsRequested: 0,
+        role: "client",
+        state: "work submitted",
+        tokenAddress: "0x0000000000000000000000000000000000000000",
+        tokenId: 3,
+      },
+      `0x${"6".repeat(64)}`
+    );
+
+    expect(result).toEqual({
+      deadline: "2026-03-22",
+      state: "pending modification",
+    });
+  });
+
+  it("extends a stored Date deadline", async () => {
+    mockGetPublicClient.mockReturnValue({
+      getTransaction: jest.fn().mockResolvedValue({
+        input: encodeFunctionData({
+          abi: [
+            {
+              type: "function",
+              name: "requestModificationAndUpdateDeadline",
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "deadlineExtension",
+                  type: "uint256",
+                },
+              ],
+              outputs: [],
+              stateMutability: "nonpayable",
+            },
+          ],
+          functionName: "requestModificationAndUpdateDeadline",
+          args: [BigInt(4)],
+        }),
+      }),
+    });
+
+    const result = await getModificationReceiptUpdate(
+      {
+        amount: "0.01",
+        chainId: 1,
+        clientUsername: "client",
+        contractAddress: "0x0000000000000000000000000000000000000010",
+        createdAt: "2026-03-16T00:00:00.000Z",
+        deadline: new Date("2026-03-20T00:00:00.000Z") as unknown as string,
+        escrowName: "Modification request",
+        freelancerUsername: "freelancer",
+        id: 11,
+        modificationsRequested: 0,
+        role: "client",
+        state: "work submitted",
+        tokenAddress: "0x0000000000000000000000000000000000000000",
+        tokenId: 3,
+      },
+      `0x${"7".repeat(64)}`
+    );
+
+    expect(result).toEqual({
+      deadline: "2026-03-24",
+      state: "pending modification",
+    });
   });
 });

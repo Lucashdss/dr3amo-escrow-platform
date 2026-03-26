@@ -7,12 +7,12 @@ import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import {
   createClientKpis,
   createFreelancerKpis,
-  dashboardActivity,
 } from "@/features/dashboard/data/dashboardData";
 import { DashboardActivityFeed } from "@/features/dashboard/components/DashboardActivityFeed";
 import { DashboardKpiGrid } from "@/features/dashboard/components/DashboardKpiGrid";
 import { DashboardShell } from "@/features/dashboard/components/DashboardShell";
 import { DashboardUserCard } from "@/features/dashboard/components/DashboardUserCard";
+import { useDashboardActivity } from "@/features/dashboard/hooks/useDashboardActivity";
 import { useClientEscrowFunds } from "@/features/dashboard/hooks/useClientEscrowFunds";
 import { useFreelancerEscrowFunds } from "@/features/dashboard/hooks/useFreelancerEscrowFunds";
 
@@ -51,6 +51,7 @@ export function DashboardOverviewScreen({
   const freelancerEscrowFunds = useFreelancerEscrowFunds(
     variant === "freelancer" ? user?.id : undefined
   );
+  const activityFeed = useDashboardActivity(user?.id);
   const displayValues = getDisplayValues(address, user?.username);
   const kpis =
     variant === "client"
@@ -108,7 +109,11 @@ export function DashboardOverviewScreen({
       </header>
 
       <DashboardKpiGrid items={kpis} />
-      <DashboardActivityFeed items={dashboardActivity} />
+      <DashboardActivityFeed
+        errorMessage={activityFeed.error}
+        isLoading={activityFeed.isLoading}
+        items={activityFeed.items}
+      />
     </DashboardShell>
   );
 }

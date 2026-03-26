@@ -15,6 +15,7 @@ type EscrowManagementRow = RowDataPacket & {
   id: number;
   amount: string;
   chainId: number;
+  changedAt: string | null;
   clientId: number;
   clientUsername: string | null;
   contractAddress: string;
@@ -69,10 +70,11 @@ export type UpdateEscrowSnapshotInput = {
 };
 
 const ESCROW_SELECT_FIELDS =
-  "id, contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested` AS modifications_requested, deadline, state, created_at";
+  "id, contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested` AS modifications_requested, deadline, state, created_at, changed_at";
 const MANAGEMENT_SELECT_FIELDS = `escrows.id AS id,
   escrows.amount AS amount,
   escrows.chain_id AS chainId,
+  escrows.changed_at AS changedAt,
   escrows.client_id AS clientId,
   client_user.username AS clientUsername,
   escrows.contract_address AS contractAddress,
@@ -109,6 +111,7 @@ function mapManagementRow(
   return {
     amount: row.amount,
     chainId: row.chainId,
+    changedAt: row.changedAt ?? row.createdAt,
     clientUsername: row.clientUsername ?? "Unknown client",
     contractAddress: row.contractAddress,
     createdAt: row.createdAt,
@@ -134,7 +137,9 @@ async function queryManagementEscrows(
 }
 
 export async function listEscrows(): Promise<EscrowRecord[]> {
-  return queryEscrows(`SELECT ${ESCROW_SELECT_FIELDS} FROM escrows ORDER BY created_at DESC`);
+  return queryEscrows(
+    `SELECT ${ESCROW_SELECT_FIELDS} FROM escrows ORDER BY changed_at DESC, created_at DESC`
+  );
 }
 
 export async function listEscrowsForUser(
@@ -147,7 +152,7 @@ export async function listEscrowsForUser(
      LEFT JOIN users AS freelancer_user ON freelancer_user.id = escrows.freelancer_id
      LEFT JOIN tokens AS token_record ON token_record.id = escrows.token_id
      WHERE escrows.client_id = ? OR escrows.freelancer_id = ?
-     ORDER BY escrows.created_at DESC`,
+     ORDER BY escrows.changed_at DESC, escrows.created_at DESC`,
     [userId, userId],
     userId
   );
@@ -157,7 +162,7 @@ export async function createEscrowRecord(
   input: CreateEscrowRecordInput
 ): Promise<number> {
   const [result] = await pool.query<ResultSetHeader>(
-    "INSERT INTO escrows (contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested`, deadline, state, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())",
+    "INSERT INTO escrows (contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested`, deadline, state, created_at, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
     [
       input.contractAddress,
       input.escrowName,
@@ -188,7 +193,7 @@ export async function updateEscrowSnapshot(
   input: UpdateEscrowSnapshotInput
 ): Promise<void> {
   await pool.query<ResultSetHeader>(
-    "UPDATE escrows SET amount = ?, deadline = ?, state = ?, `ModificationsRequested` = ? WHERE id = ?",
+    "UPDATE escrows SET amount = ?, deadline = ?, state = ?, `ModificationsRequested` = ?, changed_at = NOW() WHERE id = ?",
     [
       input.amount,
       input.deadline,

@@ -28,6 +28,22 @@ export function formatEscrowDate(value: string): string {
   }).format(parsedDate);
 }
 
+export function formatEscrowDateTime(value: string): string {
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(parsedDate);
+}
+
 export function formatEscrowRole(role: EscrowManagementRole): string {
   return role === "client" ? "Buyer" : "Seller";
 }

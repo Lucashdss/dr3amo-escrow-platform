@@ -6,8 +6,6 @@ import {
   FileClock,
   Handshake,
   LayoutDashboard,
-  ShieldCheck,
-  Star,
   Wallet,
 } from "lucide-react";
 
@@ -18,6 +16,8 @@ import type {
   NavItem,
   ToneClasses,
 } from "@/features/dashboard/types/dashboard";
+import type { EscrowManagementItem } from "@/features/escrows/types/escrow";
+import { formatEscrowState } from "@/features/escrows/services/managementDisplay";
 
 export const navItems: NavItem[] = [
   { href: "/client", icon: LayoutDashboard, label: "Overview" },
@@ -109,36 +109,103 @@ export function createFreelancerKpis(
   ];
 }
 
-export const dashboardActivity: ActivityItem[] = [
-  {
-    detail: "You approved the dashboard prototype for Northstar Studio.",
-    icon: ShieldCheck,
-    title: "Milestone approved",
-    tone: "lime",
-    when: "12 min ago",
-  },
-  {
-    detail: "Helio Labs submitted testing notes for sign-off.",
-    icon: Star,
-    title: "Review requested",
-    tone: "amber",
-    when: "48 min ago",
-  },
-  {
-    detail: "Orbital Commerce funded milestone 1 for $3,000.",
-    icon: Wallet,
-    title: "Escrow funded",
-    tone: "white",
-    when: "2 hrs ago",
-  },
-  {
-    detail: "Signal Works moved delivery by 3 days after scope change.",
-    icon: CalendarClock,
-    title: "Deadline updated",
-    tone: "amber",
-    when: "Yesterday",
-  },
-];
+function getActivityTimestamp(escrow: EscrowManagementItem): number {
+  const activityTime = escrow.changedAt ?? escrow.createdAt;
+  const parsedTime = Date.parse(activityTime);
+
+  if (Number.isNaN(parsedTime)) {
+    return 0;
+  }
+
+  return parsedTime;
+}
+
+function formatActivityTime(value: string | null | undefined): string {
+  if (!value) {
+    return "Unknown time";
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(parsedDate);
+}
+
+function getActivityTone(state: string): ActivityItem["tone"] {
+  const normalizedState = state.trim().toLowerCase();
+
+  if (normalizedState === "released" || normalizedState === "funded") {
+    return "lime";
+  }
+
+  if (
+    normalizedState === "pending modification" ||
+    normalizedState === "dispute" ||
+    normalizedState === "canceled"
+  ) {
+    return "amber";
+  }
+
+  return "white";
+}
+
+function getActivityIcon(state: string): ActivityItem["icon"] {
+  const normalizedState = state.trim().toLowerCase();
+
+  if (normalizedState === "funded") {
+    return Wallet;
+  }
+
+  if (normalizedState === "released") {
+    return CheckCheck;
+  }
+
+  if (normalizedState === "pending modification") {
+    return CalendarClock;
+  }
+
+  if (normalizedState === "work submitted") {
+    return FileClock;
+  }
+
+  return ClipboardList;
+}
+
+function createActivityDetail(escrow: EscrowManagementItem): string {
+  const stateLabel = formatEscrowState(escrow.state);
+
+  return `${escrow.escrowName} moved to ${stateLabel}.`;
+}
+
+export function createDashboardActivity(
+  escrows: EscrowManagementItem[]
+): ActivityItem[] {
+  return [...escrows]
+    .sort((leftEscrow, rightEscrow) => {
+      return getActivityTimestamp(rightEscrow) - getActivityTimestamp(leftEscrow);
+    })
+    .slice(0, 5)
+    .map((escrow) => {
+      const stateLabel = formatEscrowState(escrow.state);
+
+      return {
+        detail: createActivityDetail(escrow),
+        icon: getActivityIcon(escrow.state),
+        title: stateLabel,
+        tone: getActivityTone(escrow.state),
+        when: formatActivityTime(escrow.changedAt ?? escrow.createdAt),
+      };
+    });
+}
 
 export const toneClasses: ToneClasses = {
   amber: {

@@ -10,6 +10,7 @@ import { DashboardUserCard } from "@/features/dashboard/components/DashboardUser
 import { useEscrowManagementList } from "@/features/escrows/hooks/useEscrowManagementList";
 import {
   formatEscrowDate,
+  formatEscrowDateTime,
   formatEscrowRole,
   formatEscrowState,
   trimContractAddress,
@@ -206,6 +207,14 @@ function EscrowCardGrid({ escrows }: { escrows: EscrowManagementItem[] }) {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                Last updated
+              </p>
+              <p className="mt-2 text-sm text-white">
+                {formatEscrowDateTime(escrow.changedAt ?? escrow.createdAt)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
                 Contract
               </p>
               <p className="mt-2 text-sm text-white">
@@ -260,9 +269,6 @@ export function ClientManagementScreenContent({
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-full border border-[#b6ef5f]/20 bg-[#b6ef5f]/10 px-4 py-3 text-sm font-medium text-[#d8f5a7]">
-              User scoped
-            </div>
             <div className="rounded-full border border-white/10 bg-white/8 px-4 py-3 text-sm font-medium text-white/72">
               {escrows.length} related escrow{escrows.length === 1 ? "" : "s"}
             </div>

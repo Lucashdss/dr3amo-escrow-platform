@@ -38,6 +38,7 @@ export type EscrowRecord = {
   deadline: string;
   state: string;
   created_at: string;
+  changed_at?: string | null;
 };
 
 export type CreateEscrowRequest = {
@@ -71,6 +72,7 @@ export type EscrowManagementItem = {
   id: number;
   amount: string;
   chainId: number;
+  changedAt?: string | null;
   clientUsername: string;
   contractAddress: string;
   createdAt: string;

@@ -15,6 +15,7 @@ import {
 } from "@/features/escrows/services/escrowActions";
 import {
   formatEscrowDate,
+  formatEscrowDateTime,
   formatEscrowRole,
   formatEscrowState,
   getEscrowChainLabel,
@@ -293,7 +294,13 @@ function renderActionMenu(
                     {action.description}
                   </p>
                 </div>
-                <span className="rounded-full border border-white/12 bg-black/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
+                <span
+                  className={`rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                    action.disabled
+                      ? "bg-[#c93030] text-white"
+                      : "bg-[#2f9e44] text-white"
+                  }`}
+                >
                   {action.disabled ? "Disabled" : "Ready"}
                 </span>
               </div>
@@ -451,6 +458,16 @@ function renderEscrowDetail(
             </p>
             <p className="mt-2 text-sm text-white">
               {formatEscrowDate(props.escrow.createdAt)}
+            </p>
+          </div>
+          <div className="rounded-[1.4rem] border border-white/10 bg-black/20 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+              Last updated
+            </p>
+            <p className="mt-2 text-sm text-white">
+              {formatEscrowDateTime(
+                props.escrow.changedAt ?? props.escrow.createdAt
+              )}
             </p>
           </div>
           <div className="rounded-[1.4rem] border border-white/10 bg-black/20 p-4">

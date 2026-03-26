@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import Home from "@/app/page";
 
 const mockUseWalletAuth = jest.fn();
+const mockPush = jest.fn();
 
 jest.mock("next/image", () => ({
   __esModule: true,
@@ -15,6 +16,15 @@ jest.mock("next/link", () => ({
   __esModule: true,
   default: ({ href, children }: { href: string; children: React.ReactNode }) =>
     React.createElement("a", { href }, children),
+}));
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+  useSearchParams: () => ({
+    get: () => null,
+  }),
 }));
 
 jest.mock("@/components/DecryptedText", () => ({
@@ -33,6 +43,8 @@ describe("Home page", () => {
     address: undefined,
     connectError: null,
     connectors: [],
+    currentUserId: null,
+    hasUser: false,
     handleConnect: jest.fn(),
     handleCreateUser: jest.fn(),
     handleDisconnect: jest.fn(),
@@ -58,6 +70,7 @@ describe("Home page", () => {
   };
 
   beforeEach(() => {
+    mockPush.mockReset();
     mockUseWalletAuth.mockReturnValue(baseAuthState);
   });
 
@@ -67,6 +80,24 @@ describe("Home page", () => {
     expect(html).toContain("Dr3amo");
     expect(html).toContain("Pay the way your project needs.");
     expect(html).toContain("Secure escrow payments for any service.");
+    expect(html).toContain("Stay in control of every buyer-side milestone.");
+    expect(html).toContain(
+      "See every active agreement, track approvals, and move projects forward from a buyer workspace built for fast decisions."
+    );
+    expect(html).toContain("Create a contract");
+    expect(html).toContain("Contact us");
+    expect(html).toContain("Buyer Dashboard");
+    expect(html).toContain("FAQs");
+    expect(html).toContain("How do fees work?");
+    expect(html).toContain("1% fee");
+    expect(html).toContain("How can we help?");
+    expect(html).toContain("Enter your name");
+    expect(html).toContain("Enter your email");
+    expect(html).toContain("Write a message");
+    expect(html).toContain("Send message");
+    expect(html).toContain("Resources");
+    expect(html).toContain("Buyer Workspace");
+    expect(html).toContain("Privacy Policy");
   });
 
   it("shows the connect wallet button by default", () => {

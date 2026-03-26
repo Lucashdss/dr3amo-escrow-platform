@@ -1,17 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { Hero } from "@/components/landing/Hero";
+import { LandingContactSection } from "@/components/landing/LandingContactSection";
+import { LandingFooter } from "@/components/landing/LandingFooter";
+import { LandingFaqSection } from "@/components/landing/LandingFaqSection";
+import { LandingHeaderNav } from "@/components/landing/LandingHeaderNav";
+import { LandingShowcaseSection } from "@/components/landing/LandingShowcaseSection";
+import {
+  CREATE_CONTRACT_ROUTE,
+  type DashboardRoute,
+  shouldRedirectToPendingRoute,
+} from "@/components/landing/landingShowcase";
 import { UsernameModal } from "@/components/landing/UsernameModal";
 import { WalletModal } from "@/components/landing/WalletModal";
 import { useWalletAuth } from "@/features/auth/hooks/useWalletAuth";
 
+function LandingSectionDivider() {
+  return (
+    <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
+      <div className="border-t border-white/10" />
+    </div>
+  );
+}
+
 export default function Home() {
+  const router = useRouter();
   const [isFreelancerView, setIsFreelancerView] = useState(false);
+  const [pendingDashboardRoute, setPendingDashboardRoute] =
+    useState<DashboardRoute | null>(null);
   const {
     address,
+    hasUser,
+    currentUserId,
     connectError,
     connectors,
     handleConnect,
@@ -37,13 +61,56 @@ export default function Home() {
     usernameError,
   } = useWalletAuth();
 
+  useEffect(() => {
+    if (!pendingDashboardRoute) {
+      return;
+    }
+
+    if (
+      !shouldRedirectToPendingRoute({
+        hasPendingRoute: true,
+        hasUser,
+        isCheckingUser,
+        isConnected,
+      })
+    ) {
+      return;
+    }
+
+    router.push(pendingDashboardRoute);
+    setPendingDashboardRoute(null);
+  }, [hasUser, isCheckingUser, isConnected, pendingDashboardRoute, router]);
+
+  function handleCreateContractClick(): void {
+    if (!isMounted) {
+      return;
+    }
+
+    if (isConnected && hasUser) {
+      router.push(CREATE_CONTRACT_ROUTE);
+      return;
+    }
+
+    setPendingDashboardRoute(CREATE_CONTRACT_ROUTE);
+
+    if (!isConnected) {
+      openLoginModal();
+    }
+  }
+
+  function handleCloseConnectModal(): void {
+    setPendingDashboardRoute(null);
+    closeLoginModal();
+  }
+
   return (
     <div
-      className={`min-h-screen text-white ${isFreelancerView ? "bg-green-700" : "bg-[#2f3136]"
+      className={`flex min-h-screen flex-col text-white ${isFreelancerView ? "bg-green-700" : "bg-[#2f3136]"
         }`}
     >
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5 md:px-10">
-        <p className="text-xl font-bold tracking-tight">Dr3amo</p>
+      <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-5 md:px-10">
+        <p className="shrink-0 text-3xl font-bold tracking-tight">Dr3amo</p>
+        <LandingHeaderNav />
         <div className="flex items-center gap-3">
           {isMounted && isConnected ? (
             <Link
@@ -73,7 +140,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 pb-20 pt-10 text-center md:px-10 md:pt-16">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center px-6 pb-20 pt-10 text-center md:px-10 md:pt-16">
         {isMounted ? (
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/80 p-1 text-sm font-semibold">
             <button
@@ -119,6 +186,16 @@ export default function Home() {
         <Hero isFreelancerView={isFreelancerView} />
       </main>
 
+      <LandingSectionDivider />
+      <LandingShowcaseSection onCreateContract={handleCreateContractClick} />
+      <LandingSectionDivider />
+      <LandingFaqSection />
+      <LandingSectionDivider />
+      <LandingContactSection userId={currentUserId} />
+      <LandingSectionDivider />
+
+      <LandingFooter />
+
       <WalletModal
         isConnectModalOpen={isConnectModalOpen}
         isDisconnectOpen={isDisconnectOpen}
@@ -131,7 +208,7 @@ export default function Home() {
         trimmedAddress={trimmedAddress}
         connectors={connectors}
         onConnect={handleConnect}
-        onCloseConnectModal={closeLoginModal}
+        onCloseConnectModal={handleCloseConnectModal}
         onCloseDisconnectModal={closeDisconnectModal}
         onDisconnect={handleDisconnect}
       />

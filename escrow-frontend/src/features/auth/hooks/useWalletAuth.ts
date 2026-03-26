@@ -52,6 +52,8 @@ export function useWalletAuth() {
 
   return {
     address: walletConnection.address,
+    currentUserId: currentUser.user?.id ?? null,
+    hasUser: Boolean(currentUser.user),
     connectError: walletConnection.connectError,
     connectors: walletConnection.connectors,
     handleConnect,

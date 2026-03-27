@@ -18,6 +18,10 @@ jest.mock("next/link", () => ({
     React.createElement("a", { href }, children),
 }));
 
+jest.mock("lucide-react", () => ({
+  ExternalLink: () => React.createElement("span", null, "ExternalLink"),
+}));
+
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
@@ -87,6 +91,9 @@ describe("Home page", () => {
     expect(html).toContain("Create a contract");
     expect(html).toContain("Contact us");
     expect(html).toContain("Buyer Dashboard");
+    expect(html).toContain("See what you&#x27;re interacting with");
+    expect(html).toContain("EscrowFreelance.sol");
+    expect(html).toContain("GitHub");
     expect(html).toContain("FAQs");
     expect(html).toContain("How do fees work?");
     expect(html).toContain("1% fee");

@@ -42,7 +42,7 @@ export function LandingContactSection({
         >
           <div className="grid gap-6">
             <label className="block text-left">
-              <span className="mb-3 block text-base font-medium text-white/80">
+              <span className="mb-3 block text-base font-medium text-white">
                 Name *
               </span>
               <input
@@ -51,12 +51,12 @@ export function LandingContactSection({
                 value={values.name}
                 onChange={(event) => setFieldValue("name", event.target.value)}
                 placeholder="Enter your name"
-                className="w-full rounded-full border border-white/10 bg-black/15 px-5 py-4 text-base text-white placeholder:text-white/35 focus:outline-none"
+                className="w-full rounded-full border border-white/10 bg-black/15 px-5 py-4 text-base text-white placeholder:text-white/50 focus:outline-none"
               />
             </label>
 
             <label className="block text-left">
-              <span className="mb-3 block text-base font-medium text-white/80">
+              <span className="mb-3 block text-base font-medium text-white">
                 Email *
               </span>
               <input
@@ -67,12 +67,12 @@ export function LandingContactSection({
                   setFieldValue("emailAddress", event.target.value)
                 }
                 placeholder="Enter your email"
-                className="w-full rounded-full border border-white/10 bg-black/15 px-5 py-4 text-base text-white placeholder:text-white/35 focus:outline-none"
+                className="w-full rounded-full border border-white/10 bg-black/15 px-5 py-4 text-base text-white placeholder:text-white/50 focus:outline-none"
               />
             </label>
 
             <label className="block text-left">
-              <span className="mb-3 block text-base font-medium text-white/80">
+              <span className="mb-3 block text-base font-medium text-white">
                 Message *
               </span>
               <textarea
@@ -83,7 +83,7 @@ export function LandingContactSection({
                   setFieldValue("message", event.target.value)
                 }
                 placeholder="Write a message"
-                className="w-full rounded-[1.75rem] border border-white/10 bg-black/15 px-5 py-4 text-base text-white placeholder:text-white/35 focus:outline-none"
+                className="w-full rounded-[1.75rem] border border-white/10 bg-black/15 px-5 py-4 text-base text-white placeholder:text-white/50 focus:outline-none"
               />
             </label>
           </div>

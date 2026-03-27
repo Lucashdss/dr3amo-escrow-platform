@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Hero } from "@/components/landing/Hero";
+import { LandingCodeSection } from "@/components/landing/LandingCodeSection";
 import { LandingContactSection } from "@/components/landing/LandingContactSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { LandingFaqSection } from "@/components/landing/LandingFaqSection";
@@ -32,6 +33,10 @@ export default function Home() {
   const [isFreelancerView, setIsFreelancerView] = useState(false);
   const [pendingDashboardRoute, setPendingDashboardRoute] =
     useState<DashboardRoute | null>(null);
+  const backgroundClass = isFreelancerView ? "bg-[#22007C]" : "bg-[#04052E]";
+  const accentTextClass = isFreelancerView
+    ? "text-[#22007C]"
+    : "text-[#04052E]";
   const {
     address,
     hasUser,
@@ -104,10 +109,7 @@ export default function Home() {
   }
 
   return (
-    <div
-      className={`flex min-h-screen flex-col text-white ${isFreelancerView ? "bg-green-700" : "bg-[#2f3136]"
-        }`}
-    >
+    <div className={`flex min-h-screen flex-col text-white ${backgroundClass}`}>
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-5 md:px-10">
         <p className="shrink-0 text-3xl font-bold tracking-tight">Dr3amo</p>
         <LandingHeaderNav />
@@ -115,7 +117,7 @@ export default function Home() {
           {isMounted && isConnected ? (
             <Link
               href="/client"
-              className="rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white hover:text-[#2f3136]"
+              className={`rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10 ${accentTextClass}`}
             >
               Manage Escrows
             </Link>
@@ -133,7 +135,7 @@ export default function Home() {
               openLoginModal();
             }}
             disabled={!isMounted}
-            className="rounded-full border border-white/70 px-6 py-2 text-sm font-semibold transition hover:bg-white hover:text-[#2f3136] disabled:cursor-not-allowed disabled:opacity-70"
+            className="rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {headerLabel}
           </button>
@@ -148,7 +150,7 @@ export default function Home() {
               onClick={() => setIsFreelancerView(false)}
               className={`w-36 rounded-full px-5 py-2 text-center transition duration-300 ${isFreelancerView
                 ? "text-white/90 hover:bg-white/10"
-                : "scale-125 bg-white text-[#2f3136]"
+                : "scale-125 bg-white text-[#04052E]"
                 }`}
             >
               Buyer
@@ -157,7 +159,7 @@ export default function Home() {
               type="button"
               onClick={() => setIsFreelancerView(true)}
               className={`w-36 rounded-full px-5 py-2 text-center transition duration-300 ${isFreelancerView
-                ? "scale-125 bg-white text-green-700"
+                ? "scale-125 bg-white text-[#22007C]"
                 : "text-white/90 hover:bg-white/10"
                 }`}
             >
@@ -169,7 +171,7 @@ export default function Home() {
             <button
               type="button"
               disabled
-              className="w-36 rounded-full bg-white px-5 py-2 text-center text-[#2f3136] opacity-90"
+              className="w-36 rounded-full bg-white px-5 py-2 text-center text-[#04052E] opacity-90"
             >
               Buyer
             </button>
@@ -188,6 +190,8 @@ export default function Home() {
 
       <LandingSectionDivider />
       <LandingShowcaseSection onCreateContract={handleCreateContractClick} />
+      <LandingSectionDivider />
+      <LandingCodeSection />
       <LandingSectionDivider />
       <LandingFaqSection />
       <LandingSectionDivider />

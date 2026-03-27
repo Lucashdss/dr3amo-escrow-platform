@@ -46,11 +46,10 @@ export function DashboardKpiGrid({ items }: DashboardKpiGridProps) {
                         key={option}
                         type="button"
                         onClick={() => setSelectedValueOption(option)}
-                        className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] transition ${
-                          isActive
+                        className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] transition ${isActive
                             ? "bg-white text-black"
                             : "text-white/58 hover:text-white"
-                        }`}
+                          }`}
                       >
                         {option}
                       </button>

@@ -19,16 +19,17 @@ type WalletModalProps = {
 };
 
 const wallets = [
-  { name: "MetaMask", icon: "/wallets/metamaskIcon.svg", id: "injected" },
   {
-    name: "Coinbase",
-    icon: "/wallets/coinbaseIcon.svg",
-    id: "coinbaseWalletSDK",
+    name: "MetaMask",
+    icon: "/wallets/metamaskIcon.svg",
+    connectorIds: ["metaMaskSDK", "metaMask"],
+    connectorNames: ["MetaMask"],
   },
   {
     name: "WalletConnect",
     icon: "/wallets/walletConnectIcon.svg",
-    id: "walletConnect",
+    connectorIds: ["walletConnect"],
+    connectorNames: ["WalletConnect"],
   },
 ];
 
@@ -67,8 +68,12 @@ export function WalletModal({
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {wallets.map(({ name, icon, id }) => {
-                const connector = connectors.find((item) => item.id === id);
+              {wallets.map(({ name, icon, connectorIds, connectorNames }) => {
+                const connector = connectors.find(
+                  (item) =>
+                    connectorIds.includes(item.id) ||
+                    connectorNames.includes(item.name),
+                );
 
                 if (!connector) {
                   return null;

@@ -1,16 +1,21 @@
 import { createConfig, http } from "wagmi";
 import { base, baseSepolia } from "wagmi/chains";
-import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
+import { metaMask, walletConnect } from "wagmi/connectors";
+
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
 
 export const config = createConfig({
   chains: [base, baseSepolia],
   connectors: [
-    injected(),
-    coinbaseWallet({
-      appName: "Escrow App",
+    metaMask({
+      dapp: {
+        name: "Dr3amo",
+        url: appUrl,
+      },
     }),
     walletConnect({
-      projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID!,
+      projectId: walletConnectProjectId,
     }),
   ],
   transports: {

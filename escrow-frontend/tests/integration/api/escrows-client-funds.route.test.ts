@@ -1,11 +1,8 @@
 const mockGetClientEscrowSummary = jest.fn();
 
-jest.mock("@/features/escrows/server/escrowRepository", () => ({
-  createEscrowRecord: jest.fn(),
-  findEscrowById: jest.fn(),
+jest.mock("@/features/escrows/server/escrowService", () => ({
   getClientEscrowSummary: (...args: unknown[]) =>
     mockGetClientEscrowSummary(...args),
-  listEscrows: jest.fn(),
 }));
 
 import { GET } from "@/app/api/escrows/client-funds/route";
@@ -57,11 +54,7 @@ describe("/api/escrows/client-funds route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(mockGetClientEscrowSummary).toHaveBeenCalledWith(7, {
-      activeExcluded: ["cancelled", "released", "refunded"],
-      completed: ["cancelled", "released", "refunded"],
-      pendingReview: ["work submitted"],
-    });
+    expect(mockGetClientEscrowSummary).toHaveBeenCalledWith(7);
     expect(body).toEqual({
       success: true,
       data: {

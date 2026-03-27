@@ -31,6 +31,10 @@ function getConnectErrorMessage(error: unknown): string {
     return "A wallet request is already pending. Open your wallet app.";
   }
 
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
   return "Failed to connect. Please try again.";
 }
 

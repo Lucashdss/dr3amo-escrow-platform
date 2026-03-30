@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import {
   getShowcaseIndexBySlug,
@@ -44,18 +44,53 @@ function ShowcaseDots({
 export function LandingShowcaseSection({
   onCreateContract,
 }: LandingShowcaseSectionProps) {
+  return (
+    <Suspense fallback={<LandingShowcaseFallback onCreateContract={onCreateContract} />}>
+      <LandingShowcaseContent onCreateContract={onCreateContract} />
+    </Suspense>
+  );
+}
+
+function LandingShowcaseFallback({
+  onCreateContract,
+}: LandingShowcaseSectionProps) {
+  return <LandingShowcaseBody activeIndex={0} onCreateContract={onCreateContract} />;
+}
+
+function LandingShowcaseContent({
+  onCreateContract,
+}: LandingShowcaseSectionProps) {
   const searchParams = useSearchParams();
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeItem = LANDING_SHOWCASE_ITEMS[activeIndex];
 
   useEffect(() => {
     setActiveIndex(getShowcaseIndexBySlug(searchParams.get("showcase")));
   }, [searchParams]);
 
+  return (
+    <LandingShowcaseBody
+      activeIndex={activeIndex}
+      onCreateContract={onCreateContract}
+      onSelect={setActiveIndex}
+    />
+  );
+}
+
+type LandingShowcaseBodyProps = {
+  activeIndex: number;
+  onCreateContract: () => void;
+  onSelect?: (index: number) => void;
+};
+
+function LandingShowcaseBody({
+  activeIndex,
+  onCreateContract,
+  onSelect,
+}: LandingShowcaseBodyProps) {
+  const activeItem = LANDING_SHOWCASE_ITEMS[activeIndex];
+
   function showNextItem() {
-    setActiveIndex((currentIndex) =>
-      getNextShowcaseIndex(currentIndex, LANDING_SHOWCASE_ITEMS.length)
-    );
+    onSelect?.(getNextShowcaseIndex(activeIndex, LANDING_SHOWCASE_ITEMS.length));
   }
 
   return (
@@ -115,7 +150,10 @@ export function LandingShowcaseSection({
               </div>
             </button>
 
-            <ShowcaseDots activeIndex={activeIndex} onSelect={setActiveIndex} />
+            <ShowcaseDots
+              activeIndex={activeIndex}
+              onSelect={onSelect ?? (() => undefined)}
+            />
           </div>
         </div>
       </div>

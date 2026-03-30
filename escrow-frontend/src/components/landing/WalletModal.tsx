@@ -33,8 +33,6 @@ const wallets = [
   },
 ];
 
-const otherWallets = [{ name: "Phantom", icon: "/wallets/phantomIcon.svg" }];
-
 export function WalletModal({
   isConnectModalOpen,
   isDisconnectOpen,
@@ -67,7 +65,7 @@ export function WalletModal({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mx-auto grid max-w-md grid-cols-2 gap-3">
               {wallets.map(({ name, icon, connectorIds, connectorNames }) => {
                 const connector = connectors.find(
                   (item) =>
@@ -100,24 +98,6 @@ export function WalletModal({
                   </button>
                 );
               })}
-              {otherWallets.map(({ name, icon }) => (
-                <button
-                  key={name}
-                  type="button"
-                  aria-label={name}
-                  className="flex items-center justify-center gap-3 rounded-xl border border-white/15 bg-[#162334] px-3 py-4 text-sm font-semibold text-white/90 transition hover:bg-[#1b2d43]"
-                >
-                  <Image
-                    src={icon}
-                    alt={name}
-                    width={50}
-                    height={50}
-                    priority
-                    loading="eager"
-                    unoptimized
-                  />
-                </button>
-              ))}
             </div>
 
             {connectError ? (

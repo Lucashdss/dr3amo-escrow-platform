@@ -37,22 +37,22 @@ function createWagmiConfig() {
   const wagmiConfig =
     process.env.NODE_ENV === "production"
       ? createConfig({
-          chains: [base],
-          connectors: createConnectors(),
-          ssr: true,
-          transports: {
-            [base.id]: http(),
-          },
-        })
+        chains: [base],
+        connectors: createConnectors(),
+        ssr: true,
+        transports: {
+          [base.id]: http(),
+        },
+      })
       : createConfig({
-          chains: [base, baseSepolia],
-          connectors: createConnectors(),
-          ssr: true,
-          transports: {
-            [base.id]: http(),
-            [baseSepolia.id]: http(),
-          },
-        });
+        chains: [base, baseSepolia],
+        connectors: createConnectors(),
+        ssr: true,
+        transports: {
+          [base.id]: http(),
+          [baseSepolia.id]: http(),
+        },
+      });
 
   return wagmiConfig;
 }

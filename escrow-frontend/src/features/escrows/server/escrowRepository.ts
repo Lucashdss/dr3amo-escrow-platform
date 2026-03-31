@@ -323,12 +323,23 @@ function createStatePlaceholders(states: readonly string[]): string {
 
 function normalizeAmountTotal(value: number | string): string {
   const normalizedValue = typeof value === "number" ? value.toString() : value;
+  let trimmedValue = normalizedValue;
 
-  if (!normalizedValue.includes(".")) {
-    return normalizedValue;
+  if (normalizedValue.includes(".")) {
+    let endIndex = normalizedValue.length;
+
+    while (endIndex > 0 && normalizedValue[endIndex - 1] === "0") {
+      endIndex -= 1;
+    }
+
+    if (endIndex > 0 && normalizedValue[endIndex - 1] === ".") {
+      endIndex -= 1;
+    }
+
+    trimmedValue = normalizedValue.slice(0, endIndex) || "0";
   }
 
-  return normalizedValue.replace(/\.?0+$/, "") || "0";
+  return trimmedValue;
 }
 
 export async function getClientEscrowSummary(

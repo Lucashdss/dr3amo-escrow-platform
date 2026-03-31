@@ -94,7 +94,7 @@ export default function DecryptedText({
           .map((p) => p.char);
 
         for (let i = nonSpaceChars.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
+          const j = getRandomIndex(i + 1);
           [nonSpaceChars[i], nonSpaceChars[j]] = [
             nonSpaceChars[j],
             nonSpaceChars[i],
@@ -115,9 +115,7 @@ export default function DecryptedText({
           .map((char, i) => {
             if (char === " ") return " ";
             if (currentRevealed.has(i)) return originalText[i];
-            return availableChars[
-              Math.floor(Math.random() * availableChars.length)
-            ];
+            return availableChars[getRandomIndex(availableChars.length)];
           })
           .join("");
       }
@@ -237,4 +235,23 @@ export default function DecryptedText({
       </span>
     </motion.span>
   );
+}
+
+function getRandomIndex(maxExclusive: number): number {
+  const randomValues = new Uint32Array(1);
+  const maxUint32 = 0x100000000;
+  const maxUnbiasedValue = maxUint32 - (maxUint32 % maxExclusive);
+  let randomIndex = 0;
+  let randomValue = 0;
+
+  if (maxExclusive > 1) {
+    do {
+      crypto.getRandomValues(randomValues);
+      randomValue = randomValues[0] ?? 0;
+    } while (randomValue >= maxUnbiasedValue);
+
+    randomIndex = randomValue % maxExclusive;
+  }
+
+  return randomIndex;
 }

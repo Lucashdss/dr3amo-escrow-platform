@@ -15,8 +15,33 @@ function getStringField(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function hasWhitespaceCharacter(value: string): boolean {
+  let hasWhitespace = false;
+
+  for (const character of value) {
+    if (character.trim() === "") {
+      hasWhitespace = true;
+    }
+  }
+
+  return hasWhitespace;
+}
+
 function isValidEmailAddress(emailAddress: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress);
+  const atIndex = emailAddress.indexOf("@");
+  const lastAtIndex = emailAddress.lastIndexOf("@");
+  const dotIndex = emailAddress.lastIndexOf(".");
+  let isValid = !hasWhitespaceCharacter(emailAddress);
+
+  if (atIndex <= 0 || atIndex !== lastAtIndex) {
+    isValid = false;
+  }
+
+  if (dotIndex <= atIndex + 1 || dotIndex === emailAddress.length - 1) {
+    isValid = false;
+  }
+
+  return isValid;
 }
 
 function validateName(name: string): ValidationResult<string> {

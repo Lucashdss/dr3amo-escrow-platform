@@ -28,9 +28,7 @@ function formatTokenAmount(amount: string, token: "ETH" | "USDC"): string {
     .concat(` ${token}`);
 }
 
-export function useFreelancerEscrowFunds(
-  freelancerId: number | undefined
-): FreelancerEscrowFundsState {
+export function useFreelancerEscrowFunds(): FreelancerEscrowFundsState {
   const [activeContractsCount, setActiveContractsCount] = useState("0");
   const [completedContractsCount, setCompletedContractsCount] = useState("0");
   const [deadlinesApproachingCount, setDeadlinesApproachingCount] = useState("0");
@@ -39,22 +37,11 @@ export function useFreelancerEscrowFunds(
   const [waitingDeliveriesCount, setWaitingDeliveriesCount] = useState("0");
 
   useEffect(() => {
-    if (!freelancerId) {
-      setActiveContractsCount("0");
-      setCompletedContractsCount("0");
-      setDeadlinesApproachingCount("0");
-      setFundsToReceiveEth("0.0000 ETH");
-      setFundsToReceiveUsdc("0.00 USDC");
-      setWaitingDeliveriesCount("0");
-      return;
-    }
-
-    const activeFreelancerId = freelancerId;
     let isCancelled = false;
 
     async function loadFunds(): Promise<void> {
       try {
-        const result = await fetchFreelancerEscrowSummary(activeFreelancerId);
+        const result = await fetchFreelancerEscrowSummary();
 
         if (!isCancelled) {
           setActiveContractsCount(result.activeContractsCount.toString());
@@ -83,7 +70,7 @@ export function useFreelancerEscrowFunds(
     return () => {
       isCancelled = true;
     };
-  }, [freelancerId]);
+  }, []);
 
   return {
     activeContractsCount,

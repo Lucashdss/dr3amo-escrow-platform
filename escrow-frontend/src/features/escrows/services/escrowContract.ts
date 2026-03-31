@@ -19,14 +19,27 @@ import {
   ESCROW_ABI,
   getEscrowLiveStateFromIndex,
 } from "@/features/escrows/config/escrowContract";
-import { getEscrowErrorMessage } from "@/features/escrows/services/validation";
+import { FACTORY_ABI } from "@/features/escrows/config/factoryAbi";
+import {
+  ESCROW_DEPLOYMENT_CONFIGS,
+  FACTORY_ADMIN_ADDRESS,
+} from "@/features/escrows/config/deployment";
+import {
+  calculateDeliveryDays,
+  getEscrowErrorMessage,
+  getTokenAddress,
+} from "@/features/escrows/services/validation";
 import type {
+  ActiveEscrowMonitorState,
+  EscrowChainKey,
+  EscrowPersistedSnapshot,
   EscrowActionKey,
   EscrowLiveSnapshot,
   EscrowLiveState,
   EscrowManagementItem,
   TokenSymbol,
 } from "@/features/escrows/types/escrow";
+import { ACTIVE_ESCROW_MONITOR_STATES } from "@/features/escrows/types/escrow";
 import { AppError } from "@/lib/errors";
 import { config } from "@/lib/web3/wagmi";
 
@@ -49,6 +62,35 @@ type ApproveEscrowFundingInput = {
   tokenAddress: string;
   tokenId: number;
   walletAddress: string;
+};
+
+type EscrowChainTarget = {
+  chainId: number;
+  contractAddress: string;
+  tokenId: number;
+};
+
+type CreateEscrowVerificationInput = {
+  authenticatedWalletAddress: string;
+  chainKey: EscrowChainKey;
+  databaseChainId: number;
+  deadline: string;
+  freelancerWalletAddress: string;
+  tokenId: number;
+  tokenSymbol: TokenSymbol;
+  txHash: string;
+};
+
+type EscrowActionVerificationInput = {
+  action: EscrowActionKey;
+  authenticatedWalletAddress: string;
+  escrow: EscrowManagementItem;
+  txHash: string;
+};
+
+export type RefundCandidate = {
+  contractAddress: string;
+  txHash: string;
 };
 
 type EscrowSyncSnapshot = {
@@ -86,6 +128,7 @@ const RELEVANT_ESCROW_EVENTS = new Set([
   "StateChanged",
   "UpfrontPaymentSent",
 ]);
+const REFUNDED_STATE_INDEX = 5;
 
 const ERC20_ABI = [
   {
@@ -143,6 +186,18 @@ function getEscrowTokenDecimals(tokenId: number): number {
 
 function getContractAddress(address: string): Address {
   return getAddress(address);
+}
+
+function createContractAddressList(addresses: readonly string[]): Address[] {
+  return addresses.map((address) => getContractAddress(address));
+}
+
+function hasValues<T>(values: readonly T[]): boolean {
+  return values.length > 0;
+}
+
+function isSameAddress(left: string, right: string): boolean {
+  return getContractAddress(left) === getContractAddress(right);
 }
 
 function isEthEscrowToken(tokenId: number): boolean {
@@ -297,6 +352,457 @@ function parseStoredEscrowAmount(value: string, tokenId: number): bigint {
   }
 
   return parseUnits(trimmedValue, getEscrowTokenDecimals(tokenId));
+}
+
+function getEscrowClient(databaseChainId: number) {
+  return getPublicClient(config, {
+    chainId: getSupportedChainId(databaseChainId),
+  });
+}
+
+async function getTransactionBundle(databaseChainId: number, txHash: string) {
+  const publicClient = getEscrowClient(databaseChainId);
+  const receipt = await publicClient.getTransactionReceipt({
+    hash: txHash as Hex,
+  });
+  const transaction = await publicClient.getTransaction({
+    hash: txHash as Hex,
+  });
+
+  return { receipt, transaction };
+}
+
+function assertSuccessfulReceipt(status: string): void {
+  if (status !== "success") {
+    throw new AppError("The escrow transaction was not successful.", 400);
+  }
+}
+
+function assertWalletActor(from: string, walletAddress: string): void {
+  if (!isSameAddress(from, walletAddress)) {
+    throw new AppError("The escrow transaction was not sent by the authenticated wallet.", 400);
+  }
+}
+
+function assertTransactionTarget(
+  targetAddress: string | null,
+  expectedAddress: string,
+  message: string
+): void {
+  if (!targetAddress || !isSameAddress(targetAddress, expectedAddress)) {
+    throw new AppError(message, 400);
+  }
+}
+
+function parseEscrowReceiptLogs(
+  logs: readonly Log[],
+  contractAddress: string
+) {
+  const contractLogs = logs.filter((log) => isSameAddress(log.address, contractAddress));
+
+  return parseEventLogs({
+    abi: ESCROW_ABI,
+    logs: [...contractLogs],
+    strict: false,
+  });
+}
+
+function parseFactoryReceiptLogs(
+  logs: readonly Log[],
+  factoryAddress: string
+) {
+  const factoryLogs = logs.filter((log) => isSameAddress(log.address, factoryAddress));
+
+  return parseEventLogs({
+    abi: FACTORY_ABI,
+    logs: [...factoryLogs],
+    strict: false,
+  });
+}
+
+function getSingleEscrowCreatedLog(logs: readonly Log[], factoryAddress: string) {
+  const createdLogs = parseFactoryReceiptLogs(logs, factoryAddress).filter(
+    (log) => log.eventName === "EscrowCreated"
+  );
+
+  if (createdLogs.length !== 1) {
+    throw new AppError("Expected exactly one EscrowCreated event.", 400);
+  }
+
+  return createdLogs[0];
+}
+
+function getStateChangeName(logs: readonly Log[], contractAddress: string): string | null {
+  const parsedLogs = parseEscrowReceiptLogs(logs, contractAddress);
+  const stateChangedLog = parsedLogs.find((log) => log.eventName === "StateChanged");
+  const nextState = stateChangedLog?.args?.newState;
+  const liveState =
+    typeof nextState === "number" || typeof nextState === "bigint"
+      ? getEscrowLiveStateFromIndex(Number(nextState))
+      : null;
+
+  return mapEscrowLiveStateToDatabaseState(liveState);
+}
+
+function hasEscrowEvent(
+  logs: readonly Log[],
+  contractAddress: string,
+  eventName: string
+): boolean {
+  const parsedLogs = parseEscrowReceiptLogs(logs, contractAddress);
+  return parsedLogs.some((log) => log.eventName === eventName);
+}
+
+function hasRefundEvent(logs: readonly Log[], contractAddress: string): boolean {
+  const isRefundState = getStateChangeName(logs, contractAddress) === "refunded";
+  const hasFundsRefunded = hasEscrowEvent(logs, contractAddress, "FundsRefunded");
+
+  return isRefundState || hasFundsRefunded;
+}
+
+function assertCreateFunction(input: Hex) {
+  const decodedInput = decodeFunctionData({
+    abi: FACTORY_ABI,
+    data: input,
+  });
+
+  if (decodedInput.functionName !== "createEscrow") {
+    throw new AppError("The transaction is not a createEscrow call.", 400);
+  }
+
+  return decodedInput.args;
+}
+
+function assertCreateArguments(
+  input: CreateEscrowVerificationInput,
+  args: readonly unknown[]
+): void {
+  const [freelancer, , dataFeed, token, admin] = args;
+  const deploymentConfig = ESCROW_DEPLOYMENT_CONFIGS[input.chainKey];
+  const expectedToken = getTokenAddress(input.tokenSymbol, input.chainKey);
+
+  if (!isSameAddress(String(freelancer), input.freelancerWalletAddress)) {
+    throw new AppError("The transaction freelancer does not match the request.", 400);
+  }
+
+  if (!isSameAddress(String(dataFeed), deploymentConfig.dataFeedAddress)) {
+    throw new AppError("The transaction data feed does not match the configured chain.", 400);
+  }
+
+  if (!isSameAddress(String(token), expectedToken)) {
+    throw new AppError("The transaction token does not match the request.", 400);
+  }
+
+  if (!isSameAddress(String(admin), FACTORY_ADMIN_ADDRESS)) {
+    throw new AppError("The transaction admin does not match the configured factory admin.", 400);
+  }
+}
+
+function assertEscrowCreatedArguments(
+  input: CreateEscrowVerificationInput,
+  args: Record<string, unknown>,
+  factoryArgs: readonly unknown[]
+): void {
+  const [freelancer, deliveryPeriod, dataFeed, token, , bps] = factoryArgs;
+
+  if (!isSameAddress(String(args.client), input.authenticatedWalletAddress)) {
+    throw new AppError("EscrowCreated client does not match the authenticated wallet.", 400);
+  }
+
+  if (!isSameAddress(String(args.freelancer), String(freelancer))) {
+    throw new AppError("EscrowCreated freelancer does not match the transaction.", 400);
+  }
+
+  if (!isSameAddress(String(args.token), String(token))) {
+    throw new AppError("EscrowCreated token does not match the transaction.", 400);
+  }
+
+  if (!isSameAddress(String(args.dataFeed), String(dataFeed))) {
+    throw new AppError("EscrowCreated data feed does not match the transaction.", 400);
+  }
+
+  if (args.deliveryPeriod !== deliveryPeriod || args.bps !== bps) {
+    throw new AppError("EscrowCreated arguments do not match the transaction.", 400);
+  }
+}
+
+function assertCreateDeadline(
+  requestedDeadline: string,
+  snapshotDeadline: string
+): void {
+  if (requestedDeadline !== snapshotDeadline) {
+    throw new AppError("The on-chain deadline does not match the request.", 400);
+  }
+}
+
+function assertActionFunction(action: EscrowActionKey, input: Hex): void {
+  const decodedInput = decodeFunctionData({
+    abi: ESCROW_ABI,
+    data: input,
+  });
+  const functionName = decodedInput.functionName;
+  const matchesAction = functionName === action;
+
+  if (!matchesAction) {
+    throw new AppError("The transaction function does not match the requested action.", 400);
+  }
+}
+
+function assertActionReceiptEvidence(
+  action: EscrowActionKey,
+  logs: readonly Log[],
+  contractAddress: string
+): void {
+  const nextState = getStateChangeName(logs, contractAddress);
+  const evidenceByAction: Record<EscrowActionKey, boolean> = {
+    cancelEscrow:
+      nextState === "canceled" || hasEscrowEvent(logs, contractAddress, "FundsRefunded"),
+    confirmDelivery:
+      nextState === "released" ||
+      hasEscrowEvent(logs, contractAddress, "DeliveryConfirmed") ||
+      hasEscrowEvent(logs, contractAddress, "FundsReleased"),
+    fund:
+      nextState === "funded" ||
+      hasEscrowEvent(logs, contractAddress, "UpfrontPaymentSent"),
+    initiateDispute:
+      nextState === "dispute" ||
+      hasEscrowEvent(logs, contractAddress, "DisputeInitiated"),
+    markWorkSubmitted: nextState === "work submitted",
+    requestModificationAndUpdateDeadline: nextState === "pending modification",
+    setMinimumPriceUSD: hasEscrowEvent(logs, contractAddress, "MinimumPriceUpdated"),
+  };
+
+  if (!evidenceByAction[action]) {
+    throw new AppError("The escrow receipt does not contain the expected action evidence.", 400);
+  }
+}
+
+function createRefundCandidateKey(
+  databaseChainId: number,
+  txHash: string,
+  contractAddress: string
+): string {
+  return `${databaseChainId}:${txHash}:${contractAddress.toLowerCase()}`;
+}
+
+function createEmptyCandidates(): RefundCandidate[] {
+  return [];
+}
+
+function pushRefundCandidate(
+  candidates: RefundCandidate[],
+  keySet: Set<string>,
+  contractAddress: string,
+  txHash: string,
+  databaseChainId: number
+): void {
+  const candidateKey = createRefundCandidateKey(
+    databaseChainId,
+    txHash,
+    contractAddress
+  );
+
+  if (!keySet.has(candidateKey)) {
+    keySet.add(candidateKey);
+    candidates.push({ contractAddress, txHash });
+  }
+}
+
+function getExpectedDeliveryDays(deadline: string): number | null {
+  return calculateDeliveryDays(deadline, new Date());
+}
+
+export async function readCurrentEscrowSnapshot(
+  escrow: EscrowChainTarget
+): Promise<EscrowPersistedSnapshot> {
+  const chainId = getSupportedChainId(escrow.chainId);
+  const address = getContractAddress(escrow.contractAddress);
+  const [amountToRelease, deadline, stateIndex, modificationsRequested] =
+    await Promise.all([
+      readContract(config, {
+        abi: ESCROW_ABI,
+        address,
+        chainId,
+        functionName: "getAmountToRelease",
+      }),
+      readContract(config, {
+        abi: ESCROW_ABI,
+        address,
+        chainId,
+        functionName: "getDeadline",
+      }),
+      readContract(config, {
+        abi: ESCROW_ABI,
+        address,
+        chainId,
+        functionName: "getEscrowState",
+      }),
+      readContract(config, {
+        abi: ESCROW_ABI,
+        address,
+        chainId,
+        functionName: "getModificationsRequested",
+      }),
+    ]);
+  const liveState = getEscrowLiveStateFromIndex(Number(stateIndex));
+
+  return {
+    amount: formatEscrowAmountForStorage(amountToRelease, escrow.tokenId),
+    deadline: formatContractDeadline(deadline),
+    modificationsRequested: Number(modificationsRequested),
+    state: mapEscrowLiveStateToDatabaseState(liveState) ?? "created",
+  };
+}
+
+export async function verifyCreateEscrowTransaction(
+  input: CreateEscrowVerificationInput
+): Promise<{ contractAddress: string; snapshot: EscrowPersistedSnapshot }> {
+  const deploymentConfig = ESCROW_DEPLOYMENT_CONFIGS[input.chainKey];
+  const { receipt, transaction } = await getTransactionBundle(
+    input.databaseChainId,
+    input.txHash
+  );
+  const factoryArgs = assertCreateFunction(transaction.input);
+  const createdLog = getSingleEscrowCreatedLog(receipt.logs, deploymentConfig.factoryAddress);
+  const contractAddress = String(createdLog.args.escrow);
+  const snapshot = await readCurrentEscrowSnapshot({
+    chainId: input.databaseChainId,
+    contractAddress,
+    tokenId: input.tokenId,
+  });
+
+  assertSuccessfulReceipt(receipt.status);
+  assertWalletActor(transaction.from, input.authenticatedWalletAddress);
+  assertTransactionTarget(
+    transaction.to,
+    deploymentConfig.factoryAddress,
+    "The transaction target does not match the configured factory."
+  );
+  assertCreateArguments(input, factoryArgs);
+  assertEscrowCreatedArguments(
+    input,
+    createdLog.args as Record<string, unknown>,
+    factoryArgs
+  );
+  assertCreateDeadline(input.deadline, snapshot.deadline);
+
+  if (getExpectedDeliveryDays(input.deadline) === null) {
+    throw new AppError("The request deadline is invalid.", 400);
+  }
+
+  return { contractAddress, snapshot };
+}
+
+export async function verifyEscrowActionTransaction(
+  input: EscrowActionVerificationInput
+): Promise<EscrowPersistedSnapshot> {
+  const { receipt, transaction } = await getTransactionBundle(
+    input.escrow.chainId,
+    input.txHash
+  );
+
+  assertSuccessfulReceipt(receipt.status);
+  assertWalletActor(transaction.from, input.authenticatedWalletAddress);
+  assertTransactionTarget(
+    transaction.to,
+    input.escrow.contractAddress,
+    "The transaction target does not match the escrow contract."
+  );
+  assertActionFunction(input.action, transaction.input);
+  assertActionReceiptEvidence(input.action, receipt.logs, input.escrow.contractAddress);
+
+  return readCurrentEscrowSnapshot({
+    chainId: input.escrow.chainId,
+    contractAddress: input.escrow.contractAddress,
+    tokenId: input.escrow.tokenId,
+  });
+}
+
+export function isAutomationMonitoringState(state: string): boolean {
+  return ACTIVE_ESCROW_MONITOR_STATES.includes(
+    state.toLowerCase() as ActiveEscrowMonitorState
+  );
+}
+
+export async function listRefundCandidates(
+  databaseChainId: number,
+  contractAddresses: readonly string[],
+  fromBlock: bigint,
+  toBlock: bigint
+): Promise<RefundCandidate[]> {
+  const publicClient = getEscrowClient(databaseChainId);
+  const logs = hasValues(contractAddresses)
+    ? await publicClient.getLogs({
+        address: createContractAddressList(contractAddresses),
+        fromBlock,
+        toBlock,
+      })
+    : [];
+  const candidates = createEmptyCandidates();
+  const keySet = new Set<string>();
+  const parsedLogs = parseEventLogs({
+    abi: ESCROW_ABI,
+    logs: [...logs],
+    strict: false,
+  });
+
+  parsedLogs.forEach((log) => {
+    const nextState =
+      log.eventName === "StateChanged"
+        ? (log.args as { newState?: bigint | number }).newState
+        : undefined;
+    const isRefundedState =
+      log.eventName === "StateChanged" &&
+      ((typeof nextState === "number" && nextState === REFUNDED_STATE_INDEX) ||
+        (typeof nextState === "bigint" &&
+          nextState === BigInt(REFUNDED_STATE_INDEX)));
+    const isFundsRefunded = log.eventName === "FundsRefunded";
+
+    if (isRefundedState || isFundsRefunded) {
+      pushRefundCandidate(
+        candidates,
+        keySet,
+        log.address,
+        log.transactionHash,
+        databaseChainId
+      );
+    }
+  });
+
+  return candidates;
+}
+
+export async function getLatestEscrowBlockNumber(
+  databaseChainId: number
+): Promise<bigint> {
+  const publicClient = getEscrowClient(databaseChainId);
+  return publicClient.getBlockNumber();
+}
+
+export async function verifyRefundTransaction(
+  databaseChainId: number,
+  contractAddress: string,
+  tokenId: number,
+  txHash: string
+): Promise<EscrowPersistedSnapshot> {
+  const { receipt } = await getTransactionBundle(databaseChainId, txHash);
+  const snapshot = await readCurrentEscrowSnapshot({
+    chainId: databaseChainId,
+    contractAddress,
+    tokenId,
+  });
+
+  assertSuccessfulReceipt(receipt.status);
+
+  if (!hasRefundEvent(receipt.logs, contractAddress)) {
+    throw new AppError("The transaction does not contain refund evidence.", 400);
+  }
+
+  if (snapshot.state !== "refunded") {
+    throw new AppError("The current on-chain escrow state is not refunded.", 400);
+  }
+
+  return snapshot;
 }
 
 export function mapEscrowLiveStateToDatabaseState(

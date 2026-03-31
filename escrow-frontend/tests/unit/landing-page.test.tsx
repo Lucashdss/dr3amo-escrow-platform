@@ -45,6 +45,7 @@ describe("Home page", () => {
 
   const baseAuthState = {
     address: undefined,
+    authError: null,
     connectError: null,
     connectors: [],
     currentUserId: null,

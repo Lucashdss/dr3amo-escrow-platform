@@ -14,7 +14,6 @@ type UsernameRegistrationState = {
 };
 
 export function useUsernameRegistration(
-  address: string | undefined,
   onSuccess: () => void
 ): UsernameRegistrationState {
   const [username, setUsername] = useState("");
@@ -22,11 +21,6 @@ export function useUsernameRegistration(
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const handleCreateUser = useCallback(async (): Promise<void> => {
-    if (!address) {
-      setUsernameError("Wallet is not connected.");
-      return;
-    }
-
     if (!username.trim()) {
       setUsernameError("Username is required.");
       return;
@@ -36,7 +30,7 @@ export function useUsernameRegistration(
     setUsernameError(null);
 
     try {
-      await createUser({ username, walletAddress: address });
+      await createUser({ username });
       setUsername("");
       onSuccess();
     } catch (error) {
@@ -46,7 +40,7 @@ export function useUsernameRegistration(
     } finally {
       setIsCreatingUser(false);
     }
-  }, [address, onSuccess, username]);
+  }, [onSuccess, username]);
 
   const resetUsername = useCallback(() => {
     setUsername("");

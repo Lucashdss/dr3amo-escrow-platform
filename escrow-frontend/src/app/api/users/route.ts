@@ -7,7 +7,9 @@ import {
   createUser,
   listUsers,
 } from "@/features/auth/server/userService";
+import { getAuthSession } from "@/features/auth/server/walletAuthService";
 import { parseCreateUserRequest } from "@/features/auth/server/userRequests";
+import { readSessionToken } from "@/features/auth/server/sessionCookie";
 
 export async function GET() {
   try {
@@ -21,12 +23,23 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const parsedRequest = parseCreateUserRequest(await request.json());
+    const sessionToken = readSessionToken(request);
 
     if (!parsedRequest.success) {
       return createErrorResponse(parsedRequest.error, 400);
     }
 
-    const result = await createUser(parsedRequest.data);
+    if (!sessionToken) {
+      return createErrorResponse("Authentication required.", 401);
+    }
+
+    const session = await getAuthSession(sessionToken);
+
+    if (!session) {
+      return createErrorResponse("Authentication required.", 401);
+    }
+
+    const result = await createUser(parsedRequest.data, session.walletAddress);
     return createSuccessResponse(result.data, result.status);
   } catch (error) {
     if (error instanceof AppError) {

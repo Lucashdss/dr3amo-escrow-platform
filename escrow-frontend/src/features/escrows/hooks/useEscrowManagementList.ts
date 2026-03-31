@@ -11,29 +11,19 @@ type EscrowManagementListState = {
   isLoading: boolean;
 };
 
-export function useEscrowManagementList(
-  userId: number | undefined
-): EscrowManagementListState {
+export function useEscrowManagementList(): EscrowManagementListState {
   const [escrows, setEscrows] = useState<EscrowManagementItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!userId) {
-      setEscrows([]);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
     let isCancelled = false;
-    const currentUserId = userId;
     setIsLoading(true);
     setError(null);
 
     async function loadEscrows(): Promise<void> {
       try {
-        const result = await fetchEscrowManagementList(currentUserId);
+        const result = await fetchEscrowManagementList();
 
         if (!isCancelled) {
           setEscrows(result.escrows);
@@ -59,7 +49,7 @@ export function useEscrowManagementList(
     return () => {
       isCancelled = true;
     };
-  }, [userId]);
+  }, []);
 
   return {
     error,

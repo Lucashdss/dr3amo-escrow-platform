@@ -9,10 +9,8 @@ type DashboardActivityState = {
   items: ReturnType<typeof createDashboardActivity>;
 };
 
-export function useDashboardActivity(
-  userId: number | undefined
-): DashboardActivityState {
-  const activityFeed = useEscrowManagementList(userId);
+export function useDashboardActivity(): DashboardActivityState {
+  const activityFeed = useEscrowManagementList();
 
   return {
     error: activityFeed.error,

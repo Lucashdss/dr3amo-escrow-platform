@@ -1,5 +1,6 @@
 import { createErrorResponse, createSuccessResponse } from "@/lib/api/responses";
 import { AppError } from "@/lib/errors";
+import { requireAuthenticatedUser } from "@/features/auth/server/authenticatedUser";
 import { getClientEscrowSummary } from "@/features/escrows/server/escrowService";
 import { parseClientEscrowFundsRequest } from "@/features/escrows/server/escrowRequests";
 
@@ -11,7 +12,9 @@ export async function GET(request: Request) {
       return createErrorResponse(parsedRequest.error, 400);
     }
 
-    return createSuccessResponse(await getClientEscrowSummary(parsedRequest.data));
+    const user = await requireAuthenticatedUser(request);
+
+    return createSuccessResponse(await getClientEscrowSummary(user.id));
   } catch (error) {
     if (error instanceof AppError) {
       return createErrorResponse(error.message, error.status);

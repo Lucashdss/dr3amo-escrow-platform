@@ -1,5 +1,6 @@
 import { createErrorResponse, createSuccessResponse } from "@/lib/api/responses";
 import { AppError } from "@/lib/errors";
+import { requireAuthenticatedUser } from "@/features/auth/server/authenticatedUser";
 import { createEscrow, listEscrows } from "@/features/escrows/server/escrowService";
 import { parseCreateEscrowRequest } from "@/features/escrows/server/escrowRequests";
 
@@ -20,7 +21,12 @@ export async function POST(request: Request) {
       return createErrorResponse(parsedRequest.error, 400);
     }
 
-    return createSuccessResponse(await createEscrow(parsedRequest.data), 201);
+    const user = await requireAuthenticatedUser(request);
+
+    return createSuccessResponse(
+      await createEscrow(parsedRequest.data, user.wallet_address),
+      201
+    );
   } catch (error) {
     if (error instanceof AppError) {
       return createErrorResponse(error.message, error.status);

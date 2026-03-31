@@ -324,7 +324,7 @@ export function ClientManagementScreenContent({
 export function ClientManagementScreen() {
   const { address } = useAccount();
   const { isLoading: isLoadingUser, user } = useCurrentUser();
-  const management = useEscrowManagementList(user?.id);
+  const management = useEscrowManagementList();
 
   return (
     <ClientManagementScreenContent

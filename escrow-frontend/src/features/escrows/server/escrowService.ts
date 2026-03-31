@@ -1,13 +1,14 @@
 import { AppError } from "@/lib/errors";
 import type { UserRecord } from "@/features/auth/types/user";
 import {
-  decodeEscrowReceiptEventNames,
-  getFundReceiptUpdate,
-  getModificationReceiptUpdate,
-  getEscrowSyncReceipt,
-  readEscrowSyncSnapshot,
+  isAutomationMonitoringState,
+  readCurrentEscrowSnapshot,
+  verifyCreateEscrowTransaction,
+  verifyEscrowActionTransaction,
+  verifyRefundTransaction,
 } from "@/features/escrows/services/escrowContract";
 import { findUserByWalletAddress } from "@/features/auth/server/userRepository";
+import { ACTIVE_ESCROW_MONITOR_STATES } from "@/features/escrows/types/escrow";
 import type {
   ClientEscrowStateGroups,
   ClientEscrowSummaryResult,
@@ -18,6 +19,7 @@ import type {
   EscrowManagementDetailResult,
   EscrowManagementListResult,
   EscrowListResult,
+  EscrowPersistedSnapshot,
   FreelancerEscrowStateGroups,
   FreelancerEscrowSummaryResult,
   SyncEscrowActionResult,
@@ -28,10 +30,13 @@ import * as repository from "./escrowRepository";
 
 type EscrowRepository = {
   createEscrowRecord: typeof repository.createEscrowRecord;
+  findEscrowByContractAddressAndChainId:
+    typeof repository.findEscrowByContractAddressAndChainId;
   findEscrowManagementByIdForUser: typeof repository.findEscrowManagementByIdForUser;
   findEscrowById: typeof repository.findEscrowById;
   getClientEscrowSummary: typeof repository.getClientEscrowSummary;
   getFreelancerEscrowSummary: typeof repository.getFreelancerEscrowSummary;
+  listActiveEscrowMonitoringTargets: typeof repository.listActiveEscrowMonitoringTargets;
   listEscrows: typeof repository.listEscrows;
   listEscrowsForUser: typeof repository.listEscrowsForUser;
   updateEscrowSnapshot: typeof repository.updateEscrowSnapshot;
@@ -68,72 +73,29 @@ const FREELANCER_ESCROW_STATE_GROUPS: FreelancerEscrowStateGroups = {
   receivableExcluded: ["cancelled", "released", "refunded"],
   waitingDeliveryExcluded: ["work submitted"],
 };
-
-function getDirectActionSnapshot(
-  action: EscrowActionKey,
-  escrow: {
-    amount: string;
-    deadline: string;
-    modificationsRequested?: number;
-  }
-): {
-  amount: string;
-  deadline: string;
-  modificationsRequested: number;
-  state: string;
-} | null {
-  if (action === "cancelEscrow") {
-    return {
-      amount: escrow.amount,
-      deadline: escrow.deadline,
-      modificationsRequested: escrow.modificationsRequested ?? 0,
-      state: "canceled",
-    };
-  }
-
-  if (action === "markWorkSubmitted") {
-    return {
-      amount: escrow.amount,
-      deadline: escrow.deadline,
-      modificationsRequested: escrow.modificationsRequested ?? 0,
-      state: "work submitted",
-    };
-  }
-
-  if (action === "initiateDispute") {
-    return {
-      amount: escrow.amount,
-      deadline: escrow.deadline,
-      modificationsRequested: escrow.modificationsRequested ?? 0,
-      state: "dispute",
-    };
-  }
-
-  if (action === "confirmDelivery") {
-    return {
-      amount: escrow.amount,
-      deadline: escrow.deadline,
-      modificationsRequested: escrow.modificationsRequested ?? 0,
-      state: "released",
-    };
-  }
-
-  return null;
-}
-
-function isDirectSyncAction(action: EscrowActionKey): boolean {
-  return (
-    action === "cancelEscrow" ||
-    action === "fund" ||
-    action === "markWorkSubmitted" ||
-    action === "initiateDispute" ||
-    action === "confirmDelivery" ||
-    action === "requestModificationAndUpdateDeadline"
-  );
-}
+const ACTIVE_MONITOR_STATES: typeof ACTIVE_ESCROW_MONITOR_STATES = [
+  "funded",
+  "work submitted",
+  "pending modification",
+];
 
 function getTokenId(chainKey: EscrowChainKey, tokenSymbol: TokenSymbol): number {
   return TOKEN_IDS[chainKey][tokenSymbol];
+}
+
+function createChainSnapshotUpdate(
+  id: number,
+  snapshot: EscrowPersistedSnapshot,
+  lastTxHash?: string
+) {
+  return {
+    amount: snapshot.amount,
+    deadline: snapshot.deadline,
+    id,
+    lastTxHash,
+    modificationsRequested: snapshot.modificationsRequested,
+    state: snapshot.state,
+  };
 }
 
 async function requireUser(
@@ -179,61 +141,28 @@ export async function getEscrowManagementDetail(
 
 export async function syncEscrowAction(
   id: number,
-  userId: number,
+  user: Pick<UserRecord, "id" | "wallet_address">,
   txHash: string,
   action: EscrowActionKey,
   repo: EscrowRepository = defaultRepository
 ): Promise<SyncEscrowActionResult> {
-  const escrow = await repo.findEscrowManagementByIdForUser(id, userId);
+  const escrow = await repo.findEscrowManagementByIdForUser(id, user.id);
 
   if (!escrow) {
     throw new AppError("Escrow not found.", 404);
   }
 
-  const receipt = await getEscrowSyncReceipt(escrow.chainId, txHash);
-
-  if (receipt.status !== "success") {
-    throw new AppError("The escrow transaction was not successful.", 400);
-  }
-
-  const decodedEventNames = decodeEscrowReceiptEventNames(receipt.logs);
-  const directActionSnapshot = getDirectActionSnapshot(action, escrow);
-
-  if (!decodedEventNames.length && !isDirectSyncAction(action)) {
-    throw new AppError("Failed to decode a relevant escrow event.", 400);
-  }
-
-  let snapshot: {
-    amount: string;
-    deadline: string;
-    modificationsRequested: number;
-    state: string;
-  };
-
-  if (action === "fund") {
-    snapshot = await getFundReceiptUpdate(escrow, txHash, receipt.logs);
-  } else if (action === "requestModificationAndUpdateDeadline") {
-    const modificationSnapshot = await getModificationReceiptUpdate(escrow, txHash);
-    snapshot = {
-      amount: escrow.amount,
-      deadline: modificationSnapshot.deadline,
-      modificationsRequested: (escrow.modificationsRequested ?? 0) + 1,
-      state: modificationSnapshot.state,
-    };
-  } else {
-    snapshot = directActionSnapshot ?? (await readEscrowSyncSnapshot(escrow));
-  }
-
-  await repo.updateEscrowSnapshot({
-    amount: snapshot.amount,
-    deadline: snapshot.deadline,
-    id,
-    modificationsRequested: snapshot.modificationsRequested,
-    state: snapshot.state,
+  const snapshot = await verifyEscrowActionTransaction({
+    action,
+    authenticatedWalletAddress: user.wallet_address,
+    escrow,
+    txHash,
   });
 
+  await repo.updateEscrowSnapshot(createChainSnapshotUpdate(id, snapshot, txHash));
+
   return {
-    escrow: await repo.findEscrowManagementByIdForUser(id, userId),
+    escrow: await repo.findEscrowManagementByIdForUser(id, user.id),
     txHash,
   };
 }
@@ -257,11 +186,13 @@ export async function getFreelancerEscrowSummary(
 
 export async function createEscrow(
   request: CreateEscrowRequest,
+  clientWalletAddress: string,
   repo: EscrowRepository = defaultRepository,
   lookupUser: UserLookup = findUserByWalletAddress
 ): Promise<CreateEscrowResult> {
+  const tokenId = getTokenId(request.chainKey, request.tokenSymbol);
   const clientUser = await requireUser(
-    request.clientWalletAddress,
+    clientWalletAddress,
     "Client wallet is not registered.",
     lookupUser
   );
@@ -270,17 +201,29 @@ export async function createEscrow(
     "Freelancer wallet is not registered.",
     lookupUser
   );
+  const verification = await verifyCreateEscrowTransaction({
+    authenticatedWalletAddress: clientWalletAddress,
+    chainKey: request.chainKey,
+    databaseChainId: CHAIN_IDS[request.chainKey],
+    deadline: request.deadline,
+    freelancerWalletAddress: request.freelancerWalletAddress,
+    tokenId,
+    tokenSymbol: request.tokenSymbol,
+    txHash: request.txHash,
+  });
   const insertId = await repo.createEscrowRecord({
-    amount: request.amount,
+    amount: verification.snapshot.amount,
     chainId: CHAIN_IDS[request.chainKey],
     clientId: clientUser.id,
-    contractAddress: request.contractAddress,
-    deadline: request.deadline,
+    contractAddress: verification.contractAddress,
+    createdTxHash: request.txHash,
+    deadline: verification.snapshot.deadline,
     escrowName: request.escrowName,
     freelancerId: freelancerUser.id,
-    modificationsRequested: 0,
-    state: request.state,
-    tokenId: getTokenId(request.chainKey, request.tokenSymbol),
+    lastTxHash: request.txHash,
+    modificationsRequested: verification.snapshot.modificationsRequested,
+    state: verification.snapshot.state,
+    tokenId,
   });
   const escrow = await repo.findEscrowById(insertId);
 
@@ -293,4 +236,65 @@ export async function createEscrow(
     escrow,
     txHash: request.txHash,
   };
+}
+
+export async function listActiveEscrowMonitoringTargets(
+  repo: EscrowRepository = defaultRepository
+) {
+  return repo.listActiveEscrowMonitoringTargets(ACTIVE_MONITOR_STATES);
+}
+
+export async function syncAutomatedRefundEscrow(
+  chainId: number,
+  contractAddress: string,
+  txHash: string,
+  repo: EscrowRepository = defaultRepository
+): Promise<boolean> {
+  const escrow = await repo.findEscrowByContractAddressAndChainId(
+    contractAddress,
+    chainId
+  );
+
+  if (!escrow || !isAutomationMonitoringState(escrow.state)) {
+    return false;
+  }
+
+  const snapshot = await verifyRefundTransaction(
+    chainId,
+    contractAddress,
+    escrow.tokenId,
+    txHash
+  );
+  await repo.updateEscrowSnapshot(
+    createChainSnapshotUpdate(escrow.id, snapshot, txHash)
+  );
+
+  return true;
+}
+
+export async function reconcileActiveEscrows(
+  repo: EscrowRepository = defaultRepository
+): Promise<number> {
+  const escrows = await repo.listActiveEscrowMonitoringTargets(ACTIVE_MONITOR_STATES);
+  let updatedCount = 0;
+
+  for (const escrow of escrows) {
+    const snapshot = await readCurrentEscrowSnapshot({
+      chainId: escrow.chainId,
+      contractAddress: escrow.contractAddress,
+      tokenId: escrow.tokenId,
+    });
+    const isChanged =
+      snapshot.amount !== escrow.amount ||
+      snapshot.deadline !== escrow.deadline ||
+      snapshot.modificationsRequested !== escrow.modificationsRequested ||
+      snapshot.state !== escrow.state;
+
+    if (isChanged) {
+      await repo.updateEscrowSnapshot(createChainSnapshotUpdate(escrow.id, snapshot));
+      updatedCount += 1;
+    }
+  }
+
+  return updatedCount;
 }

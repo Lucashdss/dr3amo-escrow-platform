@@ -2,8 +2,10 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import pool from "@/lib/db";
 import type {
+  ActiveEscrowMonitorState,
   ClientEscrowStateGroups,
   ClientEscrowSummaryResult,
+  EscrowPersistedSnapshot,
   EscrowManagementItem,
   EscrowRecord,
   FreelancerEscrowStateGroups,
@@ -27,6 +29,17 @@ type EscrowManagementRow = RowDataPacket & {
   modificationsRequested: number | null;
   state: string;
   tokenAddress: string | null;
+  tokenId: number;
+};
+type EscrowMonitoringRow = RowDataPacket & {
+  id: number;
+  amount: string;
+  chainId: number;
+  contractAddress: string;
+  deadline: string;
+  lastTxHash: string;
+  modificationsRequested: number | null;
+  state: string;
   tokenId: number;
 };
 type ClientEscrowSummaryRow = RowDataPacket & {
@@ -53,24 +66,31 @@ export type CreateEscrowRecordInput = {
   chainId: number;
   clientId: number;
   contractAddress: string;
+  createdTxHash: string;
   deadline: string;
   escrowName: string;
   freelancerId: number;
+  lastTxHash: string;
   modificationsRequested: number;
   state: string;
   tokenId: number;
 };
 
-export type UpdateEscrowSnapshotInput = {
-  amount: string;
-  deadline: string;
+export type UpdateEscrowSnapshotInput = EscrowPersistedSnapshot & {
   id: number;
-  modificationsRequested: number;
-  state: string;
+  lastTxHash?: string;
+};
+
+export type EscrowMonitoringTarget = EscrowPersistedSnapshot & {
+  contractAddress: string;
+  id: number;
+  lastTxHash: string;
+  chainId: number;
+  tokenId: number;
 };
 
 const ESCROW_SELECT_FIELDS =
-  "id, contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested` AS modifications_requested, deadline, state, created_at, changed_at";
+  "id, contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested` AS modifications_requested, deadline, state, created_tx_hash, last_tx_hash, created_at, changed_at";
 const MANAGEMENT_SELECT_FIELDS = `escrows.id AS id,
   escrows.amount AS amount,
   escrows.chain_id AS chainId,
@@ -86,6 +106,15 @@ const MANAGEMENT_SELECT_FIELDS = `escrows.id AS id,
   escrows.\`ModificationsRequested\` AS modificationsRequested,
   escrows.state AS state,
   token_record.token_address AS tokenAddress,
+  escrows.token_id AS tokenId`;
+const MONITORING_SELECT_FIELDS = `escrows.id AS id,
+  escrows.amount AS amount,
+  escrows.chain_id AS chainId,
+  escrows.contract_address AS contractAddress,
+  escrows.deadline AS deadline,
+  escrows.last_tx_hash AS lastTxHash,
+  escrows.\`ModificationsRequested\` AS modificationsRequested,
+  escrows.state AS state,
   escrows.token_id AS tokenId`;
 
 async function queryEscrows(
@@ -136,6 +165,28 @@ async function queryManagementEscrows(
   return rows.map((row) => mapManagementRow(row, userId));
 }
 
+function mapMonitoringRow(row: EscrowMonitoringRow): EscrowMonitoringTarget {
+  return {
+    amount: row.amount,
+    chainId: row.chainId,
+    contractAddress: row.contractAddress,
+    deadline: row.deadline,
+    id: row.id,
+    lastTxHash: row.lastTxHash,
+    modificationsRequested: row.modificationsRequested ?? 0,
+    state: row.state,
+    tokenId: row.tokenId,
+  };
+}
+
+async function queryMonitoringEscrows(
+  sql: string,
+  values: readonly unknown[]
+): Promise<EscrowMonitoringTarget[]> {
+  const [rows] = await pool.query<EscrowMonitoringRow[]>(sql, values);
+  return rows.map((row) => mapMonitoringRow(row));
+}
+
 export async function listEscrows(): Promise<EscrowRecord[]> {
   return queryEscrows(
     `SELECT ${ESCROW_SELECT_FIELDS} FROM escrows ORDER BY changed_at DESC, created_at DESC`
@@ -162,7 +213,7 @@ export async function createEscrowRecord(
   input: CreateEscrowRecordInput
 ): Promise<number> {
   const [result] = await pool.query<ResultSetHeader>(
-    "INSERT INTO escrows (contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested`, deadline, state, created_at, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+    "INSERT INTO escrows (contract_address, escrow_name, client_id, freelancer_id, token_id, chain_id, amount, `ModificationsRequested`, deadline, state, created_tx_hash, last_tx_hash, created_at, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
     [
       input.contractAddress,
       input.escrowName,
@@ -174,6 +225,8 @@ export async function createEscrowRecord(
       input.modificationsRequested,
       input.deadline,
       input.state,
+      input.createdTxHash,
+      input.lastTxHash,
     ]
   );
 
@@ -192,16 +245,28 @@ export async function findEscrowById(id: number): Promise<EscrowRecord | null> {
 export async function updateEscrowSnapshot(
   input: UpdateEscrowSnapshotInput
 ): Promise<void> {
-  await pool.query<ResultSetHeader>(
-    "UPDATE escrows SET amount = ?, deadline = ?, state = ?, `ModificationsRequested` = ?, changed_at = NOW() WHERE id = ?",
-    [
-      input.amount,
-      input.deadline,
-      input.state,
-      input.modificationsRequested,
-      input.id,
-    ]
-  );
+  const hasLastTxHash = typeof input.lastTxHash === "string";
+  const sql = hasLastTxHash
+    ? "UPDATE escrows SET amount = ?, deadline = ?, state = ?, `ModificationsRequested` = ?, last_tx_hash = ?, changed_at = NOW() WHERE id = ?"
+    : "UPDATE escrows SET amount = ?, deadline = ?, state = ?, `ModificationsRequested` = ?, changed_at = NOW() WHERE id = ?";
+  const values = hasLastTxHash
+    ? [
+        input.amount,
+        input.deadline,
+        input.state,
+        input.modificationsRequested,
+        input.lastTxHash,
+        input.id,
+      ]
+    : [
+        input.amount,
+        input.deadline,
+        input.state,
+        input.modificationsRequested,
+        input.id,
+      ];
+
+  await pool.query<ResultSetHeader>(sql, values);
 }
 
 export async function findEscrowManagementByIdForUser(
@@ -222,6 +287,34 @@ export async function findEscrowManagementByIdForUser(
   );
 
   return escrows[0] ?? null;
+}
+
+export async function findEscrowByContractAddressAndChainId(
+  contractAddress: string,
+  chainId: number
+): Promise<EscrowMonitoringTarget | null> {
+  const escrows = await queryMonitoringEscrows(
+    `SELECT ${MONITORING_SELECT_FIELDS}
+     FROM escrows
+     WHERE contract_address = ? AND chain_id = ?
+     LIMIT 1`,
+    [contractAddress, chainId]
+  );
+
+  return escrows[0] ?? null;
+}
+
+export async function listActiveEscrowMonitoringTargets(
+  states: readonly ActiveEscrowMonitorState[]
+): Promise<EscrowMonitoringTarget[]> {
+  const statePlaceholders = createStatePlaceholders(states);
+
+  return queryMonitoringEscrows(
+    `SELECT ${MONITORING_SELECT_FIELDS}
+     FROM escrows
+     WHERE LOWER(state) IN (${statePlaceholders})`,
+    states
+  );
 }
 
 function createStatePlaceholders(states: readonly string[]): string {

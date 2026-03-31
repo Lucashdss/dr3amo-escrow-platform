@@ -1,4 +1,5 @@
 const mockFindEscrowManagementByIdForUser = jest.fn();
+const mockRequireAuthenticatedUser = jest.fn();
 
 jest.mock("@/features/escrows/server/escrowRepository", () => ({
   createEscrowRecord: jest.fn(),
@@ -20,6 +21,12 @@ jest.mock("@/features/escrows/services/escrowContract", () => ({
   readEscrowSyncSnapshot: jest.fn(),
 }));
 
+jest.mock("@/features/auth/server/authenticatedUser", () => ({
+  requireAuthenticatedUser: (...args: unknown[]) =>
+    mockRequireAuthenticatedUser(...args),
+}));
+
+import { AppError } from "@/lib/errors";
 import { GET } from "@/app/api/escrows/[id]/route";
 
 describe("/api/escrows/[id] route", () => {
@@ -34,22 +41,45 @@ describe("/api/escrows/[id] route", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("returns 400 when userId is missing", async () => {
+  it("returns 401 when the user is not authenticated", async () => {
+    mockRequireAuthenticatedUser.mockRejectedValueOnce(
+      new AppError("Authentication required.", 401)
+    );
+
     const response = await GET(
       new Request("http://localhost/api/escrows/7"),
       { params: Promise.resolve({ id: "7" }) }
     );
     const body = await response.json();
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(body).toEqual({
       success: false,
       data: null,
-      error: { message: "userId query param must be a positive integer." },
+      error: { message: "Authentication required." },
     });
   });
 
-  it("returns escrow detail for a related user", async () => {
+  it("returns 403 when the session has no linked user", async () => {
+    mockRequireAuthenticatedUser.mockRejectedValueOnce(
+      new AppError("Registered user required.", 403)
+    );
+
+    const response = await GET(
+      new Request("http://localhost/api/escrows/7"),
+      { params: Promise.resolve({ id: "7" }) }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "Registered user required." },
+    });
+  });
+
+  it("returns escrow detail for the authenticated related user", async () => {
     const escrow = {
       id: 7,
       amount: "0",
@@ -66,10 +96,16 @@ describe("/api/escrows/[id] route", () => {
       tokenId: 1,
     };
 
+    mockRequireAuthenticatedUser.mockResolvedValueOnce({
+      id: 11,
+      username: "client",
+      wallet_address: "0xabc",
+      created_at: "2026-03-16T00:00:00.000Z",
+    });
     mockFindEscrowManagementByIdForUser.mockResolvedValueOnce(escrow);
 
     const response = await GET(
-      new Request("http://localhost/api/escrows/7?userId=11"),
+      new Request("http://localhost/api/escrows/7"),
       { params: Promise.resolve({ id: "7" }) }
     );
     const body = await response.json();
@@ -84,10 +120,16 @@ describe("/api/escrows/[id] route", () => {
   });
 
   it("returns 404 for an unrelated or missing escrow", async () => {
+    mockRequireAuthenticatedUser.mockResolvedValueOnce({
+      id: 11,
+      username: "client",
+      wallet_address: "0xabc",
+      created_at: "2026-03-16T00:00:00.000Z",
+    });
     mockFindEscrowManagementByIdForUser.mockResolvedValueOnce(null);
 
     const response = await GET(
-      new Request("http://localhost/api/escrows/7?userId=11"),
+      new Request("http://localhost/api/escrows/7"),
       { params: Promise.resolve({ id: "7" }) }
     );
     const body = await response.json();
@@ -101,10 +143,16 @@ describe("/api/escrows/[id] route", () => {
   });
 
   it("returns 500 when the repository throws", async () => {
+    mockRequireAuthenticatedUser.mockResolvedValueOnce({
+      id: 11,
+      username: "client",
+      wallet_address: "0xabc",
+      created_at: "2026-03-16T00:00:00.000Z",
+    });
     mockFindEscrowManagementByIdForUser.mockRejectedValueOnce(new Error("boom"));
 
     const response = await GET(
-      new Request("http://localhost/api/escrows/7?userId=11"),
+      new Request("http://localhost/api/escrows/7"),
       { params: Promise.resolve({ id: "7" }) }
     );
     const body = await response.json();

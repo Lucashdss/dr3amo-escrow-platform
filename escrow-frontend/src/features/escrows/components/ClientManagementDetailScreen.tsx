@@ -541,8 +541,7 @@ export function ClientManagementDetailScreen() {
   const { address } = useAccount();
   const { isLoading: isLoadingUser, user } = useCurrentUser();
   const detail = useEscrowManagementDetail(
-    Number.isInteger(escrowId) ? escrowId : undefined,
-    user?.id
+    Number.isInteger(escrowId) ? escrowId : undefined
   );
   const actions = useEscrowManagementActions({
     escrow: detail.escrow,
@@ -550,7 +549,6 @@ export function ClientManagementDetailScreen() {
     liveSnapshot: detail.liveSnapshot,
     refreshDetail: detail.refresh,
     refreshLiveEscrowState: detail.refreshLiveEscrowState,
-    userId: user?.id,
   });
 
   return (

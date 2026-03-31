@@ -46,7 +46,7 @@ type WalletConnectionState = {
   address?: string;
   connectError: string | null;
   connectors: readonly Connector[];
-  handleConnect: (connector: Connector) => Promise<boolean>;
+  handleConnect: (connector: Connector) => Promise<string | null>;
   handleDisconnect: () => void;
   headerLabel: string;
   isConnected: boolean;
@@ -62,15 +62,20 @@ export function useWalletConnection(isMounted: boolean): WalletConnectionState {
   const { address, isConnected, isConnecting: accountIsConnecting } = useAccount();
   const trimmedAddress = getTrimmedAddress(address);
 
-  async function handleConnect(connector: Connector): Promise<boolean> {
+  function handleDisconnect(): void {
+    setConnectError(null);
+    disconnect();
+  }
+
+  async function handleConnect(connector: Connector): Promise<string | null> {
     setConnectError(null);
 
     try {
-      await mutateAsync({ connector });
-      return true;
+      const result = await mutateAsync({ connector });
+      return result.accounts[0] ?? null;
     } catch (error) {
       setConnectError(getConnectErrorMessage(error));
-      return false;
+      return null;
     }
   }
 
@@ -79,7 +84,7 @@ export function useWalletConnection(isMounted: boolean): WalletConnectionState {
     connectError,
     connectors,
     handleConnect,
-    handleDisconnect: () => disconnect(),
+    handleDisconnect,
     headerLabel: isMounted ? trimmedAddress : "Connect Wallet",
     isConnected,
     isConnecting: accountIsConnecting && !connectError,

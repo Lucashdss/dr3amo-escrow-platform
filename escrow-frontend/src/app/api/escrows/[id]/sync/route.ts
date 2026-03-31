@@ -1,5 +1,6 @@
 import { createErrorResponse, createSuccessResponse } from "@/lib/api/responses";
 import { AppError } from "@/lib/errors";
+import { requireAuthenticatedUser } from "@/features/auth/server/authenticatedUser";
 import { syncEscrowAction } from "@/features/escrows/server/escrowService";
 import {
   parseEscrowRouteId,
@@ -30,10 +31,12 @@ export async function POST(
       return createErrorResponse(parsedRequest.error, 400);
     }
 
+    const user = await requireAuthenticatedUser(request);
+
     return createSuccessResponse(
       await syncEscrowAction(
         parsedEscrowId.data,
-        parsedRequest.data.userId,
+        user,
         parsedRequest.data.txHash,
         parsedRequest.data.action
       )

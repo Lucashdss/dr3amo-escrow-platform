@@ -30,7 +30,6 @@ type UseEscrowManagementActionsInput = {
   liveSnapshot: EscrowLiveSnapshot | null;
   refreshDetail: () => Promise<void>;
   refreshLiveEscrowState: () => Promise<void>;
-  userId: number | undefined;
 };
 
 type UseEscrowManagementActionsResult = {
@@ -144,7 +143,7 @@ export function useEscrowManagementActions(
   }
 
   async function submitSelectedAction(): Promise<void> {
-    if (!input.escrow || !input.userId || !selectedAction) {
+    if (!input.escrow || !selectedAction) {
       setActionError("Escrow detail is not ready.");
       return;
     }
@@ -202,7 +201,6 @@ export function useEscrowManagementActions(
       await syncEscrowManagementAction(input.escrow.id, {
         action: selectedAction,
         txHash: execution.txHash,
-        userId: input.userId,
       });
       await input.refreshDetail();
       setActionStatus(null);

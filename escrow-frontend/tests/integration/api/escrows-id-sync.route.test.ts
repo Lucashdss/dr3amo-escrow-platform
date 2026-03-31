@@ -1,34 +1,69 @@
 const mockFindEscrowManagementByIdForUser = jest.fn();
 const mockUpdateEscrowSnapshot = jest.fn();
-const mockGetEscrowSyncReceipt = jest.fn();
-const mockDecodeEscrowReceiptEventNames = jest.fn();
-const mockGetFundReceiptUpdate = jest.fn();
-const mockGetModificationReceiptUpdate = jest.fn();
-const mockReadEscrowSyncSnapshot = jest.fn();
+const mockRequireAuthenticatedUser = jest.fn();
+const mockVerifyEscrowActionTransaction = jest.fn();
 
 jest.mock("@/features/escrows/server/escrowRepository", () => ({
   createEscrowRecord: jest.fn(),
+  findEscrowByContractAddressAndChainId: jest.fn(),
   findEscrowById: jest.fn(),
   findEscrowManagementByIdForUser: (...args: unknown[]) =>
     mockFindEscrowManagementByIdForUser(...args),
   getClientEscrowSummary: jest.fn(),
   getFreelancerEscrowSummary: jest.fn(),
+  listActiveEscrowMonitoringTargets: jest.fn(),
   listEscrows: jest.fn(),
   listEscrowsForUser: jest.fn(),
   updateEscrowSnapshot: (...args: unknown[]) => mockUpdateEscrowSnapshot(...args),
 }));
 
 jest.mock("@/features/escrows/services/escrowContract", () => ({
-  decodeEscrowReceiptEventNames: (...args: unknown[]) =>
-    mockDecodeEscrowReceiptEventNames(...args),
-  getFundReceiptUpdate: (...args: unknown[]) => mockGetFundReceiptUpdate(...args),
-  getModificationReceiptUpdate: (...args: unknown[]) =>
-    mockGetModificationReceiptUpdate(...args),
-  getEscrowSyncReceipt: (...args: unknown[]) => mockGetEscrowSyncReceipt(...args),
-  readEscrowSyncSnapshot: (...args: unknown[]) => mockReadEscrowSyncSnapshot(...args),
+  isAutomationMonitoringState: jest.fn(),
+  readCurrentEscrowSnapshot: jest.fn(),
+  verifyCreateEscrowTransaction: jest.fn(),
+  verifyEscrowActionTransaction: (...args: unknown[]) =>
+    mockVerifyEscrowActionTransaction(...args),
+  verifyRefundTransaction: jest.fn(),
 }));
 
+jest.mock("@/features/auth/server/authenticatedUser", () => ({
+  requireAuthenticatedUser: (...args: unknown[]) =>
+    mockRequireAuthenticatedUser(...args),
+}));
+
+import { AppError } from "@/lib/errors";
 import { POST } from "@/app/api/escrows/[id]/sync/route";
+
+function createTxHash(char: string): string {
+  return `0x${char.repeat(64)}`;
+}
+
+function getAuthenticatedUser(id: number) {
+  return {
+    id,
+    username: "client",
+    wallet_address: "0xabc",
+    created_at: "2026-03-16T00:00:00.000Z",
+  };
+}
+
+function createEscrow(state: string) {
+  return {
+    id: 7,
+    amount: "0",
+    chainId: 1,
+    clientUsername: "client",
+    contractAddress: "0x0000000000000000000000000000000000000010",
+    createdAt: "2026-03-16T00:00:00.000Z",
+    deadline: "2026-03-20",
+    escrowName: "Landing page refresh",
+    freelancerUsername: "freelancer",
+    role: "client" as const,
+    state,
+    tokenAddress: "0x0000000000000000000000000000000000000000",
+    tokenId: 3,
+  };
+}
 
 describe("/api/escrows/[id]/sync route", () => {
   let consoleErrorSpy: jest.SpyInstance;
@@ -40,6 +75,58 @@ describe("/api/escrows/[id]/sync route", () => {
 
   afterEach(() => {
     consoleErrorSpy.mockRestore();
+  });
+
+  it("returns 401 when the user is not authenticated", async () => {
+    mockRequireAuthenticatedUser.mockRejectedValueOnce(
+      new AppError("Authentication required.", 401)
+    );
+
+    const response = await POST(
+      new Request("http://localhost/api/escrows/7/sync", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "fund",
+          txHash: createTxHash("1"),
+        }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      { params: Promise.resolve({ id: "7" }) }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "Authentication required." },
+    });
+  });
+
+  it("returns 403 when the session has no linked user", async () => {
+    mockRequireAuthenticatedUser.mockRejectedValueOnce(
+      new AppError("Registered user required.", 403)
+    );
+
+    const response = await POST(
+      new Request("http://localhost/api/escrows/7/sync", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "fund",
+          txHash: createTxHash("2"),
+        }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      { params: Promise.resolve({ id: "7" }) }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "Registered user required." },
+    });
   });
 
   it("returns 400 for an invalid sync payload", async () => {
@@ -61,7 +148,8 @@ describe("/api/escrows/[id]/sync route", () => {
     });
   });
 
-  it("returns 404 when the escrow does not belong to the user", async () => {
+  it("returns 404 when the escrow does not belong to the authenticated user", async () => {
+    mockRequireAuthenticatedUser.mockResolvedValueOnce(getAuthenticatedUser(11));
     mockFindEscrowManagementByIdForUser.mockResolvedValueOnce(null);
 
     const response = await POST(
@@ -69,8 +157,7 @@ describe("/api/escrows/[id]/sync route", () => {
         method: "POST",
         body: JSON.stringify({
           action: "fund",
-          txHash: `0x${"1".repeat(64)}`,
-          userId: 11,
+          txHash: createTxHash("3"),
         }),
         headers: { "Content-Type": "application/json" },
       }),
@@ -86,22 +173,8 @@ describe("/api/escrows/[id]/sync route", () => {
     });
   });
 
-  it("syncs a confirmed transaction and updates the escrow snapshot", async () => {
-    const escrow = {
-      id: 7,
-      amount: "0",
-      chainId: 1,
-      clientUsername: "client",
-      contractAddress: "0x0000000000000000000000000000000000000010",
-      createdAt: "2026-03-16T00:00:00.000Z",
-      deadline: "2026-03-20",
-      escrowName: "Landing page refresh",
-      freelancerUsername: "freelancer",
-      role: "client",
-      state: "created",
-      tokenAddress: "0x0000000000000000000000000000000000000000",
-      tokenId: 3,
-    };
+  it("syncs a verified funding transaction and updates last_tx_hash", async () => {
+    const escrow = createEscrow("created");
     const refreshedEscrow = {
       ...escrow,
       amount: "1.5",
@@ -109,15 +182,11 @@ describe("/api/escrows/[id]/sync route", () => {
       state: "funded",
     };
 
+    mockRequireAuthenticatedUser.mockResolvedValueOnce(getAuthenticatedUser(11));
     mockFindEscrowManagementByIdForUser
       .mockResolvedValueOnce(escrow)
       .mockResolvedValueOnce(refreshedEscrow);
-    mockGetEscrowSyncReceipt.mockResolvedValueOnce({
-      logs: [],
-      status: "success",
-    });
-    mockDecodeEscrowReceiptEventNames.mockReturnValueOnce([]);
-    mockGetFundReceiptUpdate.mockResolvedValueOnce({
+    mockVerifyEscrowActionTransaction.mockResolvedValueOnce({
       amount: "1.5",
       deadline: "2026-03-20",
       modificationsRequested: 0,
@@ -129,8 +198,64 @@ describe("/api/escrows/[id]/sync route", () => {
         method: "POST",
         body: JSON.stringify({
           action: "fund",
-          txHash: `0x${"1".repeat(64)}`,
-          userId: 11,
+          txHash: createTxHash("4"),
+        }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      { params: Promise.resolve({ id: "7" }) }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(mockVerifyEscrowActionTransaction).toHaveBeenCalledWith({
+      action: "fund",
+      authenticatedWalletAddress: "0xabc",
+      escrow,
+      txHash: createTxHash("4"),
+    });
+    expect(mockUpdateEscrowSnapshot).toHaveBeenCalledWith({
+      amount: "1.5",
+      deadline: "2026-03-20",
+      id: 7,
+      lastTxHash: createTxHash("4"),
+      modificationsRequested: 0,
+      state: "funded",
+    });
+    expect(body).toEqual({
+      success: true,
+      data: {
+        escrow: refreshedEscrow,
+        txHash: createTxHash("4"),
+      },
+      error: null,
+    });
+  });
+
+  it("syncs a verified cancel transaction and updates the chain snapshot", async () => {
+    const escrow = createEscrow("funded");
+    const refreshedEscrow = {
+      ...escrow,
+      modificationsRequested: 0,
+      state: "canceled",
+    };
+
+    mockRequireAuthenticatedUser.mockResolvedValueOnce(getAuthenticatedUser(11));
+    mockFindEscrowManagementByIdForUser
+      .mockResolvedValueOnce(escrow)
+      .mockResolvedValueOnce(refreshedEscrow);
+    mockVerifyEscrowActionTransaction.mockResolvedValueOnce({
+      amount: "0",
+      deadline: "2026-03-20",
+      modificationsRequested: 0,
+      state: "canceled",
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/escrows/7/sync", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "cancelEscrow",
+          txHash: createTxHash("5"),
         }),
         headers: { "Content-Type": "application/json" },
       }),
@@ -140,72 +265,10 @@ describe("/api/escrows/[id]/sync route", () => {
 
     expect(response.status).toBe(200);
     expect(mockUpdateEscrowSnapshot).toHaveBeenCalledWith({
-      amount: "1.5",
+      amount: "0",
       deadline: "2026-03-20",
       id: 7,
-      modificationsRequested: 0,
-      state: "funded",
-    });
-    expect(body).toEqual({
-      success: true,
-      data: {
-        escrow: refreshedEscrow,
-        txHash: `0x${"1".repeat(64)}`,
-      },
-      error: null,
-    });
-  });
-
-  it("updates the database to canceled after cancelEscrow succeeds", async () => {
-    const escrow = {
-      id: 12,
-      amount: "0",
-      chainId: 1,
-      clientUsername: "client",
-      contractAddress: "0x0000000000000000000000000000000000000015",
-      createdAt: "2026-03-16T00:00:00.000Z",
-      deadline: "2026-03-20",
-      escrowName: "Canceled escrow",
-      freelancerUsername: "freelancer",
-      role: "client",
-      state: "created",
-      tokenAddress: "0x0000000000000000000000000000000000000000",
-      tokenId: 3,
-    };
-    const refreshedEscrow = {
-      ...escrow,
-      modificationsRequested: 0,
-      state: "canceled",
-    };
-
-    mockFindEscrowManagementByIdForUser
-      .mockResolvedValueOnce(escrow)
-      .mockResolvedValueOnce(refreshedEscrow);
-    mockGetEscrowSyncReceipt.mockResolvedValueOnce({
-      logs: [],
-      status: "success",
-    });
-    mockDecodeEscrowReceiptEventNames.mockReturnValueOnce([]);
-
-    const response = await POST(
-      new Request("http://localhost/api/escrows/12/sync", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "cancelEscrow",
-          txHash: `0x${"6".repeat(64)}`,
-          userId: 11,
-        }),
-        headers: { "Content-Type": "application/json" },
-      }),
-      { params: Promise.resolve({ id: "12" }) }
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(mockUpdateEscrowSnapshot).toHaveBeenCalledWith({
-      amount: "0",
-      deadline: "2026-03-20",
-      id: 12,
+      lastTxHash: createTxHash("5"),
       modificationsRequested: 0,
       state: "canceled",
     });
@@ -213,265 +276,7 @@ describe("/api/escrows/[id]/sync route", () => {
       success: true,
       data: {
         escrow: refreshedEscrow,
-        txHash: `0x${"6".repeat(64)}`,
-      },
-      error: null,
-    });
-  });
-
-  it("updates the database to work submitted after markWorkSubmitted succeeds", async () => {
-    const escrow = {
-      id: 8,
-      amount: "0.01",
-      chainId: 1,
-      clientUsername: "client",
-      contractAddress: "0x0000000000000000000000000000000000000011",
-      createdAt: "2026-03-16T00:00:00.000Z",
-      deadline: "2026-03-20",
-      escrowName: "Dashboard copy refresh",
-      freelancerUsername: "freelancer",
-      role: "freelancer",
-      state: "funded",
-      tokenAddress: "0x0000000000000000000000000000000000000000",
-      tokenId: 3,
-    };
-    const refreshedEscrow = {
-      ...escrow,
-      modificationsRequested: 0,
-      state: "work submitted",
-    };
-
-    mockFindEscrowManagementByIdForUser
-      .mockResolvedValueOnce(escrow)
-      .mockResolvedValueOnce(refreshedEscrow);
-    mockGetEscrowSyncReceipt.mockResolvedValueOnce({
-      logs: [],
-      status: "success",
-    });
-    mockDecodeEscrowReceiptEventNames.mockReturnValueOnce([]);
-
-    const response = await POST(
-      new Request("http://localhost/api/escrows/8/sync", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "markWorkSubmitted",
-          txHash: `0x${"2".repeat(64)}`,
-          userId: 22,
-        }),
-        headers: { "Content-Type": "application/json" },
-      }),
-      { params: Promise.resolve({ id: "8" }) }
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(mockUpdateEscrowSnapshot).toHaveBeenCalledWith({
-      amount: "0.01",
-      deadline: "2026-03-20",
-      id: 8,
-      modificationsRequested: 0,
-      state: "work submitted",
-    });
-    expect(body).toEqual({
-      success: true,
-      data: {
-        escrow: refreshedEscrow,
-        txHash: `0x${"2".repeat(64)}`,
-      },
-      error: null,
-    });
-  });
-
-  it("updates the database to dispute after initiateDispute succeeds", async () => {
-    const escrow = {
-      id: 9,
-      amount: "0.01",
-      chainId: 1,
-      clientUsername: "client",
-      contractAddress: "0x0000000000000000000000000000000000000012",
-      createdAt: "2026-03-16T00:00:00.000Z",
-      deadline: "2026-03-20",
-      escrowName: "Dispute case",
-      freelancerUsername: "freelancer",
-      role: "client",
-      state: "funded",
-      tokenAddress: "0x0000000000000000000000000000000000000000",
-      tokenId: 3,
-    };
-    const refreshedEscrow = {
-      ...escrow,
-      modificationsRequested: 0,
-      state: "dispute",
-    };
-
-    mockFindEscrowManagementByIdForUser
-      .mockResolvedValueOnce(escrow)
-      .mockResolvedValueOnce(refreshedEscrow);
-    mockGetEscrowSyncReceipt.mockResolvedValueOnce({
-      logs: [],
-      status: "success",
-    });
-    mockDecodeEscrowReceiptEventNames.mockReturnValueOnce([]);
-
-    const response = await POST(
-      new Request("http://localhost/api/escrows/9/sync", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "initiateDispute",
-          txHash: `0x${"3".repeat(64)}`,
-          userId: 11,
-        }),
-        headers: { "Content-Type": "application/json" },
-      }),
-      { params: Promise.resolve({ id: "9" }) }
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(mockUpdateEscrowSnapshot).toHaveBeenCalledWith({
-      amount: "0.01",
-      deadline: "2026-03-20",
-      id: 9,
-      modificationsRequested: 0,
-      state: "dispute",
-    });
-    expect(body).toEqual({
-      success: true,
-      data: {
-        escrow: refreshedEscrow,
-        txHash: `0x${"3".repeat(64)}`,
-      },
-      error: null,
-    });
-  });
-
-  it("updates the database to released after confirmDelivery succeeds", async () => {
-    const escrow = {
-      id: 10,
-      amount: "0.01",
-      chainId: 1,
-      clientUsername: "client",
-      contractAddress: "0x0000000000000000000000000000000000000013",
-      createdAt: "2026-03-16T00:00:00.000Z",
-      deadline: "2026-03-20",
-      escrowName: "Delivery confirmation",
-      freelancerUsername: "freelancer",
-      role: "client",
-      state: "work submitted",
-      tokenAddress: "0x0000000000000000000000000000000000000000",
-      tokenId: 3,
-    };
-    const refreshedEscrow = {
-      ...escrow,
-      modificationsRequested: 0,
-      state: "released",
-    };
-
-    mockFindEscrowManagementByIdForUser
-      .mockResolvedValueOnce(escrow)
-      .mockResolvedValueOnce(refreshedEscrow);
-    mockGetEscrowSyncReceipt.mockResolvedValueOnce({
-      logs: [],
-      status: "success",
-    });
-    mockDecodeEscrowReceiptEventNames.mockReturnValueOnce([]);
-
-    const response = await POST(
-      new Request("http://localhost/api/escrows/10/sync", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "confirmDelivery",
-          txHash: `0x${"4".repeat(64)}`,
-          userId: 11,
-        }),
-        headers: { "Content-Type": "application/json" },
-      }),
-      { params: Promise.resolve({ id: "10" }) }
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(mockUpdateEscrowSnapshot).toHaveBeenCalledWith({
-      amount: "0.01",
-      deadline: "2026-03-20",
-      id: 10,
-      modificationsRequested: 0,
-      state: "released",
-    });
-    expect(body).toEqual({
-      success: true,
-      data: {
-        escrow: refreshedEscrow,
-        txHash: `0x${"4".repeat(64)}`,
-      },
-      error: null,
-    });
-  });
-
-  it("updates the database to pending modification and extends the deadline", async () => {
-    const escrow = {
-      id: 11,
-      amount: "0.01",
-      chainId: 1,
-      clientUsername: "client",
-      contractAddress: "0x0000000000000000000000000000000000000014",
-      createdAt: "2026-03-16T00:00:00.000Z",
-      deadline: "2026-03-20",
-      escrowName: "Modification request",
-      freelancerUsername: "freelancer",
-      modificationsRequested: 0,
-      role: "client",
-      state: "work submitted",
-      tokenAddress: "0x0000000000000000000000000000000000000000",
-      tokenId: 3,
-    };
-    const refreshedEscrow = {
-      ...escrow,
-      deadline: "2026-03-23",
-      modificationsRequested: 1,
-      state: "pending modification",
-    };
-
-    mockFindEscrowManagementByIdForUser
-      .mockResolvedValueOnce(escrow)
-      .mockResolvedValueOnce(refreshedEscrow);
-    mockGetEscrowSyncReceipt.mockResolvedValueOnce({
-      logs: [],
-      status: "success",
-    });
-    mockDecodeEscrowReceiptEventNames.mockReturnValueOnce([]);
-    mockGetModificationReceiptUpdate.mockResolvedValueOnce({
-      deadline: "2026-03-23",
-      state: "pending modification",
-    });
-
-    const response = await POST(
-      new Request("http://localhost/api/escrows/11/sync", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "requestModificationAndUpdateDeadline",
-          txHash: `0x${"5".repeat(64)}`,
-          userId: 11,
-        }),
-        headers: { "Content-Type": "application/json" },
-      }),
-      { params: Promise.resolve({ id: "11" }) }
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(mockUpdateEscrowSnapshot).toHaveBeenCalledWith({
-      amount: "0.01",
-      deadline: "2026-03-23",
-      id: 11,
-      modificationsRequested: 1,
-      state: "pending modification",
-    });
-    expect(body).toEqual({
-      success: true,
-      data: {
-        escrow: refreshedEscrow,
-        txHash: `0x${"5".repeat(64)}`,
+        txHash: createTxHash("5"),
       },
       error: null,
     });

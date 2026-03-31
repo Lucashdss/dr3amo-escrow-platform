@@ -35,11 +35,10 @@ function getLoadErrorMessage(error: unknown): string {
 }
 
 async function loadEscrowRecord(
-  escrowId: number,
-  userId: number
+  escrowId: number
 ): Promise<LoadEscrowResult> {
   try {
-    const result = await fetchEscrowManagementDetail(escrowId, userId);
+    const result = await fetchEscrowManagementDetail(escrowId);
 
     return {
       error: null,
@@ -54,8 +53,7 @@ async function loadEscrowRecord(
 }
 
 export function useEscrowManagementDetail(
-  escrowId: number | undefined,
-  userId: number | undefined
+  escrowId: number | undefined
 ): EscrowManagementDetailState {
   const [escrow, setEscrow] = useState<EscrowManagementItem | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +95,7 @@ export function useEscrowManagementDetail(
   }, [escrow]);
 
   const refresh = useCallback(async () => {
-    if (!escrowId || !userId) {
+    if (!escrowId) {
       setEscrow(null);
       setError(null);
       setLiveSnapshot(null);
@@ -106,7 +104,7 @@ export function useEscrowManagementDetail(
     }
 
     setIsLoading(true);
-    const result = await loadEscrowRecord(escrowId, userId);
+    const result = await loadEscrowRecord(escrowId);
     setEscrow(result.escrow);
     setError(result.error);
 
@@ -118,7 +116,7 @@ export function useEscrowManagementDetail(
     }
 
     setIsLoading(false);
-  }, [escrowId, refreshLiveSnapshot, userId]);
+  }, [escrowId, refreshLiveSnapshot]);
 
   useEffect(() => {
     void refresh();

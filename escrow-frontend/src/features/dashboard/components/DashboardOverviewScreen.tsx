@@ -45,13 +45,9 @@ export function DashboardOverviewScreen({
 }: DashboardOverviewScreenProps) {
   const { address } = useAccount();
   const { user } = useCurrentUser();
-  const clientEscrowFunds = useClientEscrowFunds(
-    variant === "client" ? user?.id : undefined
-  );
-  const freelancerEscrowFunds = useFreelancerEscrowFunds(
-    variant === "freelancer" ? user?.id : undefined
-  );
-  const activityFeed = useDashboardActivity(user?.id);
+  const clientEscrowFunds = useClientEscrowFunds();
+  const freelancerEscrowFunds = useFreelancerEscrowFunds();
+  const activityFeed = useDashboardActivity();
   const displayValues = getDisplayValues(address, user?.username);
   const kpis =
     variant === "client"

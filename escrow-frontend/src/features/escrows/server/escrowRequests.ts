@@ -52,7 +52,7 @@ function parseTokenSymbol(value: unknown): ValidationResult<TokenSymbol> {
 
 function parseWalletAddress(
   value: string,
-  fieldName: "clientWalletAddress" | "freelancerWalletAddress"
+  fieldName: "freelancerWalletAddress"
 ): ValidationResult<string> {
   const normalizedValue = normalizeWalletAddress(value);
 
@@ -61,14 +61,6 @@ function parseWalletAddress(
   }
 
   return createValidationSuccess(normalizedValue);
-}
-
-function parseContractAddress(value: string): ValidationResult<string> {
-  if (!isAddress(value)) {
-    return createValidationError("A valid contractAddress is required.");
-  }
-
-  return createValidationSuccess(value);
 }
 
 function parseEscrowName(value: string): ValidationResult<string> {
@@ -117,6 +109,21 @@ function parseEscrowAction(value: unknown): ValidationResult<EscrowActionKey> {
   return createValidationSuccess(value as EscrowActionKey);
 }
 
+function hasRemovedCreateFields(
+  payload: Record<string, unknown>
+): ValidationResult<null> {
+  const removedFields = ["contractAddress", "amount", "state"];
+  const hasRemovedField = removedFields.some((field) => field in payload);
+
+  if (hasRemovedField) {
+    return createValidationError(
+      "contractAddress, amount, and state are derived from chain data."
+    );
+  }
+
+  return createValidationSuccess(null);
+}
+
 export function parseCreateEscrowRequest(
   body: unknown
 ): ValidationResult<CreateEscrowRequest> {
@@ -126,20 +133,10 @@ export function parseCreateEscrowRequest(
 
   const payload = body as Record<string, unknown>;
   const chainKey = parseChainKey(payload.chainKey);
-  const contractAddress = getRequiredString(
-    payload,
-    "contractAddress",
-    "A valid contractAddress is required."
-  );
   const escrowName = getRequiredString(
     payload,
     "escrowName",
     "escrowName is required."
-  );
-  const clientWalletAddress = getRequiredString(
-    payload,
-    "clientWalletAddress",
-    "A valid clientWalletAddress is required."
   );
   const freelancerWalletAddress = getRequiredString(
     payload,
@@ -148,24 +145,15 @@ export function parseCreateEscrowRequest(
   );
   const tokenSymbol = parseTokenSymbol(payload.tokenSymbol);
   const deadline = getRequiredString(payload, "deadline", "deadline is required.");
-  const amount = getRequiredString(payload, "amount", "amount is required.");
-  const state = getRequiredString(payload, "state", "state is required.");
-  const txHash = getRequiredString(payload, "txHash", "txHash is required.");
+  const txHash = parseTxHash(payload.txHash);
+  const removedFields = hasRemovedCreateFields(payload);
 
   if (!chainKey.success) {
     return chainKey;
   }
 
-  if (!contractAddress.success) {
-    return contractAddress;
-  }
-
   if (!escrowName.success) {
     return escrowName;
-  }
-
-  if (!clientWalletAddress.success) {
-    return clientWalletAddress;
   }
 
   if (!freelancerWalletAddress.success) {
@@ -180,39 +168,22 @@ export function parseCreateEscrowRequest(
     return deadline;
   }
 
-  if (!amount.success) {
-    return amount;
-  }
-
-  if (!state.success) {
-    return state;
-  }
-
   if (!txHash.success) {
     return txHash;
   }
 
-  const parsedContractAddress = parseContractAddress(contractAddress.data);
+  if (!removedFields.success) {
+    return removedFields;
+  }
+
   const parsedEscrowName = parseEscrowName(escrowName.data);
-  const parsedClientWallet = parseWalletAddress(
-    clientWalletAddress.data,
-    "clientWalletAddress"
-  );
   const parsedFreelancerWallet = parseWalletAddress(
     freelancerWalletAddress.data,
     "freelancerWalletAddress"
   );
 
-  if (!parsedContractAddress.success) {
-    return parsedContractAddress;
-  }
-
   if (!parsedEscrowName.success) {
     return parsedEscrowName;
-  }
-
-  if (!parsedClientWallet.success) {
-    return parsedClientWallet;
   }
 
   if (!parsedFreelancerWallet.success) {
@@ -220,38 +191,28 @@ export function parseCreateEscrowRequest(
   }
 
   return createValidationSuccess({
-    amount: amount.data,
     chainKey: chainKey.data,
-    clientWalletAddress: parsedClientWallet.data,
-    contractAddress: parsedContractAddress.data,
     deadline: deadline.data,
     escrowName: parsedEscrowName.data,
     freelancerWalletAddress: parsedFreelancerWallet.data,
-    state: state.data,
     tokenSymbol: tokenSymbol.data,
     txHash: txHash.data,
   });
 }
 
 export function parseEscrowManagementRequest(
-  request: Request
-): ValidationResult<number> {
-  return parsePositiveIntegerQueryParam(request, "userId");
+  _request: Request
+): ValidationResult<null> {
+  return createValidationSuccess(null);
 }
 
 export function parseEscrowManagementDetailRequest(
-  request: Request,
+  _request: Request,
   id: string
 ): ValidationResult<{
   id: number;
-  userId: number;
 }> {
-  const userId = parsePositiveIntegerQueryParam(request, "userId");
   const escrowId = parseEscrowId(id);
-
-  if (!userId.success) {
-    return userId;
-  }
 
   if (!escrowId.success) {
     return escrowId;
@@ -259,7 +220,6 @@ export function parseEscrowManagementDetailRequest(
 
   return createValidationSuccess({
     id: escrowId.data,
-    userId: userId.data,
   });
 }
 
@@ -277,7 +237,6 @@ export function parseEscrowSyncRequest(
   const payload = body as Record<string, unknown>;
   const action = parseEscrowAction(payload.action);
   const txHash = parseTxHash(payload.txHash);
-  const userId = parsePositiveInteger(payload.userId, "userId");
 
   if (!action.success) {
     return action;
@@ -287,53 +246,20 @@ export function parseEscrowSyncRequest(
     return txHash;
   }
 
-  if (!userId.success) {
-    return userId;
-  }
-
   return createValidationSuccess({
     action: action.data,
     txHash: txHash.data,
-    userId: userId.data,
   });
 }
 
 export function parseClientEscrowFundsRequest(
-  request: Request
-): ValidationResult<number> {
-  return parsePositiveIntegerQueryParam(request, "clientId");
-}
-
-function parsePositiveIntegerQueryParam(
-  request: Request,
-  key: "clientId" | "freelancerId" | "userId"
-): ValidationResult<number> {
-  const value = new URL(request.url).searchParams.get(key);
-  const parsedValue = Number.parseInt(value ?? "", 10);
-
-  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
-    return createValidationError(`${key} query param must be a positive integer.`);
-  }
-
-  return createValidationSuccess(parsedValue);
-}
-
-function parsePositiveInteger(
-  value: unknown,
-  key: "userId"
-): ValidationResult<number> {
-  const parsedValue =
-    typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
-
-  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
-    return createValidationError(`${key} must be a positive integer.`);
-  }
-
-  return createValidationSuccess(parsedValue);
+  _request: Request
+): ValidationResult<null> {
+  return createValidationSuccess(null);
 }
 
 export function parseFreelancerEscrowFundsRequest(
-  request: Request
-): ValidationResult<number> {
-  return parsePositiveIntegerQueryParam(request, "freelancerId");
+  _request: Request
+): ValidationResult<null> {
+  return createValidationSuccess(null);
 }

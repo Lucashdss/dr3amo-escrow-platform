@@ -88,14 +88,10 @@ export function useCreateEscrow() {
         upfrontPercentage: validation.data.upfrontPercentage,
       });
       const persistedEscrow = await persistEscrow({
-        amount: "0",
         chainKey: form.selectedChain,
-        clientWalletAddress: account.address ?? "",
-        contractAddress: deployment.escrowAddress,
         deadline: form.deadline,
         escrowName: validation.data.escrowName,
         freelancerWalletAddress: freelancer.user.wallet_address,
-        state: "created",
         tokenSymbol: form.tokenSymbol,
         txHash: deployment.txHash,
       });

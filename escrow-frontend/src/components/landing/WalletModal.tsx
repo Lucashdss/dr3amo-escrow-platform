@@ -4,6 +4,7 @@ import type { Connector } from "wagmi";
 type WalletModalProps = {
   isConnectModalOpen: boolean;
   isDisconnectOpen: boolean;
+  authError: string | null;
   isConnecting: boolean;
   connectError: string | null;
   isCheckingUser: boolean;
@@ -36,6 +37,7 @@ const wallets = [
 export function WalletModal({
   isConnectModalOpen,
   isDisconnectOpen,
+  authError,
   isConnecting,
   connectError,
   isCheckingUser,
@@ -104,8 +106,12 @@ export function WalletModal({
               <p className="mt-3 text-sm text-red-400">{connectError}</p>
             ) : null}
 
+            {authError ? (
+              <p className="mt-3 text-sm text-red-400">{authError}</p>
+            ) : null}
+
             {isCheckingUser ? (
-              <p className="mt-3 text-sm text-white/70">Checking account...</p>
+              <p className="mt-3 text-sm text-white/70">Checking session...</p>
             ) : null}
 
             {userCheckError ? (

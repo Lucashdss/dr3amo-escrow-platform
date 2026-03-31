@@ -1,53 +1,55 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useAccount } from "wagmi";
 
-import { checkUserByWallet } from "@/features/auth/services/userApi";
+import { getCurrentSession } from "@/features/auth/services/authApi";
 import type { UserRecord } from "@/features/auth/types/user";
 
 type CurrentUserState = {
+  clear: () => void;
   error: string | null;
   isLoading: boolean;
   refresh: () => void;
   user: UserRecord | null;
+  walletAddress: string | null;
 };
 
 export function useCurrentUser(): CurrentUserState {
-  const { address } = useAccount();
   const [user, setUser] = useState<UserRecord | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+
+  const clear = useCallback(() => {
+    setError(null);
+    setIsLoading(false);
+    setUser(null);
+    setWalletAddress(null);
+  }, []);
+
   const refresh = useCallback(() => {
     setReloadKey((currentValue) => currentValue + 1);
   }, []);
 
   useEffect(() => {
-    if (!address) {
-      setUser(null);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    const walletAddress = address;
     let isCancelled = false;
     setIsLoading(true);
     setError(null);
 
-    async function loadUser(): Promise<void> {
+    async function loadSession(): Promise<void> {
       try {
-        const result = await checkUserByWallet(walletAddress);
+        const result = await getCurrentSession();
 
         if (!isCancelled) {
-          setUser(result.user);
+          setUser(result?.user ?? null);
+          setWalletAddress(result?.walletAddress ?? null);
         }
       } catch (loadError) {
         if (!isCancelled) {
-          setUser(null);
+          clear();
           setError(
-            loadError instanceof Error ? loadError.message : "Failed to load user."
+            loadError instanceof Error ? loadError.message : "Failed to load session."
           );
         }
       } finally {
@@ -57,17 +59,19 @@ export function useCurrentUser(): CurrentUserState {
       }
     }
 
-    void loadUser();
+    void loadSession();
 
     return () => {
       isCancelled = true;
     };
-  }, [address, reloadKey]);
+  }, [clear, reloadKey]);
 
   return {
+    clear,
     error,
     isLoading,
     refresh,
     user,
+    walletAddress,
   };
 }

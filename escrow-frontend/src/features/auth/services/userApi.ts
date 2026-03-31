@@ -29,7 +29,6 @@ export async function checkUserByUsername(
 
 export async function createUser({
   username,
-  walletAddress,
 }: CreateUserRequest): Promise<CreateUserResult> {
   return fetchApi<CreateUserResult>("/api/users", {
     method: "POST",
@@ -38,7 +37,6 @@ export async function createUser({
     },
     body: JSON.stringify({
       username,
-      walletAddress: normalizeWalletAddress(walletAddress),
     }),
   });
 }

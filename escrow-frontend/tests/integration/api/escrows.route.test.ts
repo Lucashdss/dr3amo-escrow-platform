@@ -2,10 +2,14 @@ const mockCreateEscrowRecord = jest.fn();
 const mockFindEscrowById = jest.fn();
 const mockFindUserByWalletAddress = jest.fn();
 const mockListEscrows = jest.fn();
+const mockRequireAuthenticatedUser = jest.fn();
+const mockVerifyCreateEscrowTransaction = jest.fn();
 
 jest.mock("@/features/escrows/server/escrowRepository", () => ({
   createEscrowRecord: (...args: unknown[]) => mockCreateEscrowRecord(...args),
+  findEscrowByContractAddressAndChainId: jest.fn(),
   findEscrowById: (...args: unknown[]) => mockFindEscrowById(...args),
+  listActiveEscrowMonitoringTargets: jest.fn(),
   listEscrows: (...args: unknown[]) => mockListEscrows(...args),
 }));
 
@@ -14,15 +18,26 @@ jest.mock("@/features/auth/server/userRepository", () => ({
     mockFindUserByWalletAddress(...args),
 }));
 
-jest.mock("@/features/escrows/services/escrowContract", () => ({
-  decodeEscrowReceiptEventNames: jest.fn(),
-  getFundReceiptUpdate: jest.fn(),
-  getModificationReceiptUpdate: jest.fn(),
-  getEscrowSyncReceipt: jest.fn(),
-  readEscrowSyncSnapshot: jest.fn(),
+jest.mock("@/features/auth/server/authenticatedUser", () => ({
+  requireAuthenticatedUser: (...args: unknown[]) =>
+    mockRequireAuthenticatedUser(...args),
 }));
 
+jest.mock("@/features/escrows/services/escrowContract", () => ({
+  isAutomationMonitoringState: jest.fn(),
+  readCurrentEscrowSnapshot: jest.fn(),
+  verifyCreateEscrowTransaction: (...args: unknown[]) =>
+    mockVerifyCreateEscrowTransaction(...args),
+  verifyEscrowActionTransaction: jest.fn(),
+  verifyRefundTransaction: jest.fn(),
+}));
+
+import { AppError } from "@/lib/errors";
 import { GET, POST } from "@/app/api/escrows/route";
+
+function createTxHash(char: string): string {
+  return `0x${char.repeat(64)}`;
+}
 
 describe("/api/escrows route", () => {
   let consoleErrorSpy: jest.SpyInstance;
@@ -49,6 +64,8 @@ describe("/api/escrows route", () => {
         amount: "0",
         deadline: "2026-03-20",
         state: "created",
+        created_tx_hash: createTxHash("a"),
+        last_tx_hash: createTxHash("a"),
         created_at: "2026-03-16T00:00:00.000Z",
       },
     ];
@@ -84,7 +101,71 @@ describe("/api/escrows route", () => {
     });
   });
 
-  it("POST rejects unregistered users", async () => {
+  it("POST returns 401 when the user is not authenticated", async () => {
+    mockRequireAuthenticatedUser.mockRejectedValueOnce(
+      new AppError("Authentication required.", 401)
+    );
+
+    const request = new Request("http://localhost/api/escrows", {
+      method: "POST",
+      body: JSON.stringify({
+        chainKey: "base",
+        deadline: "2026-03-20",
+        escrowName: "Landing page refresh",
+        freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
+        tokenSymbol: "USDC",
+        txHash: createTxHash("1"),
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "Authentication required." },
+    });
+  });
+
+  it("POST returns 403 when the session has no linked user", async () => {
+    mockRequireAuthenticatedUser.mockRejectedValueOnce(
+      new AppError("Registered user required.", 403)
+    );
+
+    const request = new Request("http://localhost/api/escrows", {
+      method: "POST",
+      body: JSON.stringify({
+        chainKey: "base",
+        deadline: "2026-03-20",
+        escrowName: "Landing page refresh",
+        freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
+        tokenSymbol: "USDC",
+        txHash: createTxHash("2"),
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "Registered user required." },
+    });
+  });
+
+  it("POST rejects an unregistered authenticated client wallet", async () => {
+    mockRequireAuthenticatedUser.mockResolvedValueOnce({
+      id: 11,
+      username: "client",
+      wallet_address: "0x0000000000000000000000000000000000000001",
+      created_at: "2026-03-16T00:00:00.000Z",
+    });
     mockFindUserByWalletAddress.mockResolvedValueOnce(null);
     mockFindUserByWalletAddress.mockResolvedValueOnce({
       id: 2,
@@ -96,16 +177,12 @@ describe("/api/escrows route", () => {
     const request = new Request("http://localhost/api/escrows", {
       method: "POST",
       body: JSON.stringify({
-        amount: "0",
         chainKey: "base",
-        clientWalletAddress: "0x0000000000000000000000000000000000000001",
-        contractAddress: "0x0000000000000000000000000000000000000010",
         deadline: "2026-03-20",
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
-        state: "created",
         tokenSymbol: "USDC",
-        txHash: "0x1234",
+        txHash: createTxHash("3"),
       }),
       headers: { "Content-Type": "application/json" },
     });
@@ -113,6 +190,9 @@ describe("/api/escrows route", () => {
     const response = await POST(request);
     const body = await response.json();
 
+    expect(mockFindUserByWalletAddress).toHaveBeenCalledWith(
+      "0x0000000000000000000000000000000000000001"
+    );
     expect(response.status).toBe(400);
     expect(body).toEqual({
       success: false,
@@ -121,7 +201,8 @@ describe("/api/escrows route", () => {
     });
   });
 
-  it("POST persists a Base mainnet escrow with fixed foreign-key ids", async () => {
+  it("POST persists a Base mainnet escrow using the authenticated client wallet", async () => {
+    const txHash = createTxHash("4");
     const clientUser = {
       id: 11,
       username: "client",
@@ -145,27 +226,35 @@ describe("/api/escrows route", () => {
       amount: "0",
       deadline: "2026-03-20",
       state: "created",
+      created_tx_hash: txHash,
+      last_tx_hash: txHash,
       created_at: "2026-03-16T00:00:00.000Z",
     };
 
+    mockRequireAuthenticatedUser.mockResolvedValueOnce(clientUser);
     mockFindUserByWalletAddress.mockResolvedValueOnce(clientUser);
     mockFindUserByWalletAddress.mockResolvedValueOnce(freelancerUser);
+    mockVerifyCreateEscrowTransaction.mockResolvedValueOnce({
+      contractAddress: "0x0000000000000000000000000000000000000010",
+      snapshot: {
+        amount: "0",
+        deadline: "2026-03-20",
+        modificationsRequested: 0,
+        state: "created",
+      },
+    });
     mockCreateEscrowRecord.mockResolvedValueOnce(7);
     mockFindEscrowById.mockResolvedValueOnce(escrow);
 
     const request = new Request("http://localhost/api/escrows", {
       method: "POST",
       body: JSON.stringify({
-        amount: "0",
         chainKey: "base",
-        clientWalletAddress: "0x0000000000000000000000000000000000000001",
-        contractAddress: "0x0000000000000000000000000000000000000010",
         deadline: "2026-03-20",
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
-        state: "created",
         tokenSymbol: "USDC",
-        txHash: "0x1234",
+        txHash,
       }),
       headers: { "Content-Type": "application/json" },
     });
@@ -174,14 +263,20 @@ describe("/api/escrows route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(201);
+    expect(mockFindUserByWalletAddress).toHaveBeenNthCalledWith(
+      1,
+      "0x0000000000000000000000000000000000000001"
+    );
     expect(mockCreateEscrowRecord).toHaveBeenCalledWith({
       amount: "0",
       chainId: 1,
       clientId: 11,
       contractAddress: "0x0000000000000000000000000000000000000010",
+      createdTxHash: txHash,
       deadline: "2026-03-20",
       escrowName: "Landing page refresh",
       freelancerId: 22,
+      lastTxHash: txHash,
       modificationsRequested: 0,
       state: "created",
       tokenId: 1,
@@ -191,27 +286,21 @@ describe("/api/escrows route", () => {
       data: {
         message: "Escrow persisted successfully.",
         escrow,
-        txHash: "0x1234",
+        txHash,
       },
       error: null,
     });
   });
 
   it("POST persists a Base Sepolia USDC escrow with the testnet token id", async () => {
-    mockFindUserByWalletAddress.mockResolvedValueOnce({
+    const txHash = createTxHash("5");
+    const clientUser = {
       id: 11,
       username: "client",
       wallet_address: "0x0000000000000000000000000000000000000001",
       created_at: "2026-03-16T00:00:00.000Z",
-    });
-    mockFindUserByWalletAddress.mockResolvedValueOnce({
-      id: 22,
-      username: "freelancer",
-      wallet_address: "0x0000000000000000000000000000000000000002",
-      created_at: "2026-03-16T00:00:00.000Z",
-    });
-    mockCreateEscrowRecord.mockResolvedValueOnce(8);
-    mockFindEscrowById.mockResolvedValueOnce({
+    };
+    const escrow = {
       id: 8,
       contract_address: "0x0000000000000000000000000000000000000011",
       escrow_name: "Platform migration",
@@ -222,22 +311,40 @@ describe("/api/escrows route", () => {
       amount: "0",
       deadline: "2026-03-20",
       state: "created",
+      created_tx_hash: txHash,
+      last_tx_hash: txHash,
+      created_at: "2026-03-16T00:00:00.000Z",
+    };
+
+    mockRequireAuthenticatedUser.mockResolvedValueOnce(clientUser);
+    mockFindUserByWalletAddress.mockResolvedValueOnce(clientUser);
+    mockFindUserByWalletAddress.mockResolvedValueOnce({
+      id: 22,
+      username: "freelancer",
+      wallet_address: "0x0000000000000000000000000000000000000002",
       created_at: "2026-03-16T00:00:00.000Z",
     });
+    mockVerifyCreateEscrowTransaction.mockResolvedValueOnce({
+      contractAddress: "0x0000000000000000000000000000000000000011",
+      snapshot: {
+        amount: "0",
+        deadline: "2026-03-20",
+        modificationsRequested: 0,
+        state: "created",
+      },
+    });
+    mockCreateEscrowRecord.mockResolvedValueOnce(8);
+    mockFindEscrowById.mockResolvedValueOnce(escrow);
 
     const request = new Request("http://localhost/api/escrows", {
       method: "POST",
       body: JSON.stringify({
-        amount: "0",
         chainKey: "baseSepolia",
-        clientWalletAddress: "0x0000000000000000000000000000000000000001",
-        contractAddress: "0x0000000000000000000000000000000000000011",
         deadline: "2026-03-20",
         escrowName: "Platform migration",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
-        state: "created",
         tokenSymbol: "USDC",
-        txHash: "0x9999",
+        txHash,
       }),
       headers: { "Content-Type": "application/json" },
     });
@@ -251,9 +358,11 @@ describe("/api/escrows route", () => {
       chainId: 2,
       clientId: 11,
       contractAddress: "0x0000000000000000000000000000000000000011",
+      createdTxHash: txHash,
       deadline: "2026-03-20",
       escrowName: "Platform migration",
       freelancerId: 22,
+      lastTxHash: txHash,
       modificationsRequested: 0,
       state: "created",
       tokenId: 2,
@@ -262,53 +371,49 @@ describe("/api/escrows route", () => {
       success: true,
       data: {
         message: "Escrow persisted successfully.",
-        escrow: {
-          id: 8,
-          contract_address: "0x0000000000000000000000000000000000000011",
-          escrow_name: "Platform migration",
-          client_id: 11,
-          freelancer_id: 22,
-          token_id: 2,
-          chain_id: 2,
-          amount: "0",
-          deadline: "2026-03-20",
-          state: "created",
-          created_at: "2026-03-16T00:00:00.000Z",
-        },
-        txHash: "0x9999",
+        escrow,
+        txHash,
       },
       error: null,
     });
   });
 
   it("POST returns 500 when the repository insert fails", async () => {
-    mockFindUserByWalletAddress.mockResolvedValueOnce({
+    const clientUser = {
       id: 11,
       username: "client",
       wallet_address: "0x0000000000000000000000000000000000000001",
       created_at: "2026-03-16T00:00:00.000Z",
-    });
+    };
+
+    mockRequireAuthenticatedUser.mockResolvedValueOnce(clientUser);
+    mockFindUserByWalletAddress.mockResolvedValueOnce(clientUser);
     mockFindUserByWalletAddress.mockResolvedValueOnce({
       id: 22,
       username: "freelancer",
       wallet_address: "0x0000000000000000000000000000000000000002",
       created_at: "2026-03-16T00:00:00.000Z",
     });
+    mockVerifyCreateEscrowTransaction.mockResolvedValueOnce({
+      contractAddress: "0x0000000000000000000000000000000000000010",
+      snapshot: {
+        amount: "0",
+        deadline: "2026-03-20",
+        modificationsRequested: 0,
+        state: "created",
+      },
+    });
     mockCreateEscrowRecord.mockRejectedValueOnce(new Error("db down"));
 
     const request = new Request("http://localhost/api/escrows", {
       method: "POST",
       body: JSON.stringify({
-        amount: "0",
         chainKey: "baseSepolia",
-        clientWalletAddress: "0x0000000000000000000000000000000000000001",
-        contractAddress: "0x0000000000000000000000000000000000000010",
         deadline: "2026-03-20",
         escrowName: "Infrastructure handoff",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
-        state: "created",
         tokenSymbol: "ETH",
-        txHash: "0x1234",
+        txHash: createTxHash("6"),
       }),
       headers: { "Content-Type": "application/json" },
     });

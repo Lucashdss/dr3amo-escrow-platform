@@ -1,4 +1,5 @@
 const mockListEscrowsForUser = jest.fn();
+const mockRequireAuthenticatedUser = jest.fn();
 
 jest.mock("@/features/escrows/server/escrowRepository", () => ({
   createEscrowRecord: jest.fn(),
@@ -24,6 +25,12 @@ jest.mock("@/features/escrows/services/escrowContract", () => ({
   waitForEscrowActionReceipt: jest.fn(),
 }));
 
+jest.mock("@/features/auth/server/authenticatedUser", () => ({
+  requireAuthenticatedUser: (...args: unknown[]) =>
+    mockRequireAuthenticatedUser(...args),
+}));
+
+import { AppError } from "@/lib/errors";
 import { GET } from "@/app/api/escrows/management/route";
 
 describe("/api/escrows/management route", () => {
@@ -38,21 +45,39 @@ describe("/api/escrows/management route", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("returns 400 when userId is missing", async () => {
-    const request = new Request("http://localhost/api/escrows/management");
+  it("returns 401 when the user is not authenticated", async () => {
+    mockRequireAuthenticatedUser.mockRejectedValueOnce(
+      new AppError("Authentication required.", 401)
+    );
 
-    const response = await GET(request);
+    const response = await GET(new Request("http://localhost/api/escrows/management"));
     const body = await response.json();
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(body).toEqual({
       success: false,
       data: null,
-      error: { message: "userId query param must be a positive integer." },
+      error: { message: "Authentication required." },
     });
   });
 
-  it("returns escrows related to the user", async () => {
+  it("returns 403 when the session has no linked user", async () => {
+    mockRequireAuthenticatedUser.mockRejectedValueOnce(
+      new AppError("Registered user required.", 403)
+    );
+
+    const response = await GET(new Request("http://localhost/api/escrows/management"));
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: { message: "Registered user required." },
+    });
+  });
+
+  it("returns escrows related to the authenticated user", async () => {
     const escrows = [
       {
         id: 7,
@@ -86,11 +111,15 @@ describe("/api/escrows/management route", () => {
       },
     ];
 
+    mockRequireAuthenticatedUser.mockResolvedValueOnce({
+      id: 7,
+      username: "client",
+      wallet_address: "0xabc",
+      created_at: "2026-03-16T00:00:00.000Z",
+    });
     mockListEscrowsForUser.mockResolvedValueOnce(escrows);
 
-    const response = await GET(
-      new Request("http://localhost/api/escrows/management?userId=7")
-    );
+    const response = await GET(new Request("http://localhost/api/escrows/management"));
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -103,11 +132,15 @@ describe("/api/escrows/management route", () => {
   });
 
   it("returns 500 when the repository throws", async () => {
+    mockRequireAuthenticatedUser.mockResolvedValueOnce({
+      id: 7,
+      username: "client",
+      wallet_address: "0xabc",
+      created_at: "2026-03-16T00:00:00.000Z",
+    });
     mockListEscrowsForUser.mockRejectedValueOnce(new Error("db down"));
 
-    const response = await GET(
-      new Request("http://localhost/api/escrows/management?userId=7")
-    );
+    const response = await GET(new Request("http://localhost/api/escrows/management"));
     const body = await response.json();
 
     expect(response.status).toBe(500);

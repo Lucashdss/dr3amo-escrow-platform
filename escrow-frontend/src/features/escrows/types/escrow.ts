@@ -19,11 +19,18 @@ export const ESCROW_LIVE_STATES = [
   "dispute",
   "canceled",
 ] as const;
+export const ACTIVE_ESCROW_MONITOR_STATES = [
+  "funded",
+  "work submitted",
+  "pending modification",
+] as const;
 
 export type EscrowChainKey = (typeof ESCROW_CHAIN_KEYS)[number];
 export type TokenSymbol = (typeof TOKEN_SYMBOLS)[number];
 export type EscrowActionKey = (typeof ESCROW_ACTION_KEYS)[number];
 export type EscrowLiveState = (typeof ESCROW_LIVE_STATES)[number];
+export type ActiveEscrowMonitorState =
+  (typeof ACTIVE_ESCROW_MONITOR_STATES)[number];
 
 export type EscrowRecord = {
   id: number;
@@ -37,20 +44,18 @@ export type EscrowRecord = {
   modifications_requested?: number;
   deadline: string;
   state: string;
+  created_tx_hash: string;
+  last_tx_hash: string;
   created_at: string;
   changed_at?: string | null;
 };
 
 export type CreateEscrowRequest = {
   chainKey: EscrowChainKey;
-  contractAddress: string;
   escrowName: string;
-  clientWalletAddress: string;
   freelancerWalletAddress: string;
   tokenSymbol: TokenSymbol;
   deadline: string;
-  amount: string;
-  state: string;
   txHash: string;
 };
 
@@ -99,6 +104,13 @@ export type EscrowLiveSnapshot = {
   modificationsRequested: number | null;
 };
 
+export type EscrowPersistedSnapshot = {
+  amount: string;
+  deadline: string;
+  modificationsRequested: number;
+  state: string;
+};
+
 export type EscrowActionAvailability = {
   description: string;
   disabled: boolean;
@@ -111,7 +123,6 @@ export type EscrowActionAvailability = {
 export type SyncEscrowActionRequest = {
   action: EscrowActionKey;
   txHash: string;
-  userId: number;
 };
 
 export type SyncEscrowActionResult = {

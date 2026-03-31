@@ -12,7 +12,6 @@ export type UserLookupResponse = {
 
 export type CreateUserRequest = {
   username: string | null;
-  walletAddress: string;
 };
 
 export type CreateUserResult = {

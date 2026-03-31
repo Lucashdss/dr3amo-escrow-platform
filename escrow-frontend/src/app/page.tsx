@@ -39,6 +39,7 @@ export default function Home() {
     : "text-[#04052E]";
   const {
     address,
+    authError,
     hasUser,
     currentUserId,
     connectError,
@@ -203,6 +204,7 @@ export default function Home() {
       <WalletModal
         isConnectModalOpen={isConnectModalOpen}
         isDisconnectOpen={isDisconnectOpen}
+        authError={authError}
         isConnecting={isConnecting}
         connectError={connectError}
         isCheckingUser={isCheckingUser}

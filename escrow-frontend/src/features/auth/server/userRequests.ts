@@ -17,18 +17,9 @@ export function parseCreateUserRequest(
     return createValidationError("Request body must be an object.");
   }
 
-  const walletValue = getStringField(
-    (body as { walletAddress?: unknown }).walletAddress
-  );
   const usernameValue = getStringField((body as { username?: unknown }).username);
-  const walletAddress = walletValue ? normalizeWalletAddress(walletValue) : "";
-
-  if (!walletAddress) {
-    return createValidationError("walletAddress is required.");
-  }
 
   return createValidationSuccess({
-    walletAddress,
     username: usernameValue ? normalizeUsername(usernameValue) : null,
   });
 }

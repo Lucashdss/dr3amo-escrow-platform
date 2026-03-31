@@ -22,37 +22,22 @@ export async function persistEscrow(
   });
 }
 
-export async function fetchClientEscrowSummary(
-  clientId: number
-): Promise<ClientEscrowSummaryResult> {
-  return fetchApi<ClientEscrowSummaryResult>(
-    `/api/escrows/client-funds?clientId=${clientId}`
-  );
+export async function fetchClientEscrowSummary(): Promise<ClientEscrowSummaryResult> {
+  return fetchApi<ClientEscrowSummaryResult>("/api/escrows/client-funds");
 }
 
-export async function fetchFreelancerEscrowSummary(
-  freelancerId: number
-): Promise<FreelancerEscrowSummaryResult> {
-  return fetchApi<FreelancerEscrowSummaryResult>(
-    `/api/escrows/freelancer-funds?freelancerId=${freelancerId}`
-  );
+export async function fetchFreelancerEscrowSummary(): Promise<FreelancerEscrowSummaryResult> {
+  return fetchApi<FreelancerEscrowSummaryResult>("/api/escrows/freelancer-funds");
 }
 
-export async function fetchEscrowManagementList(
-  userId: number
-): Promise<EscrowManagementListResult> {
-  return fetchApi<EscrowManagementListResult>(
-    `/api/escrows/management?userId=${userId}`
-  );
+export async function fetchEscrowManagementList(): Promise<EscrowManagementListResult> {
+  return fetchApi<EscrowManagementListResult>("/api/escrows/management");
 }
 
 export async function fetchEscrowManagementDetail(
-  id: number,
-  userId: number
+  id: number
 ): Promise<EscrowManagementDetailResult> {
-  return fetchApi<EscrowManagementDetailResult>(
-    `/api/escrows/${id}?userId=${userId}`
-  );
+  return fetchApi<EscrowManagementDetailResult>(`/api/escrows/${id}`);
 }
 
 export async function syncEscrowManagementAction(

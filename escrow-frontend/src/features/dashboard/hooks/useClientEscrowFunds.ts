@@ -30,9 +30,7 @@ function formatTokenAmount(amount: string, token: "ETH" | "USDC"): string {
     .concat(` ${token}`);
 }
 
-export function useClientEscrowFunds(
-  clientId: number | undefined
-): ClientEscrowFundsState {
+export function useClientEscrowFunds(): ClientEscrowFundsState {
   const [activeContractsCount, setActiveContractsCount] = useState("0");
   const [completedContractsCount, setCompletedContractsCount] = useState("0");
   const [deadlinesApproachingCount, setDeadlinesApproachingCount] = useState("0");
@@ -43,26 +41,13 @@ export function useClientEscrowFunds(
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!clientId) {
-      setActiveContractsCount("0");
-      setCompletedContractsCount("0");
-      setDeadlinesApproachingCount("0");
-      setFundsInEscrowsEth("0.0000 ETH");
-      setFundsInEscrowsUsdc("0.00 USDC");
-      setPendingReviewsCount("0");
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    const activeClientId = clientId;
     let isCancelled = false;
     setIsLoading(true);
     setError(null);
 
     async function loadFunds(): Promise<void> {
       try {
-        const result = await fetchClientEscrowSummary(activeClientId);
+        const result = await fetchClientEscrowSummary();
 
         if (!isCancelled) {
           setActiveContractsCount(result.activeContractsCount.toString());
@@ -100,7 +85,7 @@ export function useClientEscrowFunds(
     return () => {
       isCancelled = true;
     };
-  }, [clientId]);
+  }, []);
 
   return {
     activeContractsCount,

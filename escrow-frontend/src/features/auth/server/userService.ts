@@ -57,9 +57,10 @@ export async function findUserByName(
 
 export async function createUser(
   request: CreateUserRequest,
+  walletAddress: string,
   repo: UserRepository = defaultRepository
 ): Promise<{ status: number; data: CreateUserResult }> {
-  const existingUser = await repo.findUserByWalletAddress(request.walletAddress);
+  const existingUser = await repo.findUserByWalletAddress(walletAddress);
 
   if (existingUser) {
     return {
@@ -77,7 +78,7 @@ export async function createUser(
     throw new AppError("username is required for new users.", 400);
   }
 
-  const insertId = await repo.createUserRecord(username, request.walletAddress);
+  const insertId = await repo.createUserRecord(username, walletAddress);
   const user = await loadCreatedUser(insertId, repo);
 
   return {

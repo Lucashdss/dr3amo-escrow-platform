@@ -7,6 +7,10 @@ import {
   type ValidationResult,
 } from "@/lib/validation";
 import {
+  validateEscrowDeadline,
+  validateEscrowName,
+} from "@/features/escrows/services/validation";
+import {
   ESCROW_CHAIN_KEYS,
   ESCROW_ACTION_KEYS,
   TOKEN_SYMBOLS,
@@ -64,17 +68,13 @@ function parseWalletAddress(
 }
 
 function parseEscrowName(value: string): ValidationResult<string> {
-  const trimmedValue = value.trim();
+  const parsedName = validateEscrowName(value);
 
-  if (!trimmedValue) {
-    return createValidationError("escrowName is required.");
+  if (!parsedName.success) {
+    return createValidationError(parsedName.error.replace("Contract name", "escrowName"));
   }
 
-  if (trimmedValue.length > 50) {
-    return createValidationError("escrowName must be 50 characters or fewer.");
-  }
-
-  return createValidationSuccess(trimmedValue);
+  return createValidationSuccess(parsedName.data);
 }
 
 function parseEscrowId(value: string): ValidationResult<number> {
@@ -96,6 +96,10 @@ function parseTxHash(value: unknown): ValidationResult<string> {
   }
 
   return createValidationSuccess(value.trim());
+}
+
+function parseDeadline(value: string): ValidationResult<string> {
+  return validateEscrowDeadline(value);
 }
 
 function parseEscrowAction(value: unknown): ValidationResult<EscrowActionKey> {
@@ -177,6 +181,7 @@ export function parseCreateEscrowRequest(
   }
 
   const parsedEscrowName = parseEscrowName(escrowName.data);
+  const parsedDeadline = parseDeadline(deadline.data);
   const parsedFreelancerWallet = parseWalletAddress(
     freelancerWalletAddress.data,
     "freelancerWalletAddress"
@@ -186,13 +191,17 @@ export function parseCreateEscrowRequest(
     return parsedEscrowName;
   }
 
+  if (!parsedDeadline.success) {
+    return parsedDeadline;
+  }
+
   if (!parsedFreelancerWallet.success) {
     return parsedFreelancerWallet;
   }
 
   return createValidationSuccess({
     chainKey: chainKey.data,
-    deadline: deadline.data,
+    deadline: parsedDeadline.data,
     escrowName: parsedEscrowName.data,
     freelancerWalletAddress: parsedFreelancerWallet.data,
     tokenSymbol: tokenSymbol.data,

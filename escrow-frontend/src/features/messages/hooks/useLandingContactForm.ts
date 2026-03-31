@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { BOT_VERIFICATION_REQUIRED_MESSAGE } from "@/features/messages/constants";
 import { createMessage } from "@/features/messages/services/messageApi";
 
 type ContactFormValues = {
@@ -15,7 +16,9 @@ type LandingContactFormState = {
   handleSubmit: () => Promise<void>;
   isSubmitting: boolean;
   setFieldValue: (field: keyof ContactFormValues, value: string) => void;
+  setTurnstileToken: (value: string | null) => void;
   successMessage: string | null;
+  turnstileResetKey: number;
   values: ContactFormValues;
 };
 
@@ -26,12 +29,18 @@ const INITIAL_VALUES: ContactFormValues = {
 };
 
 export function useLandingContactForm(
-  userId: number | null
 ): LandingContactFormState {
   const [values, setValues] = useState<ContactFormValues>(INITIAL_VALUES);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+
+  function resetTurnstile(): void {
+    setTurnstileToken(null);
+    setTurnstileResetKey((currentValue) => currentValue + 1);
+  }
 
   function setFieldValue(field: keyof ContactFormValues, value: string): void {
     setValues((currentValues) => ({ ...currentValues, [field]: value }));
@@ -40,21 +49,29 @@ export function useLandingContactForm(
   }
 
   async function handleSubmit(): Promise<void> {
+    if (!turnstileToken) {
+      setErrorMessage(BOT_VERIFICATION_REQUIRED_MESSAGE);
+      setSuccessMessage(null);
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
       const result = await createMessage({
-        userId,
         name: values.name,
         emailAddress: values.emailAddress,
         message: values.message,
+        turnstileToken,
       });
 
       setValues(INITIAL_VALUES);
+      resetTurnstile();
       setSuccessMessage(result.message);
     } catch (error) {
+      resetTurnstile();
       setErrorMessage(
         error instanceof Error ? error.message : "Failed to send message."
       );
@@ -69,6 +86,8 @@ export function useLandingContactForm(
     errorMessage,
     successMessage,
     setFieldValue,
+    setTurnstileToken,
     handleSubmit,
+    turnstileResetKey,
   };
 }

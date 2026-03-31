@@ -3,7 +3,7 @@ import { normalizeUsername } from "@/lib/normalizers";
 import type {
   CreateUserRequest,
   CreateUserResult,
-  UserListResult,
+  UserLookupProfile,
   UserLookupResponse,
   UserRecord,
 } from "@/features/auth/types/user";
@@ -15,7 +15,6 @@ type UserRepository = {
   findUserById: typeof repository.findUserById;
   findUserByUsername: typeof repository.findUserByUsername;
   findUserByWalletAddress: typeof repository.findUserByWalletAddress;
-  listUsers: typeof repository.listUsers;
 };
 
 const defaultRepository: UserRepository = repository;
@@ -33,10 +32,15 @@ async function loadCreatedUser(
   return user;
 }
 
-export async function listUsers(
-  repo: UserRepository = defaultRepository
-): Promise<UserListResult> {
-  return { users: await repo.listUsers() };
+function mapLookupProfile(user: UserRecord | null): UserLookupProfile | null {
+  const lookupProfile = user
+    ? {
+        username: user.username,
+        wallet_address: user.wallet_address,
+      }
+    : null;
+
+  return lookupProfile;
 }
 
 export async function findUserByWallet(
@@ -44,7 +48,7 @@ export async function findUserByWallet(
   repo: UserRepository = defaultRepository
 ): Promise<UserLookupResponse> {
   const user = await repo.findUserByWalletAddress(walletAddress);
-  return { exists: Boolean(user), user };
+  return { exists: Boolean(user), user: mapLookupProfile(user) };
 }
 
 export async function findUserByName(
@@ -52,7 +56,7 @@ export async function findUserByName(
   repo: UserRepository = defaultRepository
 ): Promise<UserLookupResponse> {
   const user = await repo.findUserByUsername(username);
-  return { exists: Boolean(user), user };
+  return { exists: Boolean(user), user: mapLookupProfile(user) };
 }
 
 export async function createUser(

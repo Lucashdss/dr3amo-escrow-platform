@@ -1,4 +1,5 @@
 import { AppError } from "@/lib/errors";
+import { getPublicAppUrl } from "@/lib/env/public";
 import { normalizeWalletAddress } from "@/lib/normalizers";
 import type {
   AuthSessionResult,
@@ -61,7 +62,7 @@ function formatIsoDate(value: Date | string): string {
 }
 
 function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  return getPublicAppUrl();
 }
 
 function isExpired(value: Date | string): boolean {

@@ -17,6 +17,7 @@ import {
   createValidationSuccess,
   type ValidationResult,
 } from "@/lib/validation";
+import { MAX_MODIFICATION_EXTENSION_DAYS } from "@/features/escrows/services/validation";
 
 type DeriveEscrowActionsInput = {
   escrow: EscrowManagementItem;
@@ -31,6 +32,10 @@ type ActionParameterInput = {
   tokenId: number;
   usdAmount: string;
 };
+
+const MAX_ETH_FUND_AMOUNT = "1000";
+const MAX_USDC_FUND_AMOUNT = "1000000";
+const MAX_MINIMUM_PRICE_USD = BigInt(1000000);
 
 function normalizeState(state: string): string {
   return state.trim().toLowerCase();
@@ -58,6 +63,14 @@ function getTokenDecimals(tokenId: number): number {
   }
 
   return 18;
+}
+
+function getMaxFundAmount(tokenId: number): bigint {
+  const maxAmount = isUsdcToken(tokenId)
+    ? MAX_USDC_FUND_AMOUNT
+    : MAX_ETH_FUND_AMOUNT;
+
+  return parseUnits(maxAmount, getTokenDecimals(tokenId));
 }
 
 function isPositiveWholeNumber(value: string): boolean {
@@ -212,6 +225,14 @@ export function validateEscrowActionInput(
       return createValidationError("Enter a valid funding amount.");
     }
 
+    if (parsedAmount <= BigInt(0)) {
+      return createValidationError("Funding amount must be greater than zero.");
+    }
+
+    if (parsedAmount > getMaxFundAmount(input.tokenId)) {
+      return createValidationError("Funding amount exceeds the allowed maximum.");
+    }
+
     return createValidationSuccess(parsedAmount);
   }
 
@@ -222,6 +243,10 @@ export function validateEscrowActionInput(
       return createValidationError("Enter a valid whole-number USD amount.");
     }
 
+    if (parsedUsdAmount > MAX_MINIMUM_PRICE_USD) {
+      return createValidationError("Minimum price exceeds the allowed maximum.");
+    }
+
     return createValidationSuccess(parsedUsdAmount);
   }
 
@@ -230,6 +255,10 @@ export function validateEscrowActionInput(
 
     if (parsedDays === null) {
       return createValidationError("Enter a valid whole-number day extension.");
+    }
+
+    if (parsedDays > BigInt(MAX_MODIFICATION_EXTENSION_DAYS)) {
+      return createValidationError("Deadline extension exceeds the allowed maximum.");
     }
 
     return createValidationSuccess(parsedDays);

@@ -1,12 +1,17 @@
 const mockIsAutomationMonitoringState = jest.fn();
+const mockCanReachEscrowState = jest.fn();
+const mockNormalizeEscrowDatabaseState = jest.fn();
 const mockReadCurrentEscrowSnapshot = jest.fn();
 const mockVerifyCreateEscrowTransaction = jest.fn();
 const mockVerifyEscrowActionTransaction = jest.fn();
 const mockVerifyRefundTransaction = jest.fn();
 
 jest.mock("@/features/escrows/services/escrowContract", () => ({
+  canReachEscrowState: (...args: unknown[]) => mockCanReachEscrowState(...args),
   isAutomationMonitoringState: (...args: unknown[]) =>
     mockIsAutomationMonitoringState(...args),
+  normalizeEscrowDatabaseState: (...args: unknown[]) =>
+    mockNormalizeEscrowDatabaseState(...args),
   readCurrentEscrowSnapshot: (...args: unknown[]) =>
     mockReadCurrentEscrowSnapshot(...args),
   verifyCreateEscrowTransaction: (...args: unknown[]) =>
@@ -56,6 +61,10 @@ function createMonitoringEscrow(overrides: Record<string, unknown> = {}) {
 describe("escrowService automation flows", () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    mockCanReachEscrowState.mockReturnValue(true);
+    mockNormalizeEscrowDatabaseState.mockImplementation(
+      (state: string) => state.trim().toLowerCase()
+    );
   });
 
   it("lists monitoring targets only for active automation states", async () => {
@@ -194,5 +203,26 @@ describe("escrowService automation flows", () => {
       state: "pending modification",
     });
     expect(result).toBe(1);
+  });
+
+  it("does not persist backward reconciliation state changes", async () => {
+    const repository = createRepository();
+    const escrow = createMonitoringEscrow({
+      state: "work submitted",
+    });
+
+    repository.listActiveEscrowMonitoringTargets.mockResolvedValueOnce([escrow]);
+    mockCanReachEscrowState.mockReturnValueOnce(false);
+    mockReadCurrentEscrowSnapshot.mockResolvedValueOnce({
+      amount: "1.0",
+      deadline: "2026-03-20",
+      modificationsRequested: 0,
+      state: "funded",
+    });
+
+    const result = await reconcileActiveEscrows(repository);
+
+    expect(repository.updateEscrowSnapshot).not.toHaveBeenCalled();
+    expect(result).toBe(0);
   });
 });

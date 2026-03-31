@@ -4,14 +4,17 @@ import {
   checkUserByUsername,
   checkUserByWallet,
 } from "@/features/auth/services/userApi";
-import type { UserRecord } from "@/features/auth/types/user";
+import type { UserLookupProfile } from "@/features/auth/types/user";
 
 export type ResolvedFreelancer = {
   address: Address;
-  user: UserRecord;
+  user: UserLookupProfile;
 };
 
-function requireUser(user: UserRecord | null, message: string): UserRecord {
+function requireUser(
+  user: UserLookupProfile | null,
+  message: string
+): UserLookupProfile {
   if (!user) {
     throw new Error(message);
   }

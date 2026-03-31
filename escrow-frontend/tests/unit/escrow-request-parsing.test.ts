@@ -5,6 +5,15 @@ function createTxHash(char: string): string {
 }
 
 describe("parseCreateEscrowRequest", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-03-16T12:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it("parses a valid escrow payload", () => {
     const result = parseCreateEscrowRequest({
       chainKey: "base",
@@ -108,6 +117,38 @@ describe("parseCreateEscrowRequest", () => {
     ).toEqual({
       success: false,
       error: "A valid txHash is required.",
+    });
+  });
+
+  it("rejects deadlines that are not YYYY-MM-DD", () => {
+    expect(
+      parseCreateEscrowRequest({
+        chainKey: "base",
+        deadline: "2026-03-20T00:00:00.000Z",
+        escrowName: "Landing page refresh",
+        freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
+        tokenSymbol: "USDC",
+        txHash: createTxHash("6"),
+      })
+    ).toEqual({
+      success: false,
+      error: "deadline must use YYYY-MM-DD format.",
+    });
+  });
+
+  it("rejects past or same-day deadlines", () => {
+    expect(
+      parseCreateEscrowRequest({
+        chainKey: "base",
+        deadline: "2026-03-16",
+        escrowName: "Landing page refresh",
+        freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
+        tokenSymbol: "USDC",
+        txHash: createTxHash("7"),
+      })
+    ).toEqual({
+      success: false,
+      error: "deadline must be a future date.",
     });
   });
 });

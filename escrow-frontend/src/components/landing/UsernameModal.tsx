@@ -1,3 +1,5 @@
+import { MAX_USERNAME_LENGTH } from "@/features/auth/types/user";
+
 type UsernameModalProps = {
   isOpen: boolean;
   username: string;
@@ -33,6 +35,7 @@ export function UsernameModal({
         <input
           id="username"
           type="text"
+          maxLength={MAX_USERNAME_LENGTH}
           value={username}
           onChange={(event) => onUsernameChange(event.target.value)}
           placeholder="Enter your username"

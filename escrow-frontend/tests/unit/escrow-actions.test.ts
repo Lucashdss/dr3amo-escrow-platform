@@ -3,6 +3,7 @@ import {
   parseFundAmount,
   parseMinimumPriceUsdAmount,
   parseModificationExtensionDays,
+  validateEscrowActionInput,
 } from "@/features/escrows/services/escrowActions";
 
 const baseEscrow = {
@@ -145,5 +146,50 @@ describe("escrow action input parsing", () => {
   it("parses whole-number modification extension days", () => {
     expect(parseModificationExtensionDays("3")).toBe(BigInt(3));
     expect(parseModificationExtensionDays("0")).toBeNull();
+  });
+
+  it("rejects funding amounts above the token maximum", () => {
+    expect(
+      validateEscrowActionInput({
+        action: "fund",
+        amount: "1000.000001",
+        deadlineExtensionDays: "",
+        tokenId: 3,
+        usdAmount: "",
+      })
+    ).toEqual({
+      success: false,
+      error: "Funding amount exceeds the allowed maximum.",
+    });
+  });
+
+  it("rejects minimum prices above the allowed maximum", () => {
+    expect(
+      validateEscrowActionInput({
+        action: "setMinimumPriceUSD",
+        amount: "",
+        deadlineExtensionDays: "",
+        tokenId: 3,
+        usdAmount: "1000001",
+      })
+    ).toEqual({
+      success: false,
+      error: "Minimum price exceeds the allowed maximum.",
+    });
+  });
+
+  it("rejects extension days above 183", () => {
+    expect(
+      validateEscrowActionInput({
+        action: "requestModificationAndUpdateDeadline",
+        amount: "",
+        deadlineExtensionDays: "184",
+        tokenId: 3,
+        usdAmount: "",
+      })
+    ).toEqual({
+      success: false,
+      error: "Deadline extension exceeds the allowed maximum.",
+    });
   });
 });

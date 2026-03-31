@@ -3,7 +3,7 @@ import type { UserRecord } from "@/features/auth/types/user";
 import * as userRepository from "@/features/auth/server/userRepository";
 import * as messageRepository from "@/features/messages/server/messageRepository";
 import type {
-  CreateMessageRequest,
+  CreateMessageInput,
   CreateMessageResult,
 } from "@/features/messages/types/message";
 
@@ -29,7 +29,7 @@ async function loadMessageUser(
 }
 
 export async function createMessage(
-  request: CreateMessageRequest,
+  request: CreateMessageInput,
   dependencies: MessageDependencies = defaultDependencies
 ): Promise<CreateMessageResult> {
   if (request.userId) {

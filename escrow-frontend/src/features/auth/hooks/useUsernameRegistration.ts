@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import { createUser } from "@/features/auth/services/userApi";
+import { MAX_USERNAME_LENGTH } from "@/features/auth/types/user";
 
 type UsernameRegistrationState = {
   handleCreateUser: () => Promise<void>;
@@ -23,6 +24,13 @@ export function useUsernameRegistration(
   const handleCreateUser = useCallback(async (): Promise<void> => {
     if (!username.trim()) {
       setUsernameError("Username is required.");
+      return;
+    }
+
+    if (username.trim().length > MAX_USERNAME_LENGTH) {
+      setUsernameError(
+        `Username must be ${MAX_USERNAME_LENGTH} characters or fewer.`
+      );
       return;
     }
 

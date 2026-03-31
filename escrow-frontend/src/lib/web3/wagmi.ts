@@ -2,9 +2,10 @@ import { createConfig, http } from "wagmi";
 import { base, baseSepolia } from "wagmi/chains";
 import { metaMask, walletConnect } from "wagmi/connectors";
 import type { CreateConnectorFn } from "wagmi";
+import { getPublicAppUrl, getWalletConnectProjectId } from "@/lib/env/public";
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-const walletConnectProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
+const appUrl = getPublicAppUrl();
+const walletConnectProjectId = getWalletConnectProjectId();
 
 const createConnectors = (): CreateConnectorFn[] => {
   const connectors: CreateConnectorFn[] = [

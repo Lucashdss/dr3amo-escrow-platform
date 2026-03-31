@@ -9,10 +9,10 @@ function buildCreateMessagePayload(
   request: CreateMessageRequest
 ): CreateMessageRequest {
   return {
-    userId: request.userId,
     name: request.name.trim(),
     emailAddress: normalizeEmailAddress(request.emailAddress),
     message: request.message.trim(),
+    turnstileToken: request.turnstileToken.trim(),
   };
 }
 

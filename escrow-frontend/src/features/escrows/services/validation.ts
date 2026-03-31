@@ -11,12 +11,17 @@ import {
 import {
   createValidationError,
   createValidationSuccess,
+  formatDateOnlyUtc,
+  getStartOfTodayUtc,
+  hasMaxLength,
+  parseDateOnlyUtc,
   type ValidationResult,
 } from "@/lib/validation";
 
 export const CHAIN_OPTIONS = ESCROW_CHAIN_KEYS;
 export const TOKEN_OPTIONS = TOKEN_SYMBOLS;
 export const MAX_ESCROW_NAME_LENGTH = 50;
+export const MAX_MODIFICATION_EXTENSION_DAYS = 183;
 
 export type EscrowSubmissionInput = {
   clientUser: UserRecord | null;
@@ -36,7 +41,7 @@ export function validateEscrowName(value: string): ValidationResult<string> {
     return createValidationError("Contract name is required.");
   }
 
-  if (trimmedValue.length > MAX_ESCROW_NAME_LENGTH) {
+  if (!hasMaxLength(trimmedValue, MAX_ESCROW_NAME_LENGTH)) {
     return createValidationError(
       `Contract name must be ${MAX_ESCROW_NAME_LENGTH} characters or fewer.`
     );
@@ -64,22 +69,34 @@ export function calculateDeliveryDays(
   deadline: string,
   now = new Date()
 ): number | null {
-  if (!deadline) {
-    return null;
-  }
-
-  const selectedDate = new Date(`${deadline}T00:00:00`);
-
-  if (Number.isNaN(selectedDate.getTime())) {
-    return null;
-  }
-
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const selectedDate = parseDateOnlyUtc(deadline);
   const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
+  if (!selectedDate) {
+    return null;
+  }
+
   return Math.round(
-    (selectedDate.getTime() - startOfToday.getTime()) / millisecondsPerDay
+    (selectedDate.getTime() - getStartOfTodayUtc(now).getTime()) / millisecondsPerDay
   );
+}
+
+export function validateEscrowDeadline(
+  deadline: string,
+  now = new Date()
+): ValidationResult<string> {
+  const parsedDeadline = parseDateOnlyUtc(deadline);
+  const deliveryDays = calculateDeliveryDays(deadline, now);
+
+  if (!parsedDeadline) {
+    return createValidationError("deadline must use YYYY-MM-DD format.");
+  }
+
+  if (deliveryDays === null || deliveryDays <= 0) {
+    return createValidationError("deadline must be a future date.");
+  }
+
+  return createValidationSuccess(formatDateOnlyUtc(parsedDeadline));
 }
 
 export function getTokenAddress(
@@ -142,7 +159,11 @@ export function validateEscrowSubmission(
 
   const deliveryDays = calculateDeliveryDays(input.deadline);
 
-  if (!deliveryDays || deliveryDays <= 0) {
+  if (deliveryDays === null) {
+    return createValidationError("Use a YYYY-MM-DD deadline.");
+  }
+
+  if (deliveryDays <= 0) {
     return createValidationError(
       "Select a future deadline to derive the delivery period."
     );

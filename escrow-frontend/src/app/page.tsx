@@ -41,7 +41,6 @@ export default function Home() {
     address,
     authError,
     hasUser,
-    currentUserId,
     connectError,
     connectors,
     handleConnect,
@@ -196,7 +195,7 @@ export default function Home() {
       <LandingSectionDivider />
       <LandingFaqSection />
       <LandingSectionDivider />
-      <LandingContactSection userId={currentUserId} />
+      <LandingContactSection />
       <LandingSectionDivider />
 
       <LandingFooter />

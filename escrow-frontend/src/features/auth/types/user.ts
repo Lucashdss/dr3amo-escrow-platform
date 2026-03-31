@@ -1,3 +1,5 @@
+export const MAX_USERNAME_LENGTH = 32;
+
 export type UserRecord = {
   id: number;
   username: string;
@@ -5,9 +7,14 @@ export type UserRecord = {
   created_at: string;
 };
 
+export type UserLookupProfile = {
+  username: string;
+  wallet_address: string;
+};
+
 export type UserLookupResponse = {
   exists: boolean;
-  user: UserRecord | null;
+  user: UserLookupProfile | null;
 };
 
 export type CreateUserRequest = {

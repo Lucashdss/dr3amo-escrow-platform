@@ -1,7 +1,9 @@
 import { AppError } from "@/lib/errors";
 import type { UserRecord } from "@/features/auth/types/user";
 import {
+  canReachEscrowState,
   isAutomationMonitoringState,
+  normalizeEscrowDatabaseState,
   readCurrentEscrowSnapshot,
   verifyCreateEscrowTransaction,
   verifyEscrowActionTransaction,
@@ -18,7 +20,6 @@ import type {
   EscrowActionKey,
   EscrowManagementDetailResult,
   EscrowManagementListResult,
-  EscrowListResult,
   EscrowPersistedSnapshot,
   FreelancerEscrowStateGroups,
   FreelancerEscrowSummaryResult,
@@ -37,7 +38,6 @@ type EscrowRepository = {
   getClientEscrowSummary: typeof repository.getClientEscrowSummary;
   getFreelancerEscrowSummary: typeof repository.getFreelancerEscrowSummary;
   listActiveEscrowMonitoringTargets: typeof repository.listActiveEscrowMonitoringTargets;
-  listEscrows: typeof repository.listEscrows;
   listEscrowsForUser: typeof repository.listEscrowsForUser;
   updateEscrowSnapshot: typeof repository.updateEscrowSnapshot;
 };
@@ -63,14 +63,14 @@ const TOKEN_IDS: Record<EscrowChainKey, Record<TokenSymbol, number>> = {
 };
 
 const CLIENT_ESCROW_STATE_GROUPS: ClientEscrowStateGroups = {
-  activeExcluded: ["cancelled", "released", "refunded"],
-  completed: ["cancelled", "released", "refunded"],
+  activeExcluded: ["canceled", "released", "refunded"],
+  completed: ["canceled", "released", "refunded"],
   pendingReview: ["work submitted"],
 };
 const FREELANCER_ESCROW_STATE_GROUPS: FreelancerEscrowStateGroups = {
   completed: ["released"],
-  deadlinesExcluded: ["work submitted", "cancelled", "released", "refunded"],
-  receivableExcluded: ["cancelled", "released", "refunded"],
+  deadlinesExcluded: ["work submitted", "canceled", "released", "refunded"],
+  receivableExcluded: ["canceled", "released", "refunded"],
   waitingDeliveryExcluded: ["work submitted"],
 };
 const ACTIVE_MONITOR_STATES: typeof ACTIVE_ESCROW_MONITOR_STATES = [
@@ -94,8 +94,12 @@ function createChainSnapshotUpdate(
     id,
     lastTxHash,
     modificationsRequested: snapshot.modificationsRequested,
-    state: snapshot.state,
+    state: normalizeEscrowDatabaseState(snapshot.state),
   };
+}
+
+function canPersistReconciledState(currentState: string, nextState: string): boolean {
+  return canReachEscrowState(currentState, nextState);
 }
 
 async function requireUser(
@@ -110,12 +114,6 @@ async function requireUser(
   }
 
   return user;
-}
-
-export async function listEscrows(
-  repo: EscrowRepository = defaultRepository
-): Promise<EscrowListResult> {
-  return { escrows: await repo.listEscrows() };
 }
 
 export async function listEscrowsForUser(
@@ -265,6 +263,11 @@ export async function syncAutomatedRefundEscrow(
     escrow.tokenId,
     txHash
   );
+
+  if (!canPersistReconciledState(escrow.state, snapshot.state)) {
+    return false;
+  }
+
   await repo.updateEscrowSnapshot(
     createChainSnapshotUpdate(escrow.id, snapshot, txHash)
   );
@@ -288,9 +291,10 @@ export async function reconcileActiveEscrows(
       snapshot.amount !== escrow.amount ||
       snapshot.deadline !== escrow.deadline ||
       snapshot.modificationsRequested !== escrow.modificationsRequested ||
-      snapshot.state !== escrow.state;
+      normalizeEscrowDatabaseState(snapshot.state) !==
+        normalizeEscrowDatabaseState(escrow.state);
 
-    if (isChanged) {
+    if (isChanged && canPersistReconciledState(escrow.state, snapshot.state)) {
       await repo.updateEscrowSnapshot(createChainSnapshotUpdate(escrow.id, snapshot));
       updatedCount += 1;
     }

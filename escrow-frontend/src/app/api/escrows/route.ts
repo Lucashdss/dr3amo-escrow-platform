@@ -1,17 +1,8 @@
 import { createErrorResponse, createSuccessResponse } from "@/lib/api/responses";
 import { AppError } from "@/lib/errors";
 import { requireAuthenticatedUser } from "@/features/auth/server/authenticatedUser";
-import { createEscrow, listEscrows } from "@/features/escrows/server/escrowService";
+import { createEscrow } from "@/features/escrows/server/escrowService";
 import { parseCreateEscrowRequest } from "@/features/escrows/server/escrowRequests";
-
-export async function GET() {
-  try {
-    return createSuccessResponse(await listEscrows());
-  } catch (error) {
-    console.error("GET /api/escrows error:", error);
-    return createErrorResponse("Failed to fetch escrows.", 500);
-  }
-}
 
 export async function POST(request: Request) {
   try {

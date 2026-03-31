@@ -18,6 +18,7 @@ jest.mock("@/features/escrows/server/escrowRepository", () => ({
 }));
 
 jest.mock("@/features/escrows/services/escrowContract", () => ({
+  normalizeEscrowDatabaseState: (state: unknown) => state,
   isAutomationMonitoringState: jest.fn(),
   readCurrentEscrowSnapshot: jest.fn(),
   verifyCreateEscrowTransaction: jest.fn(),
@@ -148,7 +149,7 @@ describe("/api/escrows/[id]/sync route", () => {
     });
   });
 
-  it("returns 404 when the escrow does not belong to the authenticated user", async () => {
+  it("returns 404 when an authenticated user tries to sync another user's escrow", async () => {
     mockRequireAuthenticatedUser.mockResolvedValueOnce(getAuthenticatedUser(11));
     mockFindEscrowManagementByIdForUser.mockResolvedValueOnce(null);
 
@@ -171,6 +172,8 @@ describe("/api/escrows/[id]/sync route", () => {
       data: null,
       error: { message: "Escrow not found." },
     });
+    expect(mockVerifyEscrowActionTransaction).not.toHaveBeenCalled();
+    expect(mockUpdateEscrowSnapshot).not.toHaveBeenCalled();
   });
 
   it("syncs a verified funding transaction and updates last_tx_hash", async () => {

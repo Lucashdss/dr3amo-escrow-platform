@@ -2,12 +2,32 @@ import { normalizeUsername, normalizeWalletAddress } from "@/lib/normalizers";
 import {
   createValidationError,
   createValidationSuccess,
+  hasMaxLength,
   type ValidationResult,
 } from "@/lib/validation";
-import type { CreateUserRequest } from "@/features/auth/types/user";
+import {
+  MAX_USERNAME_LENGTH,
+  type CreateUserRequest,
+} from "@/features/auth/types/user";
 
 function getStringField(value: unknown): string | null {
   return typeof value === "string" ? value : null;
+}
+
+function parseOptionalUsername(value: unknown): ValidationResult<string | null> {
+  const username = normalizeUsername(getStringField(value) ?? "");
+
+  if (!username) {
+    return createValidationSuccess(null);
+  }
+
+  if (!hasMaxLength(username, MAX_USERNAME_LENGTH)) {
+    return createValidationError(
+      `username must be ${MAX_USERNAME_LENGTH} characters or fewer.`
+    );
+  }
+
+  return createValidationSuccess(username);
 }
 
 export function parseCreateUserRequest(
@@ -17,10 +37,14 @@ export function parseCreateUserRequest(
     return createValidationError("Request body must be an object.");
   }
 
-  const usernameValue = getStringField((body as { username?: unknown }).username);
+  const username = parseOptionalUsername((body as { username?: unknown }).username);
+
+  if (!username.success) {
+    return username;
+  }
 
   return createValidationSuccess({
-    username: usernameValue ? normalizeUsername(usernameValue) : null,
+    username: username.data,
   });
 }
 
@@ -37,6 +61,12 @@ function parseRequiredQueryParam(
 
   if (!normalizedValue) {
     return createValidationError(`${key} query param is required.`);
+  }
+
+  if (key === "username" && !hasMaxLength(normalizedValue, MAX_USERNAME_LENGTH)) {
+    return createValidationError(
+      `username must be ${MAX_USERNAME_LENGTH} characters or fewer.`
+    );
   }
 
   return createValidationSuccess(normalizedValue);

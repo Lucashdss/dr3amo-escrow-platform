@@ -119,7 +119,7 @@ describe("/api/escrows/[id] route", () => {
     });
   });
 
-  it("returns 404 for an unrelated or missing escrow", async () => {
+  it("returns 404 when an authenticated user requests another user's escrow", async () => {
     mockRequireAuthenticatedUser.mockResolvedValueOnce({
       id: 11,
       username: "client",
@@ -140,6 +140,7 @@ describe("/api/escrows/[id] route", () => {
       data: null,
       error: { message: "Escrow not found." },
     });
+    expect(mockFindEscrowManagementByIdForUser).toHaveBeenCalledWith(7, 11);
   });
 
   it("returns 500 when the repository throws", async () => {

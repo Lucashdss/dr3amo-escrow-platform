@@ -1,4 +1,14 @@
 const mockCreateWalletAuthNonce = jest.fn();
+const mockConsumeRateLimit = jest.fn();
+
+jest.mock("@/lib/security/rateLimit", () => {
+  const actual = jest.requireActual("@/lib/security/rateLimit");
+
+  return {
+    ...actual,
+    consumeRateLimit: (...args: unknown[]) => mockConsumeRateLimit(...args),
+  };
+});
 
 jest.mock("@/features/auth/server/walletAuthRepository", () => ({
   createWalletAuthNonce: (...args: unknown[]) => mockCreateWalletAuthNonce(...args),
@@ -19,6 +29,10 @@ describe("/api/auth/wallet/nonce route", () => {
     jest.useRealTimers();
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     jest.clearAllMocks();
+    mockConsumeRateLimit.mockResolvedValue({
+      allowed: true,
+      retryAfterSeconds: 60,
+    });
   });
 
   afterEach(() => {
@@ -92,5 +106,33 @@ describe("/api/auth/wallet/nonce route", () => {
     expect(body.data.message).toContain("Issued At: 2026-03-30T10:00:00.000Z");
     expect(body.data.expiresAt).toBe("2026-03-30T10:05:00.000Z");
     expect(typeof body.data.expiresAt).toBe("string");
+  });
+
+  it("returns 429 when wallet nonce creation is rate limited", async () => {
+    mockConsumeRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      retryAfterSeconds: 120,
+    });
+
+    const request = new Request("http://localhost/api/auth/wallet/nonce", {
+      body: JSON.stringify({
+        walletAddress: "0xAbCDefABcdEFABCdefaBcdeFABCDEFAbCDEfAbCd",
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("120");
+    expect(body).toEqual({
+      success: false,
+      data: null,
+      error: {
+        message: "Too many wallet challenge requests. Try again later.",
+      },
+    });
   });
 });

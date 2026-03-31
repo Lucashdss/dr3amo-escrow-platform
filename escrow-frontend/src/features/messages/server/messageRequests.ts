@@ -2,24 +2,17 @@ import { normalizeEmailAddress } from "@/lib/normalizers";
 import {
   createValidationError,
   createValidationSuccess,
+  hasMaxLength,
   type ValidationResult,
 } from "@/lib/validation";
 import type { CreateMessageRequest } from "@/features/messages/types/message";
 
+const MAX_CONTACT_NAME_LENGTH = 100;
+const MAX_CONTACT_MESSAGE_LENGTH = 2000;
+const MAX_EMAIL_ADDRESS_LENGTH = 255;
+
 function getStringField(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function getUserId(value: unknown): number | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  if (typeof value !== "number") {
-    return -1;
-  }
-
-  return Number.isInteger(value) && value > 0 ? value : -1;
 }
 
 function isValidEmailAddress(emailAddress: string): boolean {
@@ -31,8 +24,10 @@ function validateName(name: string): ValidationResult<string> {
     return createValidationError("name is required.");
   }
 
-  if (name.length > 100) {
-    return createValidationError("name must be 100 characters or fewer.");
+  if (!hasMaxLength(name, MAX_CONTACT_NAME_LENGTH)) {
+    return createValidationError(
+      `name must be ${MAX_CONTACT_NAME_LENGTH} characters or fewer.`
+    );
   }
 
   return createValidationSuccess(name);
@@ -43,8 +38,10 @@ function validateEmailAddress(emailAddress: string): ValidationResult<string> {
     return createValidationError("emailAddress is required.");
   }
 
-  if (emailAddress.length > 255) {
-    return createValidationError("emailAddress must be 255 characters or fewer.");
+  if (!hasMaxLength(emailAddress, MAX_EMAIL_ADDRESS_LENGTH)) {
+    return createValidationError(
+      `emailAddress must be ${MAX_EMAIL_ADDRESS_LENGTH} characters or fewer.`
+    );
   }
 
   if (!isValidEmailAddress(emailAddress)) {
@@ -59,7 +56,21 @@ function validateMessage(message: string): ValidationResult<string> {
     return createValidationError("message is required.");
   }
 
+  if (!hasMaxLength(message, MAX_CONTACT_MESSAGE_LENGTH)) {
+    return createValidationError(
+      `message must be ${MAX_CONTACT_MESSAGE_LENGTH} characters or fewer.`
+    );
+  }
+
   return createValidationSuccess(message);
+}
+
+function validateTurnstileToken(token: string): ValidationResult<string> {
+  if (!token) {
+    return createValidationError("turnstileToken is required.");
+  }
+
+  return createValidationSuccess(token);
 }
 
 export function parseCreateMessageRequest(
@@ -70,15 +81,17 @@ export function parseCreateMessageRequest(
   }
 
   const objectBody = body as Record<string, unknown>;
-  const userId = getUserId(objectBody.userId);
   const nameResult = validateName(getStringField(objectBody.name));
   const emailResult = validateEmailAddress(
     normalizeEmailAddress(getStringField(objectBody.emailAddress))
   );
   const messageResult = validateMessage(getStringField(objectBody.message));
+  const turnstileResult = validateTurnstileToken(
+    getStringField(objectBody.turnstileToken)
+  );
 
-  if (userId === -1) {
-    return createValidationError("userId must be a positive integer.");
+  if ("userId" in objectBody) {
+    return createValidationError("userId must not be provided.");
   }
 
   if (!nameResult.success) {
@@ -93,10 +106,14 @@ export function parseCreateMessageRequest(
     return messageResult;
   }
 
+  if (!turnstileResult.success) {
+    return turnstileResult;
+  }
+
   return createValidationSuccess({
-    userId,
     name: nameResult.data,
     emailAddress: emailResult.data,
     message: messageResult.data,
+    turnstileToken: turnstileResult.data,
   });
 }

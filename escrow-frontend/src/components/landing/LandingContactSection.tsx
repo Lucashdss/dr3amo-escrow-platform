@@ -1,22 +1,19 @@
 "use client";
 
+import { TurnstileWidget } from "@/features/messages/components/TurnstileWidget";
 import { useLandingContactForm } from "@/features/messages/hooks/useLandingContactForm";
 
-type LandingContactSectionProps = {
-  userId: number | null;
-};
-
-export function LandingContactSection({
-  userId,
-}: LandingContactSectionProps) {
+export function LandingContactSection() {
   const {
     values,
     isSubmitting,
     errorMessage,
     successMessage,
     setFieldValue,
+    setTurnstileToken,
     handleSubmit,
-  } = useLandingContactForm(userId);
+    turnstileResetKey,
+  } = useLandingContactForm();
 
   return (
     <section
@@ -48,6 +45,7 @@ export function LandingContactSection({
               <input
                 type="text"
                 required
+                maxLength={100}
                 value={values.name}
                 onChange={(event) => setFieldValue("name", event.target.value)}
                 placeholder="Enter your name"
@@ -62,6 +60,7 @@ export function LandingContactSection({
               <input
                 type="email"
                 required
+                maxLength={255}
                 value={values.emailAddress}
                 onChange={(event) =>
                   setFieldValue("emailAddress", event.target.value)
@@ -78,6 +77,7 @@ export function LandingContactSection({
               <textarea
                 rows={6}
                 required
+                maxLength={2000}
                 value={values.message}
                 onChange={(event) =>
                   setFieldValue("message", event.target.value)
@@ -86,6 +86,13 @@ export function LandingContactSection({
                 className="w-full rounded-[1.75rem] border border-white/10 bg-black/15 px-5 py-4 text-base text-white placeholder:text-white/50 focus:outline-none"
               />
             </label>
+          </div>
+
+          <div className="mt-6">
+            <TurnstileWidget
+              onTokenChange={setTurnstileToken}
+              resetKey={turnstileResetKey}
+            />
           </div>
 
           {errorMessage ? (

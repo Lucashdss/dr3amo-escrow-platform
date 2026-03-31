@@ -129,6 +129,39 @@ const RELEVANT_ESCROW_EVENTS = new Set([
   "UpfrontPaymentSent",
 ]);
 const REFUNDED_STATE_INDEX = 5;
+const ESCROW_STATE_ALIASES: Record<string, string> = {
+  cancelled: "canceled",
+};
+const ACTION_RESULT_STATES: Record<EscrowActionKey, readonly string[]> = {
+  cancelEscrow: ["canceled"],
+  confirmDelivery: ["released"],
+  fund: ["funded"],
+  initiateDispute: ["dispute"],
+  markWorkSubmitted: ["work submitted"],
+  requestModificationAndUpdateDeadline: ["pending modification"],
+  setMinimumPriceUSD: ["created"],
+};
+const ESCROW_STATE_TRANSITIONS: Record<string, readonly string[]> = {
+  created: ["funded", "canceled"],
+  funded: ["funded", "work submitted", "dispute", "refunded"],
+  "work submitted": [
+    "work submitted",
+    "pending modification",
+    "released",
+    "dispute",
+    "refunded",
+  ],
+  "pending modification": [
+    "pending modification",
+    "work submitted",
+    "dispute",
+    "refunded",
+  ],
+  released: [],
+  refunded: [],
+  dispute: [],
+  canceled: [],
+};
 
 const ERC20_ABI = [
   {
@@ -170,6 +203,62 @@ export function getSupportedChainIdForEscrow(
   databaseChainId: number
 ): SupportedChainId {
   return getSupportedChainId(databaseChainId);
+}
+
+export function normalizeEscrowDatabaseState(state: string): string {
+  const normalizedState = state.trim().toLowerCase();
+
+  return ESCROW_STATE_ALIASES[normalizedState] ?? normalizedState;
+}
+
+function isKnownEscrowDatabaseState(state: string): boolean {
+  return normalizeEscrowDatabaseState(state) in ESCROW_STATE_TRANSITIONS;
+}
+
+function getNextEscrowStates(state: string): readonly string[] {
+  return ESCROW_STATE_TRANSITIONS[normalizeEscrowDatabaseState(state)] ?? [];
+}
+
+export function canReachEscrowState(
+  currentState: string,
+  nextState: string
+): boolean {
+  const normalizedCurrentState = normalizeEscrowDatabaseState(currentState);
+  const normalizedNextState = normalizeEscrowDatabaseState(nextState);
+
+  if (
+    !isKnownEscrowDatabaseState(normalizedCurrentState) ||
+    !isKnownEscrowDatabaseState(normalizedNextState)
+  ) {
+    return false;
+  }
+
+  if (normalizedCurrentState === normalizedNextState) {
+    return true;
+  }
+
+  const statesToVisit = [normalizedCurrentState];
+  const visitedStates = new Set<string>();
+
+  while (statesToVisit.length > 0) {
+    const state = statesToVisit.shift();
+
+    if (!state || visitedStates.has(state)) {
+      continue;
+    }
+
+    visitedStates.add(state);
+
+    for (const candidateState of getNextEscrowStates(state)) {
+      if (candidateState === normalizedNextState) {
+        return true;
+      }
+
+      statesToVisit.push(candidateState);
+    }
+  }
+
+  return false;
 }
 
 export function getEscrowTokenSymbol(tokenId: number): TokenSymbol {
@@ -313,7 +402,7 @@ function formatDatabaseDate(date: Date): string {
 
 function parseStoredDeadline(value: Date | string): Date | null {
   if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : new Date(value.getTime());
+    return Number.isNaN(value.getTime()) ? null : new Date(value);
   }
 
   const trimmedValue = value.trim();
@@ -442,6 +531,37 @@ function getStateChangeName(logs: readonly Log[], contractAddress: string): stri
       : null;
 
   return mapEscrowLiveStateToDatabaseState(liveState);
+}
+
+function assertKnownEscrowState(state: string, message: string): void {
+  if (!isKnownEscrowDatabaseState(state)) {
+    throw new AppError(message, 400);
+  }
+}
+
+function assertActionResultState(action: EscrowActionKey, state: string): void {
+  if (!ACTION_RESULT_STATES[action].includes(normalizeEscrowDatabaseState(state))) {
+    throw new AppError("The resulting escrow state does not match the requested action.", 400);
+  }
+}
+
+function assertReachableEscrowState(
+  currentState: string,
+  nextState: string,
+  message: string
+): void {
+  if (!canReachEscrowState(currentState, nextState)) {
+    throw new AppError(message, 400);
+  }
+}
+
+function normalizeSnapshotState(
+  snapshot: EscrowPersistedSnapshot
+): EscrowPersistedSnapshot {
+  return {
+    ...snapshot,
+    state: normalizeEscrowDatabaseState(snapshot.state),
+  };
 }
 
 function hasEscrowEvent(
@@ -646,12 +766,12 @@ export async function readCurrentEscrowSnapshot(
     ]);
   const liveState = getEscrowLiveStateFromIndex(Number(stateIndex));
 
-  return {
+  return normalizeSnapshotState({
     amount: formatEscrowAmountForStorage(amountToRelease, escrow.tokenId),
     deadline: formatContractDeadline(deadline),
     modificationsRequested: Number(modificationsRequested),
     state: mapEscrowLiveStateToDatabaseState(liveState) ?? "created",
-  };
+  });
 }
 
 export async function verifyCreateEscrowTransaction(
@@ -711,11 +831,21 @@ export async function verifyEscrowActionTransaction(
   assertActionFunction(input.action, transaction.input);
   assertActionReceiptEvidence(input.action, receipt.logs, input.escrow.contractAddress);
 
-  return readCurrentEscrowSnapshot({
+  const snapshot = await readCurrentEscrowSnapshot({
     chainId: input.escrow.chainId,
     contractAddress: input.escrow.contractAddress,
     tokenId: input.escrow.tokenId,
   });
+
+  assertKnownEscrowState(snapshot.state, "The resulting escrow state is unknown.");
+  assertActionResultState(input.action, snapshot.state);
+  assertReachableEscrowState(
+    input.escrow.state,
+    snapshot.state,
+    "The resulting escrow state is not reachable from the stored escrow state."
+  );
+
+  return snapshot;
 }
 
 export function isAutomationMonitoringState(state: string): boolean {
@@ -798,11 +928,11 @@ export async function verifyRefundTransaction(
     throw new AppError("The transaction does not contain refund evidence.", 400);
   }
 
-  if (snapshot.state !== "refunded") {
+  if (normalizeEscrowDatabaseState(snapshot.state) !== "refunded") {
     throw new AppError("The current on-chain escrow state is not refunded.", 400);
   }
 
-  return snapshot;
+  return normalizeSnapshotState(snapshot);
 }
 
 export function mapEscrowLiveStateToDatabaseState(
@@ -812,7 +942,7 @@ export function mapEscrowLiveStateToDatabaseState(
     return null;
   }
 
-  return liveEscrowState;
+  return normalizeEscrowDatabaseState(liveEscrowState);
 }
 
 export async function readEscrowLiveSnapshot(
@@ -967,10 +1097,6 @@ export function decodeEscrowReceiptEventNames(logs: readonly Log[]): string[] {
     .filter((eventName) => Boolean(eventName) && RELEVANT_ESCROW_EVENTS.has(eventName));
 }
 
-function normalizeDatabaseState(state: string): string {
-  return state.trim().toLowerCase();
-}
-
 function parseFundTransactionAmount(input: Hex): bigint | null {
   try {
     const decodedTransaction = decodeFunctionData({
@@ -1031,7 +1157,7 @@ function getUpdatedStateFromLogs(
     );
   }
 
-  if (normalizeDatabaseState(currentState) === "created") {
+  if (normalizeEscrowDatabaseState(currentState) === "created") {
     return "funded";
   }
 

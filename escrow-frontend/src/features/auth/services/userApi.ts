@@ -3,6 +3,7 @@ import { normalizeUsername, normalizeWalletAddress } from "@/lib/normalizers";
 import type {
   CreateUserRequest,
   CreateUserResult,
+  UserLookupProfile,
   UserLookupResponse,
   UserRecord,
 } from "@/features/auth/types/user";
@@ -41,4 +42,10 @@ export async function createUser({
   });
 }
 
-export type { CreateUserRequest, CreateUserResult, UserLookupResponse, UserRecord };
+export type {
+  CreateUserRequest,
+  CreateUserResult,
+  UserLookupProfile,
+  UserLookupResponse,
+  UserRecord,
+};

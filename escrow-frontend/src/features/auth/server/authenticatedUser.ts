@@ -4,6 +4,20 @@ import type { UserRecord } from "@/features/auth/types/user";
 import { readSessionToken } from "./sessionCookie";
 import { getAuthSession } from "./walletAuthService";
 
+export async function findAuthenticatedUser(
+  request: Request
+): Promise<UserRecord | null> {
+  const sessionToken = readSessionToken(request);
+  let user: UserRecord | null = null;
+
+  if (sessionToken) {
+    const session = await getAuthSession(sessionToken);
+    user = session?.user ?? null;
+  }
+
+  return user;
+}
+
 export async function requireAuthenticatedUser(
   request: Request
 ): Promise<UserRecord> {

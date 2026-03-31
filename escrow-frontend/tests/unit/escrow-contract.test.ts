@@ -19,7 +19,9 @@ jest.mock("@/lib/web3/wagmi", () => ({
 
 import {
   approveEscrowFundingIfNeeded,
+  canReachEscrowState,
   getModificationReceiptUpdate,
+  normalizeEscrowDatabaseState,
 } from "@/features/escrows/services/escrowContract";
 
 describe("approveEscrowFundingIfNeeded", () => {
@@ -277,5 +279,17 @@ describe("getModificationReceiptUpdate", () => {
       deadline: "2026-03-24",
       state: "pending modification",
     });
+  });
+});
+
+describe("escrow state helpers", () => {
+  it("normalizes cancelled to canceled", () => {
+    expect(normalizeEscrowDatabaseState("cancelled")).toBe("canceled");
+  });
+
+  it("allows forward reachable states only", () => {
+    expect(canReachEscrowState("funded", "refunded")).toBe(true);
+    expect(canReachEscrowState("pending modification", "work submitted")).toBe(true);
+    expect(canReachEscrowState("work submitted", "funded")).toBe(false);
   });
 });

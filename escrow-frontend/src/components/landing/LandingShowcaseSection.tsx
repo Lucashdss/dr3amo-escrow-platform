@@ -19,8 +19,8 @@ function ShowcaseDots({
   activeIndex,
   onSelect,
 }: {
-  activeIndex: number;
-  onSelect: (index: number) => void;
+  readonly activeIndex: number;
+  readonly onSelect: (index: number) => void;
 }) {
   return (
     <div className="mt-6 flex items-center justify-center gap-3">

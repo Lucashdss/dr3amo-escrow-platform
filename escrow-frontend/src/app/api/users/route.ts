@@ -3,31 +3,37 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from "@/lib/api/responses";
-import {
-  createUser,
-  listUsers,
-} from "@/features/auth/server/userService";
+import { createUser } from "@/features/auth/server/userService";
 import { getAuthSession } from "@/features/auth/server/walletAuthService";
 import { parseCreateUserRequest } from "@/features/auth/server/userRequests";
 import { readSessionToken } from "@/features/auth/server/sessionCookie";
-
-export async function GET() {
-  try {
-    return createSuccessResponse(await listUsers());
-  } catch (error) {
-    console.error("GET /api/users error:", error);
-    return createErrorResponse("Failed to fetch users.", 500);
-  }
-}
+import { getClientIp } from "@/lib/security/clientIp";
+import {
+  consumeRateLimit,
+  createRateLimitResponse,
+} from "@/lib/security/rateLimit";
 
 export async function POST(request: Request) {
   try {
     const parsedRequest = parseCreateUserRequest(await request.json());
-    const sessionToken = readSessionToken(request);
 
     if (!parsedRequest.success) {
       return createErrorResponse(parsedRequest.error, 400);
     }
+
+    const rateLimitResult = await consumeRateLimit({
+      identifier: getClientIp(request),
+      scope: "user_create",
+    });
+
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(
+        "user_create",
+        rateLimitResult.retryAfterSeconds
+      );
+    }
+
+    const sessionToken = readSessionToken(request);
 
     if (!sessionToken) {
       return createErrorResponse("Authentication required.", 401);

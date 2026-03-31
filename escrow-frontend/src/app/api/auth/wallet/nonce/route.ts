@@ -5,6 +5,12 @@ import {
 } from "@/lib/api/responses";
 import { createWalletChallenge } from "@/features/auth/server/walletAuthService";
 import { parseCreateWalletNonceRequest } from "@/features/auth/server/walletAuthRequests";
+import { getClientIp } from "@/lib/security/clientIp";
+import {
+  consumeRateLimit,
+  createRateLimitIdentifier,
+  createRateLimitResponse,
+} from "@/lib/security/rateLimit";
 
 export async function POST(request: Request) {
   try {
@@ -12,6 +18,21 @@ export async function POST(request: Request) {
 
     if (!parsedRequest.success) {
       return createErrorResponse(parsedRequest.error, 400);
+    }
+
+    const rateLimitResult = await consumeRateLimit({
+      identifier: createRateLimitIdentifier([
+        parsedRequest.data.walletAddress,
+        getClientIp(request),
+      ]),
+      scope: "wallet_nonce",
+    });
+
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(
+        "wallet_nonce",
+        rateLimitResult.retryAfterSeconds
+      );
     }
 
     return createSuccessResponse(

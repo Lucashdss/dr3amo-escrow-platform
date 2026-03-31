@@ -3,15 +3,18 @@ import { createMessage } from "@/features/messages/server/messageService";
 
 describe("createMessage", () => {
   it("creates a message without a user", async () => {
+    const createMessageRecord = jest.fn().mockResolvedValue(12);
+
     const result = await createMessage(
       {
         userId: null,
         name: "Lucas",
         emailAddress: "lucas@example.com",
         message: "Hello",
+        turnstileToken: "token",
       },
       {
-        createMessageRecord: jest.fn().mockResolvedValue(12),
+        createMessageRecord,
         findUserById: jest.fn(),
       }
     );
@@ -20,9 +23,18 @@ describe("createMessage", () => {
       id: 12,
       message: "Message sent successfully.",
     });
+    expect(createMessageRecord).toHaveBeenCalledWith({
+      emailAddress: "lucas@example.com",
+      message: "Hello",
+      name: "Lucas",
+      turnstileToken: "token",
+      userId: null,
+    });
   });
 
-  it("rejects unknown users", async () => {
+  it("rejects a forged userId that does not exist", async () => {
+    const createMessageRecord = jest.fn();
+
     await expect(
       createMessage(
         {
@@ -30,12 +42,18 @@ describe("createMessage", () => {
           name: "Lucas",
           emailAddress: "lucas@example.com",
           message: "Hello",
+          turnstileToken: "token",
         },
         {
-          createMessageRecord: jest.fn(),
+          createMessageRecord,
           findUserById: jest.fn().mockResolvedValue(null),
         }
       )
-    ).rejects.toBeInstanceOf(AppError);
+    ).rejects.toMatchObject({
+      message: "userId is invalid.",
+      status: 400,
+    });
+
+    expect(createMessageRecord).not.toHaveBeenCalled();
   });
 });

@@ -56,11 +56,11 @@ export function ContractCreateScreen() {
 
           <form className="mt-8 grid gap-5" onSubmit={handleSubmit}>
             <EscrowFormFields
-              deadline={form.deadline}
+              deliveryDaysInput={form.deliveryDaysInput}
               escrowName={form.escrowName}
               freelancerInput={form.freelancerInput}
               selectedChain={form.selectedChain}
-              setDeadline={form.setDeadline}
+              setDeliveryDaysInput={form.setDeliveryDaysInput}
               setEscrowName={form.setEscrowName}
               setFreelancerInput={form.setFreelancerInput}
               setSelectedChain={form.setSelectedChain}

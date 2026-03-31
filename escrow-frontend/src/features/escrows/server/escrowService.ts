@@ -203,7 +203,7 @@ export async function createEscrow(
     authenticatedWalletAddress: clientWalletAddress,
     chainKey: request.chainKey,
     databaseChainId: CHAIN_IDS[request.chainKey],
-    deadline: request.deadline,
+    deliveryDays: request.deliveryDays,
     freelancerWalletAddress: request.freelancerWalletAddress,
     tokenId,
     tokenSymbol: request.tokenSymbol,

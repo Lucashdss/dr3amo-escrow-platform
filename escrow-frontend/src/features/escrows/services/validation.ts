@@ -1,9 +1,12 @@
 import type { Address } from "viem";
 
-import { ESCROW_DEPLOYMENT_CONFIGS, ETH_ZERO_ADDRESS } from "@/features/escrows/config/deployment";
+import {
+  ESCROW_DEPLOYMENT_CONFIGS,
+  ETH_ZERO_ADDRESS,
+  getAvailableEscrowChainKeys,
+} from "@/features/escrows/config/deployment";
 import type { UserRecord } from "@/features/auth/types/user";
 import {
-  ESCROW_CHAIN_KEYS,
   TOKEN_SYMBOLS,
   type EscrowChainKey,
   type TokenSymbol,
@@ -12,20 +15,21 @@ import {
   createValidationError,
   createValidationSuccess,
   formatDateOnlyUtc,
-  getStartOfTodayUtc,
+  getStartOfTodayLocal,
   hasMaxLength,
+  parseDateOnlyLocal,
   parseDateOnlyUtc,
   type ValidationResult,
 } from "@/lib/validation";
 
-export const CHAIN_OPTIONS = ESCROW_CHAIN_KEYS;
+export const CHAIN_OPTIONS = getAvailableEscrowChainKeys();
 export const TOKEN_OPTIONS = TOKEN_SYMBOLS;
 export const MAX_ESCROW_NAME_LENGTH = 50;
 export const MAX_MODIFICATION_EXTENSION_DAYS = 183;
 
 export type EscrowSubmissionInput = {
   clientUser: UserRecord | null;
-  deadline: string;
+  deliveryDays: string;
   escrowName: string;
   isConnected: boolean;
   isWrongNetwork: boolean;
@@ -65,11 +69,23 @@ export function percentToBps(percentage: number): number {
   return percentage * 100;
 }
 
+export function parseDeliveryDays(value: string): number | null {
+  const trimmedValue = value.trim();
+
+  if (!/^\d+$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const deliveryDays = Number.parseInt(trimmedValue, 10);
+
+  return deliveryDays > 0 ? deliveryDays : null;
+}
+
 export function calculateDeliveryDays(
   deadline: string,
   now = new Date()
 ): number | null {
-  const selectedDate = parseDateOnlyUtc(deadline);
+  const selectedDate = parseDateOnlyLocal(deadline);
   const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
   if (!selectedDate) {
@@ -77,7 +93,8 @@ export function calculateDeliveryDays(
   }
 
   return Math.round(
-    (selectedDate.getTime() - getStartOfTodayUtc(now).getTime()) / millisecondsPerDay
+    (selectedDate.getTime() - getStartOfTodayLocal(now).getTime()) /
+      millisecondsPerDay
   );
 }
 
@@ -157,15 +174,11 @@ export function validateEscrowSubmission(
     );
   }
 
-  const deliveryDays = calculateDeliveryDays(input.deadline);
+  const deliveryDays = parseDeliveryDays(input.deliveryDays);
 
   if (deliveryDays === null) {
-    return createValidationError("Use a YYYY-MM-DD deadline.");
-  }
-
-  if (deliveryDays <= 0) {
     return createValidationError(
-      "Select a future deadline to derive the delivery period."
+      "Delivery period must be a whole number of days greater than zero."
     );
   }
 

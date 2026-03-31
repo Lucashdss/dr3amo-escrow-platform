@@ -1,5 +1,6 @@
 import { isAddress } from "viem";
 
+import { getAvailableEscrowChainKeys } from "@/features/escrows/config/deployment";
 import { normalizeWalletAddress } from "@/lib/normalizers";
 import {
   createValidationError,
@@ -7,11 +8,9 @@ import {
   type ValidationResult,
 } from "@/lib/validation";
 import {
-  validateEscrowDeadline,
   validateEscrowName,
 } from "@/features/escrows/services/validation";
 import {
-  ESCROW_CHAIN_KEYS,
   ESCROW_ACTION_KEYS,
   TOKEN_SYMBOLS,
   type CreateEscrowRequest,
@@ -36,11 +35,15 @@ function getRequiredString(
 }
 
 function parseChainKey(value: unknown): ValidationResult<EscrowChainKey> {
+  const availableChainKeys = getAvailableEscrowChainKeys();
+
   if (
     typeof value !== "string" ||
-    !ESCROW_CHAIN_KEYS.includes(value as EscrowChainKey)
+    !availableChainKeys.includes(value as EscrowChainKey)
   ) {
-    return createValidationError("chainKey must be base or baseSepolia.");
+    return createValidationError(
+      `chainKey must be ${availableChainKeys.join(" or ")}.`
+    );
   }
 
   return createValidationSuccess(value as EscrowChainKey);
@@ -98,8 +101,15 @@ function parseTxHash(value: unknown): ValidationResult<string> {
   return createValidationSuccess(value.trim());
 }
 
-function parseDeadline(value: string): ValidationResult<string> {
-  return validateEscrowDeadline(value);
+function parseDeliveryDays(value: unknown): ValidationResult<number> {
+  const parsedValue =
+    typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    return createValidationError("deliveryDays must be a positive integer.");
+  }
+
+  return createValidationSuccess(parsedValue);
 }
 
 function parseEscrowAction(value: unknown): ValidationResult<EscrowActionKey> {
@@ -148,7 +158,7 @@ export function parseCreateEscrowRequest(
     "A valid freelancerWalletAddress is required."
   );
   const tokenSymbol = parseTokenSymbol(payload.tokenSymbol);
-  const deadline = getRequiredString(payload, "deadline", "deadline is required.");
+  const deliveryDays = parseDeliveryDays(payload.deliveryDays);
   const txHash = parseTxHash(payload.txHash);
   const removedFields = hasRemovedCreateFields(payload);
 
@@ -168,8 +178,8 @@ export function parseCreateEscrowRequest(
     return tokenSymbol;
   }
 
-  if (!deadline.success) {
-    return deadline;
+  if (!deliveryDays.success) {
+    return deliveryDays;
   }
 
   if (!txHash.success) {
@@ -181,7 +191,6 @@ export function parseCreateEscrowRequest(
   }
 
   const parsedEscrowName = parseEscrowName(escrowName.data);
-  const parsedDeadline = parseDeadline(deadline.data);
   const parsedFreelancerWallet = parseWalletAddress(
     freelancerWalletAddress.data,
     "freelancerWalletAddress"
@@ -191,17 +200,13 @@ export function parseCreateEscrowRequest(
     return parsedEscrowName;
   }
 
-  if (!parsedDeadline.success) {
-    return parsedDeadline;
-  }
-
   if (!parsedFreelancerWallet.success) {
     return parsedFreelancerWallet;
   }
 
   return createValidationSuccess({
     chainKey: chainKey.data,
-    deadline: parsedDeadline.data,
+    deliveryDays: deliveryDays.data,
     escrowName: parsedEscrowName.data,
     freelancerWalletAddress: parsedFreelancerWallet.data,
     tokenSymbol: tokenSymbol.data,

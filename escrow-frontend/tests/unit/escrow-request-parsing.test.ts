@@ -17,7 +17,7 @@ describe("parseCreateEscrowRequest", () => {
   it("parses a valid escrow payload", () => {
     const result = parseCreateEscrowRequest({
       chainKey: "base",
-      deadline: "2026-03-20",
+      deliveryDays: 4,
       escrowName: "Landing page refresh",
       freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
       tokenSymbol: "USDC",
@@ -28,7 +28,7 @@ describe("parseCreateEscrowRequest", () => {
       success: true,
       data: {
         chainKey: "base",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -43,7 +43,7 @@ describe("parseCreateEscrowRequest", () => {
         amount: "0",
         chainKey: "base",
         contractAddress: "0x0000000000000000000000000000000000000010",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Website redesign",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         state: "created",
@@ -60,7 +60,7 @@ describe("parseCreateEscrowRequest", () => {
     expect(
       parseCreateEscrowRequest({
         chainKey: "base",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "   ",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -76,7 +76,7 @@ describe("parseCreateEscrowRequest", () => {
     expect(
       parseCreateEscrowRequest({
         chainKey: "base",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "a".repeat(51),
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -92,7 +92,7 @@ describe("parseCreateEscrowRequest", () => {
     expect(
       parseCreateEscrowRequest({
         chainKey: "base",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "not-an-address",
         tokenSymbol: "USDC",
@@ -108,7 +108,7 @@ describe("parseCreateEscrowRequest", () => {
     expect(
       parseCreateEscrowRequest({
         chainKey: "base",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -120,11 +120,11 @@ describe("parseCreateEscrowRequest", () => {
     });
   });
 
-  it("rejects deadlines that are not YYYY-MM-DD", () => {
+  it("rejects non-integer delivery periods", () => {
     expect(
       parseCreateEscrowRequest({
         chainKey: "base",
-        deadline: "2026-03-20T00:00:00.000Z",
+        deliveryDays: "four",
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -132,15 +132,15 @@ describe("parseCreateEscrowRequest", () => {
       })
     ).toEqual({
       success: false,
-      error: "deadline must use YYYY-MM-DD format.",
+      error: "deliveryDays must be a positive integer.",
     });
   });
 
-  it("rejects past or same-day deadlines", () => {
+  it("rejects zero-day delivery periods", () => {
     expect(
       parseCreateEscrowRequest({
         chainKey: "base",
-        deadline: "2026-03-16",
+        deliveryDays: 0,
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -148,7 +148,7 @@ describe("parseCreateEscrowRequest", () => {
       })
     ).toEqual({
       success: false,
-      error: "deadline must be a future date.",
+      error: "deliveryDays must be a positive integer.",
     });
   });
 });

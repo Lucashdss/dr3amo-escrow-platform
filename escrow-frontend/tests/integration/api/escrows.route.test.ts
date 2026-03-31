@@ -79,11 +79,11 @@ describe("/api/escrows route", () => {
     });
   });
 
-  it("POST rejects invalid deadline formats", async () => {
+  it("POST rejects invalid delivery periods", async () => {
     const request = new Request("http://localhost/api/escrows", {
       body: JSON.stringify({
         chainKey: "base",
-        deadline: "2026-03-20T00:00:00.000Z",
+        deliveryDays: "four",
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -99,7 +99,7 @@ describe("/api/escrows route", () => {
     expect(response.status).toBe(400);
     expect(body).toEqual({
       data: null,
-      error: { message: "deadline must use YYYY-MM-DD format." },
+      error: { message: "deliveryDays must be a positive integer." },
       success: false,
     });
   });
@@ -112,7 +112,7 @@ describe("/api/escrows route", () => {
     const request = new Request("http://localhost/api/escrows", {
       body: JSON.stringify({
         chainKey: "base",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -141,7 +141,7 @@ describe("/api/escrows route", () => {
     const request = new Request("http://localhost/api/escrows", {
       body: JSON.stringify({
         chainKey: "base",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -180,7 +180,7 @@ describe("/api/escrows route", () => {
     const request = new Request("http://localhost/api/escrows", {
       body: JSON.stringify({
         chainKey: "base",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -252,7 +252,7 @@ describe("/api/escrows route", () => {
     const request = new Request("http://localhost/api/escrows", {
       body: JSON.stringify({
         chainKey: "base",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Landing page refresh",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -342,7 +342,7 @@ describe("/api/escrows route", () => {
     const request = new Request("http://localhost/api/escrows", {
       body: JSON.stringify({
         chainKey: "baseSepolia",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Platform migration",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "USDC",
@@ -411,7 +411,7 @@ describe("/api/escrows route", () => {
     const request = new Request("http://localhost/api/escrows", {
       body: JSON.stringify({
         chainKey: "baseSepolia",
-        deadline: "2026-03-20",
+        deliveryDays: 4,
         escrowName: "Infrastructure handoff",
         freelancerWalletAddress: "0x0000000000000000000000000000000000000002",
         tokenSymbol: "ETH",

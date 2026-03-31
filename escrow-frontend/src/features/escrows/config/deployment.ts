@@ -1,8 +1,12 @@
 import type { Address } from "viem";
 
-import type { EscrowChainKey } from "@/features/escrows/types/escrow";
+import {
+  ESCROW_CHAIN_KEYS,
+  type EscrowChainKey,
+} from "@/features/escrows/types/escrow";
 
 type SupportedChainId = 8453 | 84532;
+const PRODUCTION_CHAIN_KEYS = ["base"] as const;
 
 export const FACTORY_BASE_ADDRESS =
   "0x535C8F9906A090766F914A60Fef3e85B2A37Bf15";
@@ -50,3 +54,12 @@ export const ESCROW_DEPLOYMENT_CONFIGS: Record<
     usdcAddress: BASE_SEPOLIA_USDC_ADDRESS,
   },
 };
+
+export function getAvailableEscrowChainKeys(): readonly EscrowChainKey[] {
+  const chainKeys =
+    process.env.NODE_ENV === "production"
+      ? PRODUCTION_CHAIN_KEYS
+      : ESCROW_CHAIN_KEYS;
+
+  return chainKeys;
+}

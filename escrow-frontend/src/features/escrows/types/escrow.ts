@@ -52,10 +52,10 @@ export type EscrowRecord = {
 
 export type CreateEscrowRequest = {
   chainKey: EscrowChainKey;
+  deliveryDays: number;
   escrowName: string;
   freelancerWalletAddress: string;
   tokenSymbol: TokenSymbol;
-  deadline: string;
   txHash: string;
 };
 

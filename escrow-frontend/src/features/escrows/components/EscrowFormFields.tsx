@@ -7,11 +7,11 @@ import {
 import type { EscrowChainKey, TokenSymbol } from "@/features/escrows/types/escrow";
 
 type EscrowFormFieldsProps = {
-  deadline: string;
+  deliveryDaysInput: string;
   escrowName: string;
   freelancerInput: string;
   selectedChain: EscrowChainKey;
-  setDeadline: (value: string) => void;
+  setDeliveryDaysInput: (value: string) => void;
   setEscrowName: (value: string) => void;
   setFreelancerInput: (value: string) => void;
   setSelectedChain: (value: EscrowChainKey) => void;
@@ -22,11 +22,11 @@ type EscrowFormFieldsProps = {
 };
 
 export function EscrowFormFields({
-  deadline,
+  deliveryDaysInput,
   escrowName,
   freelancerInput,
   selectedChain,
-  setDeadline,
+  setDeliveryDaysInput,
   setEscrowName,
   setFreelancerInput,
   setSelectedChain,
@@ -67,13 +67,16 @@ export function EscrowFormFields({
       <div className="grid gap-5 md:grid-cols-2">
         <label className="grid gap-3">
           <span className="text-sm font-semibold uppercase tracking-[0.18em] text-white/62">
-            Deadline date
+            Delivery period in days
           </span>
           <input
-            type="date"
-            value={deadline}
-            onChange={(event) => setDeadline(event.target.value)}
-            className="rounded-[1.4rem] border border-white/10 bg-black/25 px-4 py-4 text-base text-white outline-none transition [color-scheme:dark] focus:border-[#b6ef5f]/45"
+            type="number"
+            min="1"
+            step="1"
+            value={deliveryDaysInput}
+            onChange={(event) => setDeliveryDaysInput(event.target.value)}
+            placeholder="4"
+            className="rounded-[1.4rem] border border-white/10 bg-black/25 px-4 py-4 text-base text-white outline-none transition placeholder:text-white/28 focus:border-[#b6ef5f]/45"
           />
         </label>
 

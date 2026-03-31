@@ -41,27 +41,104 @@ const ESCROW_CREATED_EVENT_ABI_VARIANTS = [
   ],
 ] as const;
 
-export function extractEscrowAddressFromLogs(logs: readonly Log[]): Address | null {
-  for (const log of logs) {
-    for (const abi of ESCROW_CREATED_EVENT_ABI_VARIANTS) {
-      try {
-        const decodedLog = decodeEventLog({
-          abi,
-          data: log.data,
-          eventName: "EscrowCreated",
-          strict: false,
-          topics: log.topics,
-        });
-        const escrowAddress = decodedLog.args?.escrow;
+export type EscrowCreatedLogArgs = {
+  bps: bigint;
+  client: Address;
+  dataFeed: Address;
+  deliveryPeriod: bigint;
+  escrow: Address;
+  freelancer: Address;
+  token: Address;
+};
 
-        if (typeof escrowAddress === "string" && isAddress(escrowAddress)) {
-          return getAddress(escrowAddress);
-        }
-      } catch {
-        continue;
-      }
+function parseAddress(value: unknown): Address | null {
+  const address =
+    typeof value === "string" && isAddress(value) ? getAddress(value) : null;
+
+  return address;
+}
+
+function parseBigIntValue(value: unknown): bigint | null {
+  const bigintValue =
+    typeof value === "bigint"
+      ? value
+      : typeof value === "number"
+        ? BigInt(value)
+        : null;
+
+  return bigintValue;
+}
+
+function parseEscrowCreatedLogArgs(
+  args: Record<string, unknown> | undefined
+): EscrowCreatedLogArgs | null {
+  const escrow = parseAddress(args?.escrow);
+  const client = parseAddress(args?.client);
+  const freelancer = parseAddress(args?.freelancer);
+  const token = parseAddress(args?.token);
+  const dataFeed = parseAddress(args?.dataFeed);
+  const deliveryPeriod = parseBigIntValue(args?.deliveryPeriod);
+  const bps = parseBigIntValue(args?.bps);
+  const hasRequiredValues =
+    escrow &&
+    client &&
+    freelancer &&
+    token &&
+    dataFeed &&
+    deliveryPeriod !== null &&
+    bps !== null;
+
+  return hasRequiredValues
+    ? { bps, client, dataFeed, deliveryPeriod, escrow, freelancer, token }
+    : null;
+}
+
+function decodeEscrowCreatedLog(log: Log): EscrowCreatedLogArgs | null {
+  let decodedArgs: EscrowCreatedLogArgs | null = null;
+
+  for (const abi of ESCROW_CREATED_EVENT_ABI_VARIANTS) {
+    try {
+      const decodedLog = decodeEventLog({
+        abi,
+        data: log.data,
+        eventName: "EscrowCreated",
+        strict: false,
+        topics: log.topics,
+      });
+
+      decodedArgs = parseEscrowCreatedLogArgs(
+        decodedLog.args as Record<string, unknown> | undefined
+      );
+    } catch {
+      decodedArgs = null;
+    }
+
+    if (decodedArgs) {
+      break;
     }
   }
 
-  return null;
+  return decodedArgs;
+}
+
+export function extractEscrowCreatedLogArgs(
+  logs: readonly Log[]
+): EscrowCreatedLogArgs | null {
+  let decodedArgs: EscrowCreatedLogArgs | null = null;
+
+  for (const log of logs) {
+    decodedArgs = decodeEscrowCreatedLog(log);
+
+    if (decodedArgs) {
+      break;
+    }
+  }
+
+  return decodedArgs;
+}
+
+export function extractEscrowAddressFromLogs(logs: readonly Log[]): Address | null {
+  const decodedArgs = extractEscrowCreatedLogArgs(logs);
+
+  return decodedArgs?.escrow ?? null;
 }

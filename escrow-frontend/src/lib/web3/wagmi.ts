@@ -4,10 +4,15 @@ import { metaMask, walletConnect } from "wagmi/connectors";
 import type { CreateConnectorFn } from "wagmi";
 import { getPublicAppUrl, getWalletConnectProjectId } from "@/lib/env/public";
 
+const isBrowser = typeof window !== "undefined";
 const appUrl = getPublicAppUrl();
 const walletConnectProjectId = getWalletConnectProjectId();
 
 const createConnectors = (): CreateConnectorFn[] => {
+  if (!isBrowser) {
+    return [];
+  }
+
   const connectors: CreateConnectorFn[] = [
     metaMask({
       dapp: {
@@ -28,11 +33,28 @@ const createConnectors = (): CreateConnectorFn[] => {
   return connectors;
 };
 
-export const config = createConfig({
-  chains: [base, baseSepolia],
-  connectors: createConnectors(),
-  transports: {
-    [base.id]: http(),
-    [baseSepolia.id]: http(),
-  },
-});
+function createWagmiConfig() {
+  const wagmiConfig =
+    process.env.NODE_ENV === "production"
+      ? createConfig({
+          chains: [base],
+          connectors: createConnectors(),
+          ssr: true,
+          transports: {
+            [base.id]: http(),
+          },
+        })
+      : createConfig({
+          chains: [base, baseSepolia],
+          connectors: createConnectors(),
+          ssr: true,
+          transports: {
+            [base.id]: http(),
+            [baseSepolia.id]: http(),
+          },
+        });
+
+  return wagmiConfig;
+}
+
+export const config = createWagmiConfig();

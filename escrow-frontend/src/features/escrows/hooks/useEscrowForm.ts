@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import {
-  calculateDeliveryDays,
+  parseDeliveryDays,
   parseUpfrontPercentage,
   percentToBps,
 } from "@/features/escrows/services/validation";
@@ -14,7 +14,7 @@ import type {
 
 type EscrowFormState = {
   createdEscrowAddress: string | null;
-  deadline: string;
+  deliveryDaysInput: string;
   deliveryDaysPreview: number | null;
   errorMessage: string | null;
   escrowName: string;
@@ -22,7 +22,7 @@ type EscrowFormState = {
   isSubmitting: boolean;
   selectedChain: EscrowChainKey;
   setCreatedEscrowAddress: (value: string | null) => void;
-  setDeadline: (value: string) => void;
+  setDeliveryDaysInput: (value: string) => void;
   setErrorMessage: (value: string | null) => void;
   setEscrowName: (value: string) => void;
   setFreelancerInput: (value: string) => void;
@@ -43,7 +43,7 @@ export function useEscrowForm(): EscrowFormState {
   const [selectedChain, setSelectedChain] = useState<EscrowChainKey>("base");
   const [escrowName, setEscrowName] = useState("");
   const [freelancerInput, setFreelancerInput] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [deliveryDaysInput, setDeliveryDaysInput] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState<TokenSymbol>("USDC");
   const [upfrontPercentage, setUpfrontPercentage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,8 +55,8 @@ export function useEscrowForm(): EscrowFormState {
   );
 
   const deliveryDaysPreview = useMemo(
-    () => calculateDeliveryDays(deadline),
-    [deadline]
+    () => parseDeliveryDays(deliveryDaysInput),
+    [deliveryDaysInput]
   );
   const upfrontBpsPreview = useMemo(() => {
     const parsedPercentage = parseUpfrontPercentage(upfrontPercentage);
@@ -65,7 +65,7 @@ export function useEscrowForm(): EscrowFormState {
 
   return {
     createdEscrowAddress,
-    deadline,
+    deliveryDaysInput,
     deliveryDaysPreview,
     errorMessage,
     escrowName,
@@ -73,7 +73,7 @@ export function useEscrowForm(): EscrowFormState {
     isSubmitting,
     selectedChain,
     setCreatedEscrowAddress,
-    setDeadline,
+    setDeliveryDaysInput,
     setErrorMessage,
     setEscrowName,
     setFreelancerInput,

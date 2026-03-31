@@ -29,6 +29,7 @@ import {
   getEscrowErrorMessage,
   getTokenAddress,
 } from "@/features/escrows/services/validation";
+import { extractEscrowCreatedLogArgs } from "@/features/escrows/services/escrowLogDecoder";
 import type {
   ActiveEscrowMonitorState,
   EscrowChainKey,
@@ -74,7 +75,7 @@ type CreateEscrowVerificationInput = {
   authenticatedWalletAddress: string;
   chainKey: EscrowChainKey;
   databaseChainId: number;
-  deadline: string;
+  deliveryDays: number;
   freelancerWalletAddress: string;
   tokenId: number;
   tokenSymbol: TokenSymbol;
@@ -509,7 +510,10 @@ function parseFactoryReceiptLogs(
   });
 }
 
-function getSingleEscrowCreatedLog(logs: readonly Log[], factoryAddress: string) {
+function assertSingleEscrowCreatedLog(
+  logs: readonly Log[],
+  factoryAddress: string
+): void {
   const createdLogs = parseFactoryReceiptLogs(logs, factoryAddress).filter(
     (log) => log.eventName === "EscrowCreated"
   );
@@ -517,8 +521,6 @@ function getSingleEscrowCreatedLog(logs: readonly Log[], factoryAddress: string)
   if (createdLogs.length !== 1) {
     throw new AppError("Expected exactly one EscrowCreated event.", 400);
   }
-
-  return createdLogs[0];
 }
 
 function getStateChangeName(logs: readonly Log[], contractAddress: string): string | null {
@@ -597,7 +599,7 @@ function assertCreateArguments(
   input: CreateEscrowVerificationInput,
   args: readonly unknown[]
 ): void {
-  const [freelancer, , dataFeed, token, admin] = args;
+  const [freelancer, deliveryPeriod, dataFeed, token, admin] = args;
   const deploymentConfig = ESCROW_DEPLOYMENT_CONFIGS[input.chainKey];
   const expectedToken = getTokenAddress(input.tokenSymbol, input.chainKey);
 
@@ -615,6 +617,10 @@ function assertCreateArguments(
 
   if (!isSameAddress(String(admin), FACTORY_ADMIN_ADDRESS)) {
     throw new AppError("The transaction admin does not match the configured factory admin.", 400);
+  }
+
+  if (deliveryPeriod !== BigInt(input.deliveryDays)) {
+    throw new AppError("The transaction delivery period does not match the request.", 400);
   }
 }
 
@@ -643,15 +649,6 @@ function assertEscrowCreatedArguments(
 
   if (args.deliveryPeriod !== deliveryPeriod || args.bps !== bps) {
     throw new AppError("EscrowCreated arguments do not match the transaction.", 400);
-  }
-}
-
-function assertCreateDeadline(
-  requestedDeadline: string,
-  snapshotDeadline: string
-): void {
-  if (requestedDeadline !== snapshotDeadline) {
-    throw new AppError("The on-chain deadline does not match the request.", 400);
   }
 }
 
@@ -728,10 +725,6 @@ function pushRefundCandidate(
   }
 }
 
-function getExpectedDeliveryDays(deadline: string): number | null {
-  return calculateDeliveryDays(deadline, new Date());
-}
-
 export async function readCurrentEscrowSnapshot(
   escrow: EscrowChainTarget
 ): Promise<EscrowPersistedSnapshot> {
@@ -783,8 +776,19 @@ export async function verifyCreateEscrowTransaction(
     input.txHash
   );
   const factoryArgs = assertCreateFunction(transaction.input);
-  const createdLog = getSingleEscrowCreatedLog(receipt.logs, deploymentConfig.factoryAddress);
-  const contractAddress = String(createdLog.args.escrow);
+  const factoryLogs = receipt.logs.filter((log: (typeof receipt.logs)[number]) =>
+    isSameAddress(log.address, deploymentConfig.factoryAddress)
+  );
+
+  assertSingleEscrowCreatedLog(receipt.logs, deploymentConfig.factoryAddress);
+
+  const createdArgs = extractEscrowCreatedLogArgs(factoryLogs);
+
+  if (!createdArgs) {
+    throw new AppError("EscrowCreated event could not be decoded.", 400);
+  }
+
+  const contractAddress = createdArgs.escrow;
   const snapshot = await readCurrentEscrowSnapshot({
     chainId: input.databaseChainId,
     contractAddress,
@@ -799,16 +803,7 @@ export async function verifyCreateEscrowTransaction(
     "The transaction target does not match the configured factory."
   );
   assertCreateArguments(input, factoryArgs);
-  assertEscrowCreatedArguments(
-    input,
-    createdLog.args as Record<string, unknown>,
-    factoryArgs
-  );
-  assertCreateDeadline(input.deadline, snapshot.deadline);
-
-  if (getExpectedDeliveryDays(input.deadline) === null) {
-    throw new AppError("The request deadline is invalid.", 400);
-  }
+  assertEscrowCreatedArguments(input, createdArgs, factoryArgs);
 
   return { contractAddress, snapshot };
 }

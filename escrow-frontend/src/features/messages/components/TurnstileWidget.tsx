@@ -52,6 +52,16 @@ function createTurnstileScript(): HTMLScriptElement {
   return script;
 }
 
+function resetTurnstileScriptState(
+  script: HTMLScriptElement | null
+): void {
+  turnstileScriptPromise = null;
+
+  if (script?.parentElement) {
+    script.remove();
+  }
+}
+
 function loadTurnstileScript(): Promise<void> {
   if (window.turnstile) {
     return Promise.resolve();
@@ -65,9 +75,16 @@ function loadTurnstileScript(): Promise<void> {
     const script = getTurnstileScriptElement() ?? createTurnstileScript();
 
     script.addEventListener("load", () => resolve(), { once: true });
-    script.addEventListener("error", () => reject(new Error("Turnstile failed")), {
-      once: true,
-    });
+    script.addEventListener(
+      "error",
+      () => {
+        resetTurnstileScriptState(script);
+        reject(new Error("Turnstile failed"));
+      },
+      {
+        once: true,
+      }
+    );
 
     if (!script.parentElement) {
       document.head.appendChild(script);

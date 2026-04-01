@@ -16,10 +16,14 @@ const BASE_CONNECT_SOURCES = [
   "https://sepolia.base.org",
 ];
 const WALLET_CONNECT_SOURCES = [
+  "https://api.web3modal.org",
   "https://rpc.walletconnect.org",
   "https://*.walletconnect.com",
+  "wss://relay.walletconnect.org",
   "wss://*.walletconnect.com",
 ];
+const WALLET_CONNECT_FONT_SOURCES = ["https://fonts.reown.com"];
+const WALLET_CONNECT_FRAME_SOURCES = ["https://verify.walletconnect.org"];
 const TURNSTILE_CONNECT_SOURCES = ["https://challenges.cloudflare.com"];
 const TURNSTILE_FRAME_SOURCES = ["https://challenges.cloudflare.com"];
 const TURNSTILE_SCRIPT_SOURCES = ["https://challenges.cloudflare.com"];
@@ -78,8 +82,22 @@ function createConnectSources(): string[] {
 function createFrameSources(): string[] {
   const sources = ["'self'"];
 
+  if (hasWalletConnectProjectId()) {
+    sources.push(...WALLET_CONNECT_FRAME_SOURCES);
+  }
+
   if (hasTurnstileSiteKey()) {
     sources.push(...TURNSTILE_FRAME_SOURCES);
+  }
+
+  return sources;
+}
+
+function createFontSources(): string[] {
+  const sources = ["'self'", "data:"];
+
+  if (hasWalletConnectProjectId()) {
+    sources.push(...WALLET_CONNECT_FONT_SOURCES);
   }
 
   return sources;
@@ -99,7 +117,7 @@ function createContentSecurityPolicy(): string {
     createDirective("frame-src", createFrameSources()),
     createDirective("manifest-src", ["'self'"]),
     createDirective("img-src", ["'self'", "data:", "blob:"]),
-    createDirective("font-src", ["'self'", "data:"]),
+    createDirective("font-src", createFontSources()),
     createDirective("media-src", ["'self'"]),
     createDirective("worker-src", ["'self'", "blob:"]),
     createDirective("style-src", ["'self'", "'unsafe-inline'"]),

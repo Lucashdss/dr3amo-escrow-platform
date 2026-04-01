@@ -128,9 +128,13 @@ describe("next.config security headers", () => {
       "Content-Security-Policy"
     );
 
+    expect(contentSecurityPolicy).toContain("https://api.web3modal.org");
     expect(contentSecurityPolicy).toContain("https://rpc.walletconnect.org");
     expect(contentSecurityPolicy).toContain("https://*.walletconnect.com");
+    expect(contentSecurityPolicy).toContain("wss://relay.walletconnect.org");
     expect(contentSecurityPolicy).toContain("wss://*.walletconnect.com");
+    expect(contentSecurityPolicy).toContain("frame-src 'self' https://verify.walletconnect.org");
+    expect(contentSecurityPolicy).toContain("font-src 'self' data: https://fonts.reown.com");
   });
 
   it("includes Turnstile origins only when configured", async () => {

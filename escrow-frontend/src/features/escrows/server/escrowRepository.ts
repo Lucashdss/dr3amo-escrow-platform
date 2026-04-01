@@ -42,6 +42,10 @@ type EscrowMonitoringRow = RowDataPacket & {
   state: string;
   tokenId: number;
 };
+type EscrowMonitorStateRow = RowDataPacket & {
+  chainId: number;
+  lastProcessedBlock: number | string;
+};
 type ClientEscrowSummaryRow = RowDataPacket & {
   activeContractsCount: number;
   deadlinesApproachingCount: number;
@@ -87,6 +91,11 @@ export type EscrowMonitoringTarget = EscrowPersistedSnapshot & {
   lastTxHash: string;
   chainId: number;
   tokenId: number;
+};
+
+export type EscrowMonitorState = {
+  chainId: number;
+  lastProcessedBlock: bigint;
 };
 
 const ESCROW_SELECT_FIELDS =
@@ -176,6 +185,13 @@ function mapMonitoringRow(row: EscrowMonitoringRow): EscrowMonitoringTarget {
     modificationsRequested: row.modificationsRequested ?? 0,
     state: row.state,
     tokenId: row.tokenId,
+  };
+}
+
+function mapMonitorStateRow(row: EscrowMonitorStateRow): EscrowMonitorState {
+  return {
+    chainId: row.chainId,
+    lastProcessedBlock: BigInt(row.lastProcessedBlock),
   };
 }
 
@@ -302,6 +318,35 @@ export async function findEscrowByContractAddressAndChainId(
   );
 
   return escrows[0] ?? null;
+}
+
+export async function findMonitorStateByChainId(
+  chainId: number
+): Promise<EscrowMonitorState | null> {
+  const [rows] = await pool.query<EscrowMonitorStateRow[]>(
+    `SELECT chain_id AS chainId, last_processed_block AS lastProcessedBlock
+     FROM escrow_monitor_state
+     WHERE chain_id = ?
+     LIMIT 1`,
+    [chainId]
+  );
+  const monitorState = rows[0];
+
+  return monitorState ? mapMonitorStateRow(monitorState) : null;
+}
+
+export async function upsertMonitorState(
+  chainId: number,
+  lastProcessedBlock: bigint
+): Promise<void> {
+  await pool.query<ResultSetHeader>(
+    `INSERT INTO escrow_monitor_state (chain_id, last_processed_block, updated_at)
+     VALUES (?, ?, NOW())
+     ON DUPLICATE KEY UPDATE
+       last_processed_block = VALUES(last_processed_block),
+       updated_at = NOW()`,
+    [chainId, lastProcessedBlock.toString()]
+  );
 }
 
 export async function listActiveEscrowMonitoringTargets(

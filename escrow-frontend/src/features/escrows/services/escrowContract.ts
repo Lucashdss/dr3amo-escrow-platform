@@ -25,7 +25,6 @@ import {
   FACTORY_ADMIN_ADDRESS,
 } from "@/features/escrows/config/deployment";
 import {
-  calculateDeliveryDays,
   getEscrowErrorMessage,
   getTokenAddress,
 } from "@/features/escrows/services/validation";
@@ -412,7 +411,8 @@ function parseStoredDeadline(value: Date | string): Date | null {
     return null;
   }
 
-  const datePortionMatch = trimmedValue.match(/^(\d{4}-\d{2}-\d{2})/);
+  const datePortionPattern = /^(\d{4}-\d{2}-\d{2})/;
+  const datePortionMatch = datePortionPattern.exec(trimmedValue);
   const normalizedValue = datePortionMatch
     ? `${datePortionMatch[1]}T00:00:00.000Z`
     : trimmedValue;

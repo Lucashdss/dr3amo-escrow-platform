@@ -4,7 +4,7 @@ import { metaMask, walletConnect } from "wagmi/connectors";
 import type { CreateConnectorFn } from "wagmi";
 import { getPublicAppUrl, getWalletConnectProjectId } from "@/lib/env/public";
 
-const isBrowser = typeof window !== "undefined";
+const isBrowser = globalThis.window !== undefined;
 const appUrl = getPublicAppUrl();
 const walletConnectProjectId = getWalletConnectProjectId();
 

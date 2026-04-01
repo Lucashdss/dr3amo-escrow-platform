@@ -59,12 +59,13 @@ function parseAddress(value: unknown): Address | null {
 }
 
 function parseBigIntValue(value: unknown): bigint | null {
-  const bigintValue =
-    typeof value === "bigint"
-      ? value
-      : typeof value === "number"
-        ? BigInt(value)
-        : null;
+  let bigintValue: bigint | null = null;
+
+  if (typeof value === "bigint") {
+    bigintValue = value;
+  } else if (typeof value === "number") {
+    bigintValue = BigInt(value);
+  }
 
   return bigintValue;
 }

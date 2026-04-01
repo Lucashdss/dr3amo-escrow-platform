@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import Script from "next/script";
+import { useEffect, useRef, useState } from "react";
 
 import { getTurnstileSiteKey } from "@/lib/env/public";
 
 type TurnstileWidgetId = number | string;
+const TURNSTILE_SCRIPT_ID = "cloudflare-turnstile-script";
+const TURNSTILE_SCRIPT_SRC =
+  "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
 type TurnstileRenderOptions = {
   callback: (token: string) => void;
@@ -32,68 +36,6 @@ type TurnstileWidgetProps = {
   resetKey: number;
 };
 
-let turnstileScriptPromise: Promise<void> | null = null;
-
-function getTurnstileScriptElement(): HTMLScriptElement | null {
-  const script = document.querySelector<HTMLScriptElement>(
-    'script[data-turnstile-script="true"]'
-  );
-
-  return script;
-}
-
-function createTurnstileScript(): HTMLScriptElement {
-  const script = document.createElement("script");
-  script.async = true;
-  script.defer = true;
-  script.dataset.turnstileScript = "true";
-  script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-
-  return script;
-}
-
-function resetTurnstileScriptState(
-  script: HTMLScriptElement | null
-): void {
-  turnstileScriptPromise = null;
-
-  if (script?.parentElement) {
-    script.remove();
-  }
-}
-
-function loadTurnstileScript(): Promise<void> {
-  if (window.turnstile) {
-    return Promise.resolve();
-  }
-
-  if (turnstileScriptPromise) {
-    return turnstileScriptPromise;
-  }
-
-  turnstileScriptPromise = new Promise((resolve, reject) => {
-    const script = getTurnstileScriptElement() ?? createTurnstileScript();
-
-    script.addEventListener("load", () => resolve(), { once: true });
-    script.addEventListener(
-      "error",
-      () => {
-        resetTurnstileScriptState(script);
-        reject(new Error("Turnstile failed"));
-      },
-      {
-        once: true,
-      }
-    );
-
-    if (!script.parentElement) {
-      document.head.appendChild(script);
-    }
-  });
-
-  return turnstileScriptPromise;
-}
-
 function resetWidget(widgetId: TurnstileWidgetId | null): void {
   if (widgetId !== null && window.turnstile) {
     window.turnstile.reset(widgetId);
@@ -106,37 +48,35 @@ export function TurnstileWidget({
 }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<TurnstileWidgetId | null>(null);
+  const [isScriptReady, setIsScriptReady] = useState(false);
   const siteKey = getTurnstileSiteKey();
 
   useEffect(() => {
-    if (!siteKey || !containerRef.current) {
+    if (typeof window === "undefined" || !window.turnstile) {
       return;
     }
 
-    let isCancelled = false;
+    setIsScriptReady(true);
+  }, []);
 
-    void loadTurnstileScript().then(() => {
-      if (
-        isCancelled ||
-        !containerRef.current ||
-        !window.turnstile ||
-        widgetIdRef.current !== null
-      ) {
-        return;
-      }
+  useEffect(() => {
+    if (
+      !siteKey ||
+      !isScriptReady ||
+      !containerRef.current ||
+      !window.turnstile ||
+      widgetIdRef.current !== null
+    ) {
+      return;
+    }
 
-      widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        callback: (token) => onTokenChange(token),
-        "error-callback": () => onTokenChange(null),
-        "expired-callback": () => onTokenChange(null),
-        sitekey: siteKey,
-      });
-    }).catch(() => onTokenChange(null));
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [onTokenChange, siteKey]);
+    widgetIdRef.current = window.turnstile.render(containerRef.current, {
+      callback: (token) => onTokenChange(token),
+      "error-callback": () => onTokenChange(null),
+      "expired-callback": () => onTokenChange(null),
+      sitekey: siteKey,
+    });
+  }, [isScriptReady, onTokenChange, siteKey]);
 
   useEffect(() => {
     onTokenChange(null);
@@ -151,5 +91,17 @@ export function TurnstileWidget({
     );
   }
 
-  return <div ref={containerRef} className="min-h-[65px]" />;
+  return (
+    <>
+      <Script
+        id={TURNSTILE_SCRIPT_ID}
+        src={TURNSTILE_SCRIPT_SRC}
+        strategy="afterInteractive"
+        crossOrigin="anonymous"
+        onError={() => onTokenChange(null)}
+        onReady={() => setIsScriptReady(true)}
+      />
+      <div ref={containerRef} className="min-h-[65px]" />
+    </>
+  );
 }

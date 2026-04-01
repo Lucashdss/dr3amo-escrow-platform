@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isEscrowAutomationEnabled } from "@/lib/env/server";
 import {
   getLatestEscrowBlockNumber,
   listRefundCandidates,
@@ -30,7 +31,10 @@ declare global {
 }
 
 function shouldStartEscrowAutomation(): boolean {
-  return process.env.NODE_ENV !== "test";
+  const isNodeRuntime = process.env.NEXT_RUNTIME === "nodejs";
+  const isTestEnvironment = process.env.NODE_ENV === "test";
+
+  return isNodeRuntime && !isTestEnvironment && isEscrowAutomationEnabled();
 }
 
 function createProcessedKey(
@@ -228,22 +232,19 @@ async function runReconciliation(): Promise<void> {
 }
 
 export function startEscrowAutomationMonitor(): void {
-  if (!shouldStartEscrowAutomation()) {
-    return;
-  }
+  const shouldStart =
+    shouldStartEscrowAutomation() && !globalThis.__escrowAutomationStarted;
 
-  if (globalThis.__escrowAutomationStarted) {
-    return;
-  }
-
-  globalThis.__escrowAutomationStarted = true;
-  logAutomationInfo("Starting automation monitor.");
-  void pollRefundCandidates();
-  void runReconciliation();
-  setInterval(() => {
+  if (shouldStart) {
+    globalThis.__escrowAutomationStarted = true;
+    logAutomationInfo("Starting automation monitor.");
     void pollRefundCandidates();
-  }, LOG_POLL_INTERVAL_MS);
-  setInterval(() => {
     void runReconciliation();
-  }, RECONCILIATION_INTERVAL_MS);
+    setInterval(() => {
+      void pollRefundCandidates();
+    }, LOG_POLL_INTERVAL_MS);
+    setInterval(() => {
+      void runReconciliation();
+    }, RECONCILIATION_INTERVAL_MS);
+  }
 }

@@ -78,6 +78,8 @@ function getPollCallback(): () => void {
 
 describe("escrowAutomationMonitor", () => {
   const environment = process.env as Record<string, string | undefined>;
+  const originalAutomationFlag = process.env.ENABLE_ESCROW_AUTOMATION;
+  const originalNextRuntime = process.env.NEXT_RUNTIME;
   const originalNodeEnv = process.env.NODE_ENV;
 
   beforeEach(() => {
@@ -85,6 +87,8 @@ describe("escrowAutomationMonitor", () => {
     globalThis.__escrowAutomationStarted = undefined;
     globalThis.__escrowAutomationProcessedKeys = undefined;
     globalThis.__escrowAutomationRetryCounts = undefined;
+    environment.ENABLE_ESCROW_AUTOMATION = "true";
+    environment.NEXT_RUNTIME = "nodejs";
     environment.NODE_ENV = "development";
     jest.spyOn(console, "error").mockImplementation(() => undefined);
     jest.spyOn(console, "info").mockImplementation(() => undefined);
@@ -94,11 +98,41 @@ describe("escrowAutomationMonitor", () => {
   });
 
   afterEach(() => {
+    environment.ENABLE_ESCROW_AUTOMATION = originalAutomationFlag;
+    environment.NEXT_RUNTIME = originalNextRuntime;
     environment.NODE_ENV = originalNodeEnv;
     globalThis.__escrowAutomationStarted = undefined;
     globalThis.__escrowAutomationProcessedKeys = undefined;
     globalThis.__escrowAutomationRetryCounts = undefined;
     jest.restoreAllMocks();
+  });
+
+  it("does not start when automation is disabled", async () => {
+    environment.ENABLE_ESCROW_AUTOMATION = undefined;
+
+    const mockFindMonitorStateByChainId = jest.fn();
+    const mockGetLatestEscrowBlockNumber = jest.fn();
+    const mockListRefundCandidates = jest.fn();
+    const mockListActiveEscrowMonitoringTargets = jest.fn();
+    const mockReconcileActiveEscrows = jest.fn();
+    const mockSyncAutomatedRefundEscrow = jest.fn();
+    const mockUpsertMonitorState = jest.fn();
+
+    mockAutomationMonitorDependencies({
+      findMonitorStateByChainId: mockFindMonitorStateByChainId,
+      getLatestEscrowBlockNumber: mockGetLatestEscrowBlockNumber,
+      listActiveEscrowMonitoringTargets: mockListActiveEscrowMonitoringTargets,
+      listRefundCandidates: mockListRefundCandidates,
+      reconcileActiveEscrows: mockReconcileActiveEscrows,
+      syncAutomatedRefundEscrow: mockSyncAutomatedRefundEscrow,
+      upsertMonitorState: mockUpsertMonitorState,
+    });
+
+    await startMonitor();
+
+    expect(setInterval).not.toHaveBeenCalled();
+    expect(mockListActiveEscrowMonitoringTargets).not.toHaveBeenCalled();
+    expect(mockReconcileActiveEscrows).not.toHaveBeenCalled();
   });
 
   it("uses the stored cursor, deduplicates candidates, and persists the latest block", async () => {
@@ -382,5 +416,36 @@ describe("escrowAutomationMonitor", () => {
       new Set([getProcessedKey(txHash, "0x0000000000000000000000000000000000000010")])
     );
     expect(globalThis.__escrowAutomationRetryCounts?.size ?? 0).toBe(0);
+  });
+
+  it("does not schedule polling twice when already started", async () => {
+    const mockFindMonitorStateByChainId = jest
+      .fn()
+      .mockResolvedValue(createMonitorState(BigInt(100)));
+    const mockGetLatestEscrowBlockNumber = jest.fn().mockResolvedValue(BigInt(101));
+    const mockListRefundCandidates = jest.fn().mockResolvedValue([]);
+    const mockListActiveEscrowMonitoringTargets = jest
+      .fn()
+      .mockResolvedValue([createTarget()]);
+    const mockReconcileActiveEscrows = jest.fn().mockResolvedValue(0);
+    const mockSyncAutomatedRefundEscrow = jest.fn().mockResolvedValue(true);
+    const mockUpsertMonitorState = jest.fn().mockResolvedValue(undefined);
+
+    mockAutomationMonitorDependencies({
+      findMonitorStateByChainId: mockFindMonitorStateByChainId,
+      getLatestEscrowBlockNumber: mockGetLatestEscrowBlockNumber,
+      listActiveEscrowMonitoringTargets: mockListActiveEscrowMonitoringTargets,
+      listRefundCandidates: mockListRefundCandidates,
+      reconcileActiveEscrows: mockReconcileActiveEscrows,
+      syncAutomatedRefundEscrow: mockSyncAutomatedRefundEscrow,
+      upsertMonitorState: mockUpsertMonitorState,
+    });
+
+    await startMonitor();
+    await startMonitor();
+
+    expect(setInterval).toHaveBeenCalledTimes(2);
+    expect(mockListActiveEscrowMonitoringTargets).toHaveBeenCalledTimes(1);
+    expect(mockReconcileActiveEscrows).toHaveBeenCalledTimes(1);
   });
 });

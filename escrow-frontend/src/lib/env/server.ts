@@ -13,3 +13,9 @@ export function getTurnstileSecretKey(): string {
 
   return secretKey;
 }
+
+export function isEscrowAutomationEnabled(): boolean {
+  const automationFlag = process.env.ENABLE_ESCROW_AUTOMATION?.trim();
+
+  return automationFlag === "true";
+}

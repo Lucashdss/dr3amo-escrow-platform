@@ -25,6 +25,12 @@ type DeriveEscrowActionsInput = {
   liveSnapshot: EscrowLiveSnapshot | null;
 };
 
+type ActionAvailabilityContext = {
+  dbState: string;
+  liveState: string;
+  modificationsRequested: number | null;
+};
+
 type ActionParameterInput = {
   action: EscrowActionKey;
   amount: string;
@@ -92,93 +98,158 @@ function createDisabledAction(
 export function deriveEscrowActionAvailability(
   input: DeriveEscrowActionsInput
 ): EscrowActionAvailability[] {
+  const context = createActionAvailabilityContext(input);
+
+  return ESCROW_ROLE_ACTIONS[input.escrow.role].map((actionKey) =>
+    deriveActionAvailability(actionKey, context)
+  );
+}
+
+function createActionAvailabilityContext(
+  input: DeriveEscrowActionsInput
+): ActionAvailabilityContext {
   const dbState = normalizeState(input.escrow.state);
-  const liveState = input.liveEscrowState ?? dbState;
-  const modificationsRequested = input.liveSnapshot?.modificationsRequested ?? null;
 
-  return ESCROW_ROLE_ACTIONS[input.escrow.role].map((actionKey) => {
-    if (actionKey === "cancelEscrow") {
-      const disabled = normalizeState(liveState) !== "created";
+  return {
+    dbState,
+    liveState: normalizeState(input.liveEscrowState ?? dbState),
+    modificationsRequested: input.liveSnapshot?.modificationsRequested ?? null,
+  };
+}
 
-      return createDisabledAction(
-        actionKey,
-        disabled,
-        disabled ? "Escrow can only be canceled while still created." : null
-      );
-    }
+function deriveActionAvailability(
+  actionKey: EscrowActionKey,
+  context: ActionAvailabilityContext
+): EscrowActionAvailability {
+  switch (actionKey) {
+    case "cancelEscrow":
+      return createCancelEscrowAction(actionKey, context);
+    case "setMinimumPriceUSD":
+      return createMinimumPriceAction(actionKey, context);
+    case "fund":
+      return createFundAction(actionKey, context);
+    case "markWorkSubmitted":
+      return createMarkWorkSubmittedAction(actionKey, context);
+    case "confirmDelivery":
+      return createConfirmDeliveryAction(actionKey, context);
+    case "requestModificationAndUpdateDeadline":
+      return createRequestModificationAction(actionKey, context);
+    case "initiateDispute":
+      return createInitiateDisputeAction(actionKey, context);
+    default:
+      return createDisabledAction(actionKey, false, null);
+  }
+}
 
-    if (actionKey === "setMinimumPriceUSD") {
-      return createDisabledAction(
-        actionKey,
-        dbState !== "created",
-        dbState !== "created"
-          ? "Minimum price can only be set before funding."
-          : null
-      );
-    }
+function createCancelEscrowAction(
+  actionKey: EscrowActionKey,
+  context: ActionAvailabilityContext
+): EscrowActionAvailability {
+  const disabled = context.liveState !== "created";
 
-    if (actionKey === "fund") {
-      const disabled = ["canceled", "dispute", "refunded", "released"].includes(
-        normalizeState(liveState)
-      );
+  return createDisabledAction(
+    actionKey,
+    disabled,
+    disabled ? "Escrow can only be canceled while still created." : null
+  );
+}
 
-      return createDisabledAction(
-        actionKey,
-        disabled,
-        disabled ? "Funding is unavailable in the current contract state." : null
-      );
-    }
+function createMinimumPriceAction(
+  actionKey: EscrowActionKey,
+  context: ActionAvailabilityContext
+): EscrowActionAvailability {
+  const disabled = context.dbState !== "created";
 
-    if (actionKey === "markWorkSubmitted") {
-      const disabled = dbState !== "funded" && dbState !== "pending modification";
+  return createDisabledAction(
+    actionKey,
+    disabled,
+    disabled ? "Minimum price can only be set before funding." : null
+  );
+}
 
-      return createDisabledAction(
-        actionKey,
-        disabled,
-        disabled ? "Work can be submitted only after funding or modification." : null
-      );
-    }
+function createFundAction(
+  actionKey: EscrowActionKey,
+  context: ActionAvailabilityContext
+): EscrowActionAvailability {
+  const disabled = ["canceled", "dispute", "refunded", "released"].includes(
+    context.liveState
+  );
 
-    if (actionKey === "confirmDelivery") {
-      const disabled = dbState !== "work submitted";
+  return createDisabledAction(
+    actionKey,
+    disabled,
+    disabled ? "Funding is unavailable in the current contract state." : null
+  );
+}
 
-      return createDisabledAction(
-        actionKey,
-        disabled,
-        disabled ? "Delivery can only be confirmed after work submission." : null
-      );
-    }
+function createMarkWorkSubmittedAction(
+  actionKey: EscrowActionKey,
+  context: ActionAvailabilityContext
+): EscrowActionAvailability {
+  const disabled =
+    context.dbState !== "funded" && context.dbState !== "pending modification";
 
-    if (actionKey === "requestModificationAndUpdateDeadline") {
-      const hasValidState =
-        dbState === "work submitted" || dbState === "pending modification";
-      const maxModificationsReached =
-        modificationsRequested !== null && modificationsRequested >= 2;
-      const disabled = !hasValidState || maxModificationsReached;
-      let disabledReason: string | null = null;
+  return createDisabledAction(
+    actionKey,
+    disabled,
+    disabled ? "Work can be submitted only after funding or modification." : null
+  );
+}
 
-      if (!hasValidState) {
-        disabledReason =
-          "Modifications can be requested only after work submission.";
-      } else if (maxModificationsReached) {
-        disabledReason = "The contract has already reached the modification limit.";
-      }
+function createConfirmDeliveryAction(
+  actionKey: EscrowActionKey,
+  context: ActionAvailabilityContext
+): EscrowActionAvailability {
+  const disabled = context.dbState !== "work submitted";
 
-      return createDisabledAction(actionKey, disabled, disabledReason);
-    }
+  return createDisabledAction(
+    actionKey,
+    disabled,
+    disabled ? "Delivery can only be confirmed after work submission." : null
+  );
+}
 
-    if (actionKey === "initiateDispute") {
-      const disabled = isTerminalState(dbState);
+function createRequestModificationAction(
+  actionKey: EscrowActionKey,
+  context: ActionAvailabilityContext
+): EscrowActionAvailability {
+  const disabledReason = getModificationDisabledReason(context);
 
-      return createDisabledAction(
-        actionKey,
-        disabled,
-        disabled ? "Disputes are unavailable for terminal contracts." : null
-      );
-    }
+  return createDisabledAction(actionKey, disabledReason !== null, disabledReason);
+}
 
-    return createDisabledAction(actionKey, false, null);
-  });
+function getModificationDisabledReason(
+  context: ActionAvailabilityContext
+): string | null {
+  const hasValidState =
+    context.dbState === "work submitted" ||
+    context.dbState === "pending modification";
+  const maxModificationsReached =
+    context.modificationsRequested !== null &&
+    context.modificationsRequested >= 2;
+  let disabledReason: string | null = null;
+
+  if (!hasValidState) {
+    disabledReason =
+      "Modifications can be requested only after work submission.";
+  } else if (maxModificationsReached) {
+    disabledReason = "The contract has already reached the modification limit.";
+  }
+
+  return disabledReason;
+}
+
+function createInitiateDisputeAction(
+  actionKey: EscrowActionKey,
+  context: ActionAvailabilityContext
+): EscrowActionAvailability {
+  const disabled = isTerminalState(context.dbState);
+
+  return createDisabledAction(
+    actionKey,
+    disabled,
+    disabled ? "Disputes are unavailable for terminal contracts." : null
+  );
 }
 
 export function parseFundAmount(amount: string, tokenId: number): bigint | null {
@@ -206,6 +277,47 @@ export function parseMinimumPriceUsdAmount(value: string): bigint | null {
 }
 
 export function parseModificationExtensionDays(value: string): bigint | null {
+  const parsedDays = parsePositiveWholeNumberAmount(value);
+
+  return parsedDays;
+}
+
+export function validateEscrowActionInput(
+  input: ActionParameterInput
+): ValidationResult<bigint | null> {
+  switch (input.action) {
+    case "fund":
+      return validateFundActionInput(input);
+    case "setMinimumPriceUSD":
+      return validateMinimumPriceActionInput(input);
+    case "requestModificationAndUpdateDeadline":
+      return validateModificationRequestInput(input);
+    default:
+      return createValidationSuccess<bigint | null>(null);
+  }
+}
+
+function validateFundActionInput(
+  input: ActionParameterInput
+): ValidationResult<bigint | null> {
+  const parsedAmount = parseFundAmount(input.amount, input.tokenId);
+
+  if (parsedAmount === null) {
+    return createValidationError("Enter a valid funding amount.");
+  }
+
+  if (parsedAmount <= BigInt(0)) {
+    return createValidationError("Funding amount must be greater than zero.");
+  }
+
+  if (parsedAmount > getMaxFundAmount(input.tokenId)) {
+    return createValidationError("Funding amount exceeds the allowed maximum.");
+  }
+
+  return createValidationSuccess(parsedAmount);
+}
+
+function parsePositiveWholeNumberAmount(value: string): bigint | null {
   const trimmedValue = value.trim();
 
   if (!isPositiveWholeNumber(trimmedValue)) {
@@ -215,56 +327,36 @@ export function parseModificationExtensionDays(value: string): bigint | null {
   return BigInt(trimmedValue);
 }
 
-export function validateEscrowActionInput(
+function validateMinimumPriceActionInput(
   input: ActionParameterInput
 ): ValidationResult<bigint | null> {
-  if (input.action === "fund") {
-    const parsedAmount = parseFundAmount(input.amount, input.tokenId);
+  const parsedUsdAmount = parseMinimumPriceUsdAmount(input.usdAmount);
 
-    if (parsedAmount === null) {
-      return createValidationError("Enter a valid funding amount.");
-    }
-
-    if (parsedAmount <= BigInt(0)) {
-      return createValidationError("Funding amount must be greater than zero.");
-    }
-
-    if (parsedAmount > getMaxFundAmount(input.tokenId)) {
-      return createValidationError("Funding amount exceeds the allowed maximum.");
-    }
-
-    return createValidationSuccess(parsedAmount);
+  if (parsedUsdAmount === null) {
+    return createValidationError("Enter a valid whole-number USD amount.");
   }
 
-  if (input.action === "setMinimumPriceUSD") {
-    const parsedUsdAmount = parseMinimumPriceUsdAmount(input.usdAmount);
-
-    if (parsedUsdAmount === null) {
-      return createValidationError("Enter a valid whole-number USD amount.");
-    }
-
-    if (parsedUsdAmount > MAX_MINIMUM_PRICE_USD) {
-      return createValidationError("Minimum price exceeds the allowed maximum.");
-    }
-
-    return createValidationSuccess(parsedUsdAmount);
+  if (parsedUsdAmount > MAX_MINIMUM_PRICE_USD) {
+    return createValidationError("Minimum price exceeds the allowed maximum.");
   }
 
-  if (input.action === "requestModificationAndUpdateDeadline") {
-    const parsedDays = parseModificationExtensionDays(input.deadlineExtensionDays);
+  return createValidationSuccess(parsedUsdAmount);
+}
 
-    if (parsedDays === null) {
-      return createValidationError("Enter a valid whole-number day extension.");
-    }
+function validateModificationRequestInput(
+  input: ActionParameterInput
+): ValidationResult<bigint | null> {
+  const parsedDays = parseModificationExtensionDays(input.deadlineExtensionDays);
 
-    if (parsedDays > BigInt(MAX_MODIFICATION_EXTENSION_DAYS)) {
-      return createValidationError("Deadline extension exceeds the allowed maximum.");
-    }
-
-    return createValidationSuccess(parsedDays);
+  if (parsedDays === null) {
+    return createValidationError("Enter a valid whole-number day extension.");
   }
 
-  return createValidationSuccess<bigint | null>(null);
+  if (parsedDays > BigInt(MAX_MODIFICATION_EXTENSION_DAYS)) {
+    return createValidationError("Deadline extension exceeds the allowed maximum.");
+  }
+
+  return createValidationSuccess(parsedDays);
 }
 
 export function formatMinimumPriceValue(value: string | null): string {

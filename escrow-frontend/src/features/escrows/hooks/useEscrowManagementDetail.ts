@@ -119,7 +119,7 @@ export function useEscrowManagementDetail(
   }, [escrowId, refreshLiveSnapshot]);
 
   useEffect(() => {
-    void refresh();
+    refresh();
   }, [refresh]);
 
   return {

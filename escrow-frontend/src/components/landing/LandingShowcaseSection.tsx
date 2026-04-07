@@ -144,7 +144,8 @@ function LandingShowcaseBody({
                   priority
                   src={activeItem.src}
                   alt={`${activeItem.label} preview`}
-                  className="object-contain"
+                  unoptimized
+                  className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 55vw"
                 />
               </div>

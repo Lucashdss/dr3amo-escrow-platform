@@ -1,4 +1,8 @@
-import { encodeFunctionData } from "viem";
+import {
+  encodeAbiParameters,
+  encodeEventTopics,
+  encodeFunctionData,
+} from "viem";
 
 const mockGetPublicClient = jest.fn();
 const mockReadContract = jest.fn();
@@ -22,7 +26,9 @@ import {
   canReachEscrowState,
   getModificationReceiptUpdate,
   normalizeEscrowDatabaseState,
+  verifyEscrowActionTransaction,
 } from "@/features/escrows/services/escrowContract";
+import { ESCROW_ABI } from "@/features/escrows/config/escrowContract";
 
 describe("approveEscrowFundingIfNeeded", () => {
   beforeEach(() => {
@@ -291,5 +297,99 @@ describe("escrow state helpers", () => {
     expect(canReachEscrowState("funded", "refunded")).toBe(true);
     expect(canReachEscrowState("pending modification", "work submitted")).toBe(true);
     expect(canReachEscrowState("work submitted", "funded")).toBe(false);
+  });
+});
+
+describe("verifyEscrowActionTransaction", () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it("falls back to receipt-derived funding state when the live snapshot stays stale", async () => {
+    const transactionHash = `0x${"8".repeat(64)}`;
+    const contractAddress = "0x0000000000000000000000000000000000000010";
+    const walletAddress = "0x0000000000000000000000000000000000000001";
+    const fundedAmount = BigInt(1_500_000);
+    const getTransaction = jest.fn().mockResolvedValue({
+      from: walletAddress,
+      input: encodeFunctionData({
+        abi: ESCROW_ABI,
+        args: [fundedAmount],
+        functionName: "fund",
+      }),
+      to: contractAddress,
+    });
+
+    mockGetPublicClient.mockReturnValue({
+      getTransaction,
+      getTransactionReceipt: jest.fn().mockResolvedValue({
+        logs: [
+          {
+            address: contractAddress,
+            data: encodeAbiParameters(
+              [{ name: "newState", type: "uint8" }],
+              [1]
+            ),
+            topics: encodeEventTopics({
+              abi: ESCROW_ABI,
+              eventName: "StateChanged",
+            }),
+            transactionHash,
+          },
+        ],
+        status: "success",
+      }),
+    });
+    mockReadContract.mockImplementation(
+      async (_config: unknown, request: { functionName: string }) => {
+        if (request.functionName === "getAmountToRelease") {
+          return BigInt(0);
+        }
+
+        if (request.functionName === "getDeadline") {
+          return BigInt(1_773_964_800);
+        }
+
+        if (request.functionName === "getEscrowState") {
+          return BigInt(0);
+        }
+
+        if (request.functionName === "getModificationsRequested") {
+          return BigInt(0);
+        }
+
+        return BigInt(0);
+      }
+    );
+
+    const snapshot = await verifyEscrowActionTransaction({
+      action: "fund",
+      authenticatedWalletAddress: walletAddress,
+      escrow: {
+        amount: "0",
+        chainId: 1,
+        clientUsername: "client",
+        contractAddress,
+        createdAt: "2026-03-16T00:00:00.000Z",
+        deadline: "2026-03-20",
+        escrowName: "Landing page refresh",
+        freelancerUsername: "freelancer",
+        id: 7,
+        modificationsRequested: 0,
+        role: "client",
+        state: "created",
+        tokenAddress: "0x0000000000000000000000000000000000000020",
+        tokenId: 1,
+      },
+      txHash: transactionHash,
+    });
+
+    expect(snapshot).toEqual({
+      amount: "1.5",
+      deadline: "2026-03-20",
+      modificationsRequested: 0,
+      state: "funded",
+    });
+    expect(getTransaction).toHaveBeenCalledTimes(2);
   });
 });

@@ -188,6 +188,8 @@ const ERC20_ABI = [
 
 const ALLOWANCE_RECHECK_ATTEMPTS = 5;
 const ALLOWANCE_RECHECK_DELAY_MS = 1000;
+const ESCROW_READ_RETRY_ATTEMPTS = 5;
+const ESCROW_READ_RETRY_DELAY_MS = 1000;
 
 function getSupportedChainId(databaseChainId: number): SupportedChainId {
   const supportedChainId = DATABASE_TO_SUPPORTED_CHAIN_ID[databaseChainId];
@@ -311,6 +313,12 @@ async function readTokenAllowance(
 async function waitForAllowanceRefresh() {
   await new Promise<void>((resolve) => {
     setTimeout(resolve, ALLOWANCE_RECHECK_DELAY_MS);
+  });
+}
+
+async function waitForEscrowReadRetry() {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, ESCROW_READ_RETRY_DELAY_MS);
   });
 }
 
@@ -451,15 +459,35 @@ function getEscrowClient(databaseChainId: number) {
 }
 
 async function getTransactionBundle(databaseChainId: number, txHash: string) {
-  const publicClient = getEscrowClient(databaseChainId);
-  const receipt = await publicClient.getTransactionReceipt({
-    hash: txHash as Hex,
-  });
-  const transaction = await publicClient.getTransaction({
-    hash: txHash as Hex,
-  });
+  let lastError: unknown;
 
-  return { receipt, transaction };
+  for (let attempt = 0; attempt < ESCROW_READ_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      const publicClient = getEscrowClient(databaseChainId);
+      const receipt = await publicClient.getTransactionReceipt({
+        hash: txHash as Hex,
+      });
+      const transaction = await publicClient.getTransaction({
+        hash: txHash as Hex,
+      });
+
+      return { receipt, transaction };
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < ESCROW_READ_RETRY_ATTEMPTS - 1) {
+        await waitForEscrowReadRetry();
+      }
+    }
+  }
+
+  throw new AppError(
+    getEscrowErrorMessage(
+      lastError,
+      "The escrow transaction could not be loaded from the chain."
+    ),
+    400
+  );
 }
 
 function assertSuccessfulReceipt(status: string): void {
@@ -555,6 +583,70 @@ function assertReachableEscrowState(
   if (!canReachEscrowState(currentState, nextState)) {
     throw new AppError(message, 400);
   }
+}
+
+function isExpectedCreateSnapshot(snapshot: EscrowPersistedSnapshot): boolean {
+  return normalizeEscrowDatabaseState(snapshot.state) === "created";
+}
+
+function isExpectedActionSnapshot(
+  action: EscrowActionKey,
+  snapshot: EscrowPersistedSnapshot
+): boolean {
+  return ACTION_RESULT_STATES[action].includes(
+    normalizeEscrowDatabaseState(snapshot.state)
+  );
+}
+
+async function readSnapshotWithRetry(
+  escrow: EscrowChainTarget,
+  isExpectedSnapshot: (snapshot: EscrowPersistedSnapshot) => boolean,
+  failureMessage: string
+): Promise<EscrowPersistedSnapshot> {
+  let lastError: unknown;
+  let lastSnapshot: EscrowPersistedSnapshot | null = null;
+
+  for (let attempt = 0; attempt < ESCROW_READ_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      const snapshot = await readCurrentEscrowSnapshot(escrow);
+
+      lastSnapshot = snapshot;
+
+      if (isExpectedSnapshot(snapshot)) {
+        return snapshot;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+
+    if (attempt < ESCROW_READ_RETRY_ATTEMPTS - 1) {
+      await waitForEscrowReadRetry();
+    }
+  }
+
+  if (lastError) {
+    throw new AppError(getEscrowErrorMessage(lastError, failureMessage), 400);
+  }
+
+  throw new AppError(
+    `${failureMessage} Last visible state: ${lastSnapshot?.state ?? "unknown"}.`,
+    400
+  );
+}
+
+async function createFundFallbackSnapshot(
+  escrow: EscrowManagementItem,
+  txHash: string,
+  logs: readonly Log[]
+): Promise<EscrowPersistedSnapshot> {
+  const fundUpdate = await getFundReceiptUpdate(escrow, txHash, logs);
+
+  return {
+    amount: fundUpdate.amount,
+    deadline: fundUpdate.deadline,
+    modificationsRequested: fundUpdate.modificationsRequested,
+    state: fundUpdate.state,
+  };
 }
 
 function normalizeSnapshotState(
@@ -788,13 +880,6 @@ export async function verifyCreateEscrowTransaction(
     throw new AppError("EscrowCreated event could not be decoded.", 400);
   }
 
-  const contractAddress = createdArgs.escrow;
-  const snapshot = await readCurrentEscrowSnapshot({
-    chainId: input.databaseChainId,
-    contractAddress,
-    tokenId: input.tokenId,
-  });
-
   assertSuccessfulReceipt(receipt.status);
   assertWalletActor(transaction.from, input.authenticatedWalletAddress);
   assertTransactionTarget(
@@ -804,6 +889,17 @@ export async function verifyCreateEscrowTransaction(
   );
   assertCreateArguments(input, factoryArgs);
   assertEscrowCreatedArguments(input, createdArgs, factoryArgs);
+
+  const contractAddress = createdArgs.escrow;
+  const snapshot = await readSnapshotWithRetry(
+    {
+      chainId: input.databaseChainId,
+      contractAddress,
+      tokenId: input.tokenId,
+    },
+    isExpectedCreateSnapshot,
+    "The escrow was created, but the new contract state is not readable yet."
+  );
 
   return { contractAddress, snapshot };
 }
@@ -826,11 +922,34 @@ export async function verifyEscrowActionTransaction(
   assertActionFunction(input.action, transaction.input);
   assertActionReceiptEvidence(input.action, receipt.logs, input.escrow.contractAddress);
 
-  const snapshot = await readCurrentEscrowSnapshot({
-    chainId: input.escrow.chainId,
-    contractAddress: input.escrow.contractAddress,
-    tokenId: input.escrow.tokenId,
-  });
+  let snapshot: EscrowPersistedSnapshot;
+
+  try {
+    snapshot = await readSnapshotWithRetry(
+      {
+        chainId: input.escrow.chainId,
+        contractAddress: input.escrow.contractAddress,
+        tokenId: input.escrow.tokenId,
+      },
+      (nextSnapshot) => isExpectedActionSnapshot(input.action, nextSnapshot),
+      "The escrow action was confirmed, but the updated contract state is not visible yet."
+    );
+  } catch (error) {
+    const shouldUseFundFallback =
+      input.action === "fund" &&
+      error instanceof AppError &&
+      error.message.includes("updated contract state is not visible yet");
+
+    if (!shouldUseFundFallback) {
+      throw error;
+    }
+
+    snapshot = await createFundFallbackSnapshot(
+      input.escrow,
+      input.txHash,
+      receipt.logs
+    );
+  }
 
   assertKnownEscrowState(snapshot.state, "The resulting escrow state is unknown.");
   assertActionResultState(input.action, snapshot.state);

@@ -1,6 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import pool from "@/lib/db";
+import pool, { type DatabaseQueryValues } from "@/lib/db";
 import type {
   ActiveEscrowMonitorState,
   ClientEscrowStateGroups,
@@ -128,9 +128,9 @@ const MONITORING_SELECT_FIELDS = `escrows.id AS id,
 
 async function queryEscrows(
   sql: string,
-  values: readonly unknown[] = []
+  values: DatabaseQueryValues = []
 ): Promise<EscrowRecord[]> {
-  const [rows] = await pool.query<EscrowRow[]>(sql, values);
+  const [rows] = await pool.query<EscrowRow[]>(sql, [...values]);
   return rows;
 }
 
@@ -167,10 +167,10 @@ function mapManagementRow(
 
 async function queryManagementEscrows(
   sql: string,
-  values: readonly unknown[],
+  values: DatabaseQueryValues,
   userId: number
 ): Promise<EscrowManagementItem[]> {
-  const [rows] = await pool.query<EscrowManagementRow[]>(sql, values);
+  const [rows] = await pool.query<EscrowManagementRow[]>(sql, [...values]);
   return rows.map((row) => mapManagementRow(row, userId));
 }
 
@@ -197,9 +197,9 @@ function mapMonitorStateRow(row: EscrowMonitorStateRow): EscrowMonitorState {
 
 async function queryMonitoringEscrows(
   sql: string,
-  values: readonly unknown[]
+  values: DatabaseQueryValues
 ): Promise<EscrowMonitoringTarget[]> {
-  const [rows] = await pool.query<EscrowMonitoringRow[]>(sql, values);
+  const [rows] = await pool.query<EscrowMonitoringRow[]>(sql, [...values]);
   return rows.map((row) => mapMonitoringRow(row));
 }
 

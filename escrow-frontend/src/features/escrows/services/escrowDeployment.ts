@@ -1,4 +1,4 @@
-import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import {
   parseEventLogs,
   type Address,

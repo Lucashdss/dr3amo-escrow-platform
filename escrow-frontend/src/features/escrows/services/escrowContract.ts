@@ -3,7 +3,7 @@ import {
   readContract,
   waitForTransactionReceipt,
   writeContract,
-} from "@wagmi/core";
+} from "wagmi/actions";
 import {
   getAddress,
   decodeFunctionData,

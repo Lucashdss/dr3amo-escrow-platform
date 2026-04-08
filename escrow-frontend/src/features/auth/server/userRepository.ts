@@ -1,6 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import pool from "@/lib/db";
+import pool, { type DatabaseQueryValues } from "@/lib/db";
 import {
   normalizeUsernameLookup,
   normalizeWalletAddress,
@@ -11,9 +11,9 @@ type UserRow = UserRecord & RowDataPacket;
 
 async function queryUsers(
   sql: string,
-  values: readonly unknown[] = []
+  values: DatabaseQueryValues = []
 ): Promise<UserRecord[]> {
-  const [rows] = await pool.query<UserRow[]>(sql, values);
+  const [rows] = await pool.query<UserRow[]>(sql, [...values]);
   return rows;
 }
 

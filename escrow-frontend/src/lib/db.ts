@@ -1,5 +1,18 @@
 import mysql from "mysql2/promise";
 
+export type DatabaseQueryValue =
+  | string
+  | number
+  | bigint
+  | boolean
+  | Date
+  | null
+  | undefined
+  | Buffer
+  | Uint8Array;
+
+export type DatabaseQueryValues = readonly DatabaseQueryValue[];
+
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,

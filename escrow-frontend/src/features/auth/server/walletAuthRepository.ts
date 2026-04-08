@@ -1,6 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import pool from "@/lib/db";
+import pool, { type DatabaseQueryValues } from "@/lib/db";
 
 export type WalletAuthNonceRecord = RowDataPacket & {
   challenge_nonce: string;
@@ -38,9 +38,9 @@ type CreateWalletSessionParams = {
 
 async function findSingleRow<T extends RowDataPacket>(
   sql: string,
-  values: readonly unknown[]
+  values: DatabaseQueryValues
 ): Promise<T | null> {
-  const [rows] = await pool.query<T[]>(sql, values);
+  const [rows] = await pool.query<T[]>(sql, [...values]);
   return rows[0] ?? null;
 }
 

@@ -23,6 +23,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 ## Environment Notes
 
 Set `ENABLE_ESCROW_AUTOMATION=true` only in environments where the escrow automation monitor should run. The monitor is disabled by default, including local development and build-time execution.
+Configure MySQL with `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_DATABASE`.
 
 ## Learn More
 

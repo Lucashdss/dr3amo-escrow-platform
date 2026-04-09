@@ -7,7 +7,7 @@ function createTxHash(char: string): string {
 describe("parseCreateEscrowRequest", () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    jest.setSystemTime(new Date("2026-03-16T12:00:00.000Z"));
+    jest.setSystemTime(Date.parse("2026-03-16T12:00:00.000Z"));
   });
 
   afterEach(() => {

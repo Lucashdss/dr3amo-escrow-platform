@@ -48,7 +48,7 @@ describe("/api/escrows route", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest.useFakeTimers();
-    jest.setSystemTime(new Date("2026-03-16T12:00:00.000Z"));
+    jest.setSystemTime(Date.parse("2026-03-16T12:00:00.000Z"));
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
   });
 

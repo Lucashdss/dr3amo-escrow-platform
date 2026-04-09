@@ -77,7 +77,7 @@ describe("/api/auth/wallet/nonce route", () => {
 
   it("creates a challenge and normalizes the wallet address", async () => {
     jest.useFakeTimers();
-    jest.setSystemTime(new Date("2026-03-30T10:00:00.789Z"));
+    jest.setSystemTime(Date.parse("2026-03-30T10:00:00.789Z"));
     mockCreateWalletAuthNonce.mockResolvedValueOnce(17);
 
     const request = new Request("http://localhost/api/auth/wallet/nonce", {

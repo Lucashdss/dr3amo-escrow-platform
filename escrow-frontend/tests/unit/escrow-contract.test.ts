@@ -9,7 +9,7 @@ const mockReadContract = jest.fn();
 const mockWaitForTransactionReceipt = jest.fn();
 const mockWriteContract = jest.fn();
 
-jest.mock("@wagmi/core", () => ({
+jest.mock("wagmi/actions", () => ({
   getPublicClient: (...args: unknown[]) => mockGetPublicClient(...args),
   readContract: (...args: unknown[]) => mockReadContract(...args),
   waitForTransactionReceipt: (...args: unknown[]) =>

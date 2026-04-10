@@ -1,6 +1,13 @@
 import { parseCreateMessageRequest } from "@/features/messages/server/messageRequests";
 
 describe("parseCreateMessageRequest", () => {
+  const environment = process.env as Record<string, string | undefined>;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  afterEach(() => {
+    environment.NODE_ENV = originalNodeEnv;
+  });
+
   it("parses a valid message request", () => {
     const result = parseCreateMessageRequest({
       name: "Lucas",
@@ -59,6 +66,26 @@ describe("parseCreateMessageRequest", () => {
     expect(result).toEqual({
       success: false,
       error: "turnstileToken is required.",
+    });
+  });
+
+  it("allows missing turnstile tokens in development", () => {
+    environment.NODE_ENV = "development";
+
+    const result = parseCreateMessageRequest({
+      name: "Lucas",
+      emailAddress: "lucas@example.com",
+      message: "Hello",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: {
+        name: "Lucas",
+        emailAddress: "lucas@example.com",
+        message: "Hello",
+        turnstileToken: "",
+      },
     });
   });
 

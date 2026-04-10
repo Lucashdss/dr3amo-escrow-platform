@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
+import { isBotVerificationRequired } from "@/features/messages/constants";
 import { getTurnstileSiteKey } from "@/lib/env/public";
 
 type TurnstileWidgetId = number | string;
@@ -82,6 +83,10 @@ export function TurnstileWidget({
     onTokenChange(null);
     resetWidget(widgetIdRef.current);
   }, [onTokenChange, resetKey]);
+
+  if (!isBotVerificationRequired()) {
+    return null;
+  }
 
   if (!siteKey) {
     return (

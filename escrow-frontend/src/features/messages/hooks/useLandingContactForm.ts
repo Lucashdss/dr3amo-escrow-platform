@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 
-import { BOT_VERIFICATION_REQUIRED_MESSAGE } from "@/features/messages/constants";
+import {
+  BOT_VERIFICATION_REQUIRED_MESSAGE,
+  isBotVerificationRequired,
+} from "@/features/messages/constants";
 import { createMessage } from "@/features/messages/services/messageApi";
 
 type ContactFormValues = {
@@ -49,7 +52,7 @@ export function useLandingContactForm(
   }
 
   async function handleSubmit(): Promise<void> {
-    if (!turnstileToken) {
+    if (isBotVerificationRequired() && !turnstileToken) {
       setErrorMessage(BOT_VERIFICATION_REQUIRED_MESSAGE);
       setSuccessMessage(null);
       return;
@@ -64,7 +67,7 @@ export function useLandingContactForm(
         name: values.name,
         emailAddress: values.emailAddress,
         message: values.message,
-        turnstileToken,
+        turnstileToken: turnstileToken ?? "",
       });
 
       setValues(INITIAL_VALUES);

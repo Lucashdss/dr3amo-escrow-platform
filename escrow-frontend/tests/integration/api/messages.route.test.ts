@@ -30,9 +30,12 @@ import { AppError } from "@/lib/errors";
 import { POST } from "@/app/api/messages/route";
 
 describe("/api/messages route", () => {
+  const environment = process.env as Record<string, string | undefined>;
+  const originalNodeEnv = process.env.NODE_ENV;
   let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    environment.NODE_ENV = "test";
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     jest.clearAllMocks();
     mockConsumeRateLimit.mockResolvedValue({
@@ -48,6 +51,7 @@ describe("/api/messages route", () => {
   });
 
   afterEach(() => {
+    environment.NODE_ENV = originalNodeEnv;
     consoleErrorSpy.mockRestore();
   });
 
@@ -225,6 +229,59 @@ describe("/api/messages route", () => {
       },
       error: null,
       success: true,
+    });
+  });
+
+  it("skips bot verification in development", async () => {
+    environment.NODE_ENV = "development";
+
+    const request = new Request("http://localhost/api/messages", {
+      body: JSON.stringify({
+        name: "Lucas",
+        emailAddress: "lucas@example.com",
+        message: "Hello",
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+    expect(mockRequireTurnstileVerification).not.toHaveBeenCalled();
+    expect(mockCreateMessage).toHaveBeenCalledWith({
+      userId: null,
+      name: "Lucas",
+      emailAddress: "lucas@example.com",
+      message: "Hello",
+      turnstileToken: "",
+    });
+  });
+
+  it("returns the generic message error when message delivery fails", async () => {
+    mockCreateMessage.mockRejectedValueOnce(
+      new AppError("Failed to send message.", 500)
+    );
+
+    const request = new Request("http://localhost/api/messages", {
+      body: JSON.stringify({
+        name: "Lucas",
+        emailAddress: "lucas@example.com",
+        message: "Hello",
+        turnstileToken: "token",
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body).toEqual({
+      data: null,
+      error: { message: "Failed to send message." },
+      success: false,
     });
   });
 });

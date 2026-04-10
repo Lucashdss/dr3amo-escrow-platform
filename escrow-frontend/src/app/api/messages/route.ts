@@ -1,6 +1,7 @@
 import { createErrorResponse, createSuccessResponse } from "@/lib/api/responses";
 import { AppError } from "@/lib/errors";
 import { findAuthenticatedUser } from "@/features/auth/server/authenticatedUser";
+import { isBotVerificationRequired } from "@/features/messages/constants";
 import { parseCreateMessageRequest } from "@/features/messages/server/messageRequests";
 import { createMessage } from "@/features/messages/server/messageService";
 import { getClientIp } from "@/lib/security/clientIp";
@@ -31,10 +32,12 @@ export async function POST(request: Request) {
       );
     }
 
-    await requireTurnstileVerification({
-      clientIp,
-      token: parsedRequest.data.turnstileToken,
-    });
+    if (isBotVerificationRequired()) {
+      await requireTurnstileVerification({
+        clientIp,
+        token: parsedRequest.data.turnstileToken,
+      });
+    }
 
     const user = await findAuthenticatedUser(request);
 

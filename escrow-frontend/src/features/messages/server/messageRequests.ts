@@ -5,6 +5,7 @@ import {
   hasMaxLength,
   type ValidationResult,
 } from "@/lib/validation";
+import { isBotVerificationRequired } from "@/features/messages/constants";
 import type { CreateMessageRequest } from "@/features/messages/types/message";
 
 const MAX_CONTACT_NAME_LENGTH = 100;
@@ -91,6 +92,10 @@ function validateMessage(message: string): ValidationResult<string> {
 }
 
 function validateTurnstileToken(token: string): ValidationResult<string> {
+  if (!isBotVerificationRequired()) {
+    return createValidationSuccess(token);
+  }
+
   if (!token) {
     return createValidationError("turnstileToken is required.");
   }

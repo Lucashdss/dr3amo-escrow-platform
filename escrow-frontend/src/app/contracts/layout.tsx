@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export default function ContractCreateLayout({
+export default function ContractsLayout({
   children,
 }: {
   children: ReactNode;

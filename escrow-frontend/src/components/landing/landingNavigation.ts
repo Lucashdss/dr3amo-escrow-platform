@@ -1,6 +1,9 @@
+import type { ProtectedLandingRoute } from "@/components/landing/landingShowcase";
+
 export type LandingNavItem = {
-  href?: string;
   label: string;
+  href?: string;
+  requiresWalletAuth?: boolean;
 };
 
 export type LandingNavSection = {
@@ -12,10 +15,26 @@ export const LANDING_NAV_SECTIONS: LandingNavSection[] = [
   {
     title: "Resources",
     items: [
-      { href: "/client", label: "Buyer Workspace" },
-      { href: "/freelancer", label: "Seller Workspace" },
-      { href: "/client/contracts", label: "Contract Archive" },
-      { href: "/client/management", label: "Client Management" },
+      {
+        href: "/client",
+        label: "Buyer Workspace",
+        requiresWalletAuth: true,
+      },
+      {
+        href: "/freelancer",
+        label: "Seller Workspace",
+        requiresWalletAuth: true,
+      },
+      {
+        href: "/contracts",
+        label: "Contract Archive",
+        requiresWalletAuth: true,
+      },
+      {
+        href: "/management",
+        label: "Client Management",
+        requiresWalletAuth: true,
+      },
     ],
   },
   {
@@ -47,3 +66,13 @@ export const LANDING_NAV_SECTIONS: LandingNavSection[] = [
     ],
   },
 ];
+
+export function getProtectedLandingRoute(
+  item: LandingNavItem
+): ProtectedLandingRoute | null {
+  if (item.requiresWalletAuth && item.href) {
+    return item.href as ProtectedLandingRoute;
+  }
+
+  return null;
+}

@@ -1,9 +1,22 @@
+"use client";
+
 import Link from "next/link";
 
 import {
   LANDING_NAV_SECTIONS,
+  getProtectedLandingRoute,
   type LandingNavItem,
 } from "@/components/landing/landingNavigation";
+import type { ProtectedLandingRoute } from "@/components/landing/landingShowcase";
+
+type LandingFooterProps = Readonly<{
+  onProtectedNavigation: (route: ProtectedLandingRoute) => void;
+}>;
+
+type FooterItemRowProps = Readonly<{
+  item: LandingNavItem;
+  onProtectedNavigation: (route: ProtectedLandingRoute) => void;
+}>;
 
 function FooterLogo() {
   return (
@@ -13,9 +26,25 @@ function FooterLogo() {
   );
 }
 
-function FooterItemRow({ item }: { item: LandingNavItem }) {
+function FooterItemRow({
+  item,
+  onProtectedNavigation,
+}: FooterItemRowProps) {
   const className =
-    "text-lg text-white/50 transition duration-200 hover:text-white/78";
+    "bg-transparent text-left text-lg text-white/50 transition duration-200 hover:text-white/78";
+  const protectedRoute = getProtectedLandingRoute(item);
+
+  if (protectedRoute) {
+    return (
+      <button
+        type="button"
+        onClick={() => onProtectedNavigation(protectedRoute)}
+        className={className}
+      >
+        {item.label}
+      </button>
+    );
+  }
 
   if (item.href) {
     return (
@@ -28,7 +57,7 @@ function FooterItemRow({ item }: { item: LandingNavItem }) {
   return <span className={className}>{item.label}</span>;
 }
 
-export function LandingFooter() {
+export function LandingFooter({ onProtectedNavigation }: LandingFooterProps) {
   return (
     <footer className="relative overflow-hidden bg-[#101010]">
       <div className="mx-auto grid w-full max-w-7xl gap-14 px-6 py-16 md:px-10 lg:grid-cols-[180px_repeat(4,minmax(0,1fr))] lg:gap-10 lg:py-20">
@@ -50,7 +79,11 @@ export function LandingFooter() {
             </h2>
             <div className="flex flex-col gap-5">
               {section.items.map((item) => (
-                <FooterItemRow key={item.label} item={item} />
+                <FooterItemRow
+                  key={item.label}
+                  item={item}
+                  onProtectedNavigation={onProtectedNavigation}
+                />
               ))}
             </div>
           </div>

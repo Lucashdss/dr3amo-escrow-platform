@@ -21,8 +21,8 @@ import { formatEscrowState } from "@/features/escrows/services/managementDisplay
 
 export const navItems: NavItem[] = [
   { href: "/client", icon: LayoutDashboard, label: "Overview" },
-  { href: "/client/contracts", icon: Handshake, label: "Contracts" },
-  { href: "/client/management", icon: Wallet, label: "Management" },
+  { href: "/contracts", icon: Handshake, label: "Contracts" },
+  { href: "/management", icon: Wallet, label: "Management" },
 ];
 
 export function createClientKpis(

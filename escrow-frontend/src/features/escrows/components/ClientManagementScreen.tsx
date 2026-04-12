@@ -231,7 +231,7 @@ function EscrowCardGrid({ escrows }: { escrows: EscrowManagementItem[] }) {
               <p className="mt-2 text-sm text-white">#{escrow.id}</p>
             </div>
             <Link
-              href={`/client/management/${escrow.id}`}
+              href={`/management/${escrow.id}`}
               className="rounded-[1.4rem] border border-[#b6ef5f]/35 bg-[#b6ef5f] px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-black transition hover:brightness-105"
             >
               Manage Escrow

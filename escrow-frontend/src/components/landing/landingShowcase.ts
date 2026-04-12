@@ -1,4 +1,8 @@
-export type DashboardRoute = "/client";
+export type ProtectedLandingRoute =
+  | "/client"
+  | "/freelancer"
+  | "/contracts"
+  | "/management";
 
 export type LandingShowcaseItem = {
   description: string;
@@ -15,7 +19,7 @@ type PendingRouteState = {
   isConnected: boolean;
 };
 
-export const CREATE_CONTRACT_ROUTE: DashboardRoute = "/client";
+export const CREATE_CONTRACT_ROUTE: ProtectedLandingRoute = "/contracts";
 
 export const LANDING_SHOWCASE_ITEMS: LandingShowcaseItem[] = [
   {
@@ -69,7 +73,7 @@ export function getShowcaseIndexBySlug(slug: string | null): number {
     (item) => item.slug === slug
   );
 
-  return showcaseIndex >= 0 ? showcaseIndex : 0;
+  return Math.max(showcaseIndex, 0);
 }
 
 export function getNextShowcaseIndex(

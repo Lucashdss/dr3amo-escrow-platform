@@ -1,5 +1,5 @@
 import { ClientManagementDetailScreen } from "@/features/escrows/components/ClientManagementDetailScreen";
 
-export default function ClientManagementDetailPage() {
+export default function ManagementDetailPage() {
   return <ClientManagementDetailScreen />;
 }

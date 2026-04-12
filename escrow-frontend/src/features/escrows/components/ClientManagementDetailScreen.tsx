@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useConnection } from "wagmi";
 
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { DashboardShell } from "@/features/dashboard/components/DashboardShell";
@@ -34,7 +34,7 @@ type ManagementDetailDisplayValues = {
   trimmedAddress: string;
 };
 
-export type ClientManagementDetailScreenContentProps = {
+export type ClientManagementDetailScreenContentProps = Readonly<{
   actionError: string | null;
   actionStatus: string | null;
   actionSuccess: string | null;
@@ -62,7 +62,24 @@ export type ClientManagementDetailScreenContentProps = {
   onSelectAction: (action: EscrowActionKey) => void;
   onSubmitSelectedAction: () => void;
   onUsdAmountInputChange: (value: string) => void;
-};
+}>;
+
+type ActionModalProps = Readonly<{
+  actionError: string | null;
+  actionStatus: string | null;
+  actionSuccess: string | null;
+  amountInput: string;
+  deadlineExtensionInput: string;
+  isExecuting: boolean;
+  onAmountInputChange: (value: string) => void;
+  onCloseSelectedAction: () => void;
+  onDeadlineExtensionInputChange: (value: string) => void;
+  onSubmitSelectedAction: () => void;
+  onUsdAmountInputChange: (value: string) => void;
+  selectedAction: EscrowActionKey | null;
+  submittedHash: string | null;
+  usdAmountInput: string;
+}>;
 
 function getDisplayValues(
   address: string | undefined,
@@ -104,7 +121,7 @@ function renderActionInput(
   if (actionDefinition.inputKind === "amount") {
     return (
       <label className="grid gap-2 text-sm text-white/72">
-        Funding amount
+        <span>Funding amount</span>
         <input
           value={amountInput}
           onChange={(event) => onAmountInputChange(event.target.value)}
@@ -118,7 +135,7 @@ function renderActionInput(
   if (actionDefinition.inputKind === "usd") {
     return (
       <label className="grid gap-2 text-sm text-white/72">
-        Minimum price in USD
+        <span>Minimum price in USD</span>
         <input
           value={usdAmountInput}
           onChange={(event) => onUsdAmountInputChange(event.target.value)}
@@ -132,7 +149,7 @@ function renderActionInput(
   if (actionDefinition.inputKind === "days") {
     return (
       <label className="grid gap-2 text-sm text-white/72">
-        Extension in days
+        <span>Extension in days</span>
         <input
           value={deadlineExtensionInput}
           onChange={(event) => onDeadlineExtensionInputChange(event.target.value)}
@@ -150,27 +167,12 @@ function renderActionInput(
   );
 }
 
-function renderActionModal(
-  selectedAction: EscrowActionKey | null,
-  amountInput: string,
-  usdAmountInput: string,
-  deadlineExtensionInput: string,
-  actionError: string | null,
-  actionStatus: string | null,
-  actionSuccess: string | null,
-  submittedHash: string | null,
-  isExecuting: boolean,
-  onAmountInputChange: (value: string) => void,
-  onUsdAmountInputChange: (value: string) => void,
-  onDeadlineExtensionInputChange: (value: string) => void,
-  onCloseSelectedAction: () => void,
-  onSubmitSelectedAction: () => void
-) {
-  if (!selectedAction) {
+function renderActionModal(props: ActionModalProps) {
+  if (!props.selectedAction) {
     return null;
   }
 
-  const actionDefinition = getEscrowActionDefinition(selectedAction);
+  const actionDefinition = getEscrowActionDefinition(props.selectedAction);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
@@ -189,7 +191,7 @@ function renderActionModal(
           </div>
           <button
             type="button"
-            onClick={onCloseSelectedAction}
+            onClick={props.onCloseSelectedAction}
             className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:bg-white/10 hover:text-white"
           >
             Close
@@ -198,50 +200,52 @@ function renderActionModal(
 
         <div className="mt-6">
           {renderActionInput(
-            selectedAction,
-            amountInput,
-            usdAmountInput,
-            deadlineExtensionInput,
-            onAmountInputChange,
-            onUsdAmountInputChange,
-            onDeadlineExtensionInputChange
+            props.selectedAction,
+            props.amountInput,
+            props.usdAmountInput,
+            props.deadlineExtensionInput,
+            props.onAmountInputChange,
+            props.onUsdAmountInputChange,
+            props.onDeadlineExtensionInputChange
           )}
         </div>
 
-        {actionStatus ? (
+        {props.actionStatus ? (
           <div className="mt-5 rounded-[1.2rem] border border-white/12 bg-white/6 p-4 text-sm text-white/75">
-            {actionStatus}
+            {props.actionStatus}
           </div>
         ) : null}
 
-        {actionError ? (
+        {props.actionError ? (
           <div className="mt-5 rounded-[1.2rem] border border-[#ff7b7b]/25 bg-[#ff7b7b]/10 p-4 text-sm text-[#ffc5c5]">
-            {actionError}
+            {props.actionError}
           </div>
         ) : null}
 
-        {actionSuccess ? (
+        {props.actionSuccess ? (
           <div className="mt-5 rounded-[1.2rem] border border-[#b6ef5f]/25 bg-[#b6ef5f]/10 p-4 text-sm text-[#d9f8a7]">
-            <p>{actionSuccess}</p>
-            {submittedHash ? <p className="mt-2 break-all">Tx: {submittedHash}</p> : null}
+            <p>{props.actionSuccess}</p>
+            {props.submittedHash ? (
+              <p className="mt-2 break-all">Tx: {props.submittedHash}</p>
+            ) : null}
           </div>
         ) : null}
 
         <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
           <button
             type="button"
-            onClick={onCloseSelectedAction}
+            onClick={props.onCloseSelectedAction}
             className="rounded-[1rem] border border-white/12 bg-white/6 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/10 hover:text-white"
           >
             Cancel
           </button>
           <button
             type="button"
-            disabled={isExecuting}
-            onClick={onSubmitSelectedAction}
+            disabled={props.isExecuting}
+            onClick={props.onSubmitSelectedAction}
             className="rounded-[1rem] border border-[#b6ef5f]/35 bg-[#b6ef5f] px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-black transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isExecuting ? "Processing..." : actionDefinition.label}
+            {props.isExecuting ? "Processing..." : actionDefinition.label}
           </button>
         </div>
       </div>
@@ -479,22 +483,22 @@ function renderEscrowDetail(
         </div>
       </article>
 
-      {renderActionModal(
-        props.selectedAction,
-        props.amountInput,
-        props.usdAmountInput,
-        props.deadlineExtensionInput,
-        props.actionError,
-        props.actionStatus,
-        props.actionSuccess,
-        props.submittedHash,
-        props.isExecuting,
-        props.onAmountInputChange,
-        props.onUsdAmountInputChange,
-        props.onDeadlineExtensionInputChange,
-        props.onCloseSelectedAction,
-        props.onSubmitSelectedAction
-      )}
+      {renderActionModal({
+        actionError: props.actionError,
+        actionStatus: props.actionStatus,
+        actionSuccess: props.actionSuccess,
+        amountInput: props.amountInput,
+        deadlineExtensionInput: props.deadlineExtensionInput,
+        isExecuting: props.isExecuting,
+        onAmountInputChange: props.onAmountInputChange,
+        onCloseSelectedAction: props.onCloseSelectedAction,
+        onDeadlineExtensionInputChange: props.onDeadlineExtensionInputChange,
+        onSubmitSelectedAction: props.onSubmitSelectedAction,
+        onUsdAmountInputChange: props.onUsdAmountInputChange,
+        selectedAction: props.selectedAction,
+        submittedHash: props.submittedHash,
+        usdAmountInput: props.usdAmountInput,
+      })}
     </>
   );
 }
@@ -508,7 +512,7 @@ export function ClientManagementDetailScreenContent(
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/client/management"
+              href="/management"
               className="rounded-full border border-white/10 bg-white/8 px-5 py-3 text-xs font-semibold uppercase tracking-[0.28em] text-white/65 transition hover:bg-white/12 hover:text-white"
             >
               Back to Management
@@ -538,7 +542,7 @@ export function ClientManagementDetailScreenContent(
 export function ClientManagementDetailScreen() {
   const params = useParams<{ id: string }>();
   const escrowId = Number.parseInt(params.id, 10);
-  const { address } = useAccount();
+  const { address } = useConnection();
   const { isLoading: isLoadingUser, user } = useCurrentUser();
   const detail = useEscrowManagementDetail(
     Number.isInteger(escrowId) ? escrowId : undefined

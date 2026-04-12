@@ -1,5 +1,5 @@
 import { ContractCreateScreen } from "@/features/escrows/components/ContractCreateScreen";
 
-export default function ContractCreatePage() {
+export default function ContractsPage() {
   return <ContractCreateScreen />;
 }

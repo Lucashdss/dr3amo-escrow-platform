@@ -13,7 +13,7 @@ import { LandingHeaderNav } from "@/components/landing/LandingHeaderNav";
 import { LandingShowcaseSection } from "@/components/landing/LandingShowcaseSection";
 import {
   CREATE_CONTRACT_ROUTE,
-  type DashboardRoute,
+  type ProtectedLandingRoute,
   shouldRedirectToPendingRoute,
 } from "@/components/landing/landingShowcase";
 import { UsernameModal } from "@/components/landing/UsernameModal";
@@ -31,8 +31,8 @@ function LandingSectionDivider() {
 export default function Home() {
   const router = useRouter();
   const [isFreelancerView, setIsFreelancerView] = useState(false);
-  const [pendingDashboardRoute, setPendingDashboardRoute] =
-    useState<DashboardRoute | null>(null);
+  const [pendingProtectedRoute, setPendingProtectedRoute] =
+    useState<ProtectedLandingRoute | null>(null);
   const backgroundClass = isFreelancerView ? "bg-[#22007C]" : "bg-[#04052E]";
   const accentTextClass = isFreelancerView
     ? "text-[#22007C]"
@@ -67,7 +67,7 @@ export default function Home() {
   } = useWalletAuth();
 
   useEffect(() => {
-    if (!pendingDashboardRoute) {
+    if (!pendingProtectedRoute) {
       return;
     }
 
@@ -82,29 +82,33 @@ export default function Home() {
       return;
     }
 
-    router.push(pendingDashboardRoute);
-    setPendingDashboardRoute(null);
-  }, [hasUser, isCheckingUser, isConnected, pendingDashboardRoute, router]);
+    router.push(pendingProtectedRoute);
+    setPendingProtectedRoute(null);
+  }, [hasUser, isCheckingUser, isConnected, pendingProtectedRoute, router]);
 
-  function handleCreateContractClick(): void {
+  function handleProtectedNavigation(route: ProtectedLandingRoute): void {
     if (!isMounted) {
       return;
     }
 
     if (isConnected && hasUser) {
-      router.push(CREATE_CONTRACT_ROUTE);
+      router.push(route);
       return;
     }
 
-    setPendingDashboardRoute(CREATE_CONTRACT_ROUTE);
+    setPendingProtectedRoute(route);
 
     if (!isConnected) {
       openLoginModal();
     }
   }
 
+  function handleCreateContractClick(): void {
+    handleProtectedNavigation(CREATE_CONTRACT_ROUTE);
+  }
+
   function handleCloseConnectModal(): void {
-    setPendingDashboardRoute(null);
+    setPendingProtectedRoute(null);
     closeLoginModal();
   }
 
@@ -112,7 +116,7 @@ export default function Home() {
     <div className={`flex min-h-screen flex-col text-white ${backgroundClass}`}>
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-5 md:px-10">
         <p className="shrink-0 text-3xl font-bold tracking-tight">Dr3amo</p>
-        <LandingHeaderNav />
+        <LandingHeaderNav onProtectedNavigation={handleProtectedNavigation} />
         <div className="flex items-center gap-3">
           {isMounted && isConnected ? (
             <Link
@@ -198,7 +202,7 @@ export default function Home() {
       <LandingContactSection />
       <LandingSectionDivider />
 
-      <LandingFooter />
+      <LandingFooter onProtectedNavigation={handleProtectedNavigation} />
 
       <WalletModal
         isConnectModalOpen={isConnectModalOpen}

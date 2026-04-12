@@ -53,10 +53,6 @@ export const LANDING_NAV_SECTIONS: LandingNavSection[] = [
     ],
   },
   {
-    title: "Community",
-    items: [{ label: "Twitter" }, { label: "Instagram" }, { label: "Threads" }],
-  },
-  {
     title: "Company",
     items: [
       { label: "About Dr3amo" },

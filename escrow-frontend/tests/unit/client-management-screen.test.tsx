@@ -129,7 +129,7 @@ describe("ClientManagementScreenContent", () => {
     expect(html).toContain("Escrow 7");
     expect(html).toContain("Seller");
     expect(html).toContain("Manage Escrow");
-    expect(html).toContain('href="/client/management/7"');
+    expect(html).toContain('href="/management/7"');
   });
 
   it("renders the first six escrows and the pager when more pages exist", () => {

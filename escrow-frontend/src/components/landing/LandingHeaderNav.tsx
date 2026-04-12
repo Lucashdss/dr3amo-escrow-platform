@@ -61,14 +61,11 @@ function HeaderNavDropdown({
   title,
 }: HeaderNavDropdownProps) {
   return (
-    <div className="group relative">
-      <button
-        type="button"
-        className="rounded-full px-4 py-2 text-sm font-medium text-white/72 transition hover:bg-white/8 hover:text-white"
-      >
+    <div className="group relative pb-2">
+      <span className="block cursor-pointer select-none rounded-full px-4 py-2 text-sm font-medium text-white/72 transition group-hover:bg-white/8 group-hover:text-white">
         {title}
-      </button>
-      <div className="pointer-events-none absolute left-1/2 top-full z-30 mt-3 w-64 -translate-x-1/2 rounded-[1.5rem] border border-white/10 bg-[#202228]/95 p-3 opacity-0 shadow-[0_28px_60px_rgba(0,0,0,0.28)] backdrop-blur-md transition duration-200 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+      </span>
+      <div className="pointer-events-none absolute left-1/2 top-[calc(100%-2px)] z-30 w-64 -translate-x-1/2 rounded-[1.5rem] border border-white/10 bg-[#202228]/95 p-3 opacity-0 shadow-[0_28px_60px_rgba(0,0,0,0.28)] backdrop-blur-md transition duration-200 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
         <div className="flex flex-col gap-1">
           {items.map((item) => (
             <HeaderNavItem

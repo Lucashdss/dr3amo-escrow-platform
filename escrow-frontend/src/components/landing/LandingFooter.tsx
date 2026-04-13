@@ -59,7 +59,7 @@ function FooterItemRow({
 
 export function LandingFooter({ onProtectedNavigation }: LandingFooterProps) {
   return (
-    <footer className="relative overflow-hidden bg-[#101010]">
+    <footer className="relative overflow-hidden bg-black">
       <div className="mx-auto grid w-full max-w-7xl gap-14 px-6 py-16 md:px-10 lg:grid-cols-[180px_repeat(4,minmax(0,1fr))] lg:gap-10 lg:py-20">
         <div className="flex flex-col items-start gap-5">
           <FooterLogo />

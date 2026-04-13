@@ -53,11 +53,16 @@ export const LANDING_NAV_SECTIONS: LandingNavSection[] = [
     ],
   },
   {
-    title: "Company",
+    title: "About",
     items: [
-      { label: "About Dr3amo" },
-      { label: "Privacy Policy" },
-      { label: "Terms of Use" },
+      { href: "/about-dr3amo", label: "About Dr3amo" },
+    ],
+  },
+  {
+    title: "Legal and Privacy",
+    items: [
+      { href: "/privacy-policy", label: "Privacy Policy" },
+      { href: "/terms-of-use", label: "Terms of Use" },
       { href: "/#landing-contact", label: "Contact" },
     ],
   },

@@ -37,12 +37,14 @@ export function Hero({ isFreelancerView }: HeroProps) {
         deliveries, and release with confidence.
       </p>
 
-      <section className="mt-14 w-full max-w-3xl rounded-[2rem] bg-white p-4 text-left text-[#2f3136] shadow-2xl md:p-6">
-        <div className="mb-4 text-center text-3xl font-black">It is easy like this:</div>
-        <div className="grid gap-4 rounded-3xl bg-[#f3f4f6] p-6 md:grid-cols-3">
+      <section className="mt-14 w-full max-w-3xl rounded-[2rem] bg-black p-4 text-left text-white shadow-2xl md:p-6">
+        <div className="mb-4 text-center text-3xl font-black">
+          Escrow Flow
+        </div>
+        <div className="grid gap-4 rounded-3xl bg-zinc-900 p-6 md:grid-cols-3">
           {steps.map((step, index) => (
-            <div key={step} className="rounded-2xl bg-white p-4 shadow-sm">
-              <p className="text-sm text-zinc-500">Step {index + 1}</p>
+            <div key={step} className="rounded-2xl bg-black p-4 shadow-sm">
+              <p className="text-sm text-white/65">Step {index + 1}</p>
               <p className="mt-2 font-semibold">{step}</p>
             </div>
           ))}

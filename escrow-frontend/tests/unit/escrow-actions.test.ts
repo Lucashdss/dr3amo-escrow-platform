@@ -6,6 +6,14 @@ import {
   validateEscrowActionInput,
 } from "@/features/escrows/services/escrowActions";
 
+const originalNodeEnv = process.env.NODE_ENV;
+
+function setNodeEnv(value: string | undefined): void {
+  const environment = process.env as Record<string, string | undefined>;
+
+  environment.NODE_ENV = value;
+}
+
 const baseEscrow = {
   id: 7,
   amount: "0",
@@ -21,6 +29,10 @@ const baseEscrow = {
   tokenAddress: "0x0000000000000000000000000000000000000020",
   tokenId: 3,
 };
+
+afterEach(() => {
+  setNodeEnv(originalNodeEnv);
+});
 
 describe("deriveEscrowActionAvailability", () => {
   it("returns the client action set", () => {
@@ -126,6 +138,42 @@ describe("deriveEscrowActionAvailability", () => {
         (action) => action.key === "requestModificationAndUpdateDeadline"
       )
     ).toMatchObject({ disabled: true });
+  });
+
+  it("disables dispute in production with the development message", () => {
+    setNodeEnv("production");
+
+    const actions = deriveEscrowActionAvailability({
+      escrow: { ...baseEscrow, state: "funded" },
+      liveEscrowState: "funded",
+      liveSnapshot: {
+        minimumPriceUsd: "0",
+        modificationsRequested: 0,
+      },
+    });
+
+    expect(actions.find((action) => action.key === "initiateDispute")).toMatchObject({
+      disabled: true,
+      disabledReason: "on development",
+    });
+  });
+
+  it("keeps dispute available outside production for non-terminal states", () => {
+    setNodeEnv("development");
+
+    const actions = deriveEscrowActionAvailability({
+      escrow: { ...baseEscrow, state: "funded" },
+      liveEscrowState: "funded",
+      liveSnapshot: {
+        minimumPriceUsd: "0",
+        modificationsRequested: 0,
+      },
+    });
+
+    expect(actions.find((action) => action.key === "initiateDispute")).toMatchObject({
+      disabled: false,
+      disabledReason: null,
+    });
   });
 });
 

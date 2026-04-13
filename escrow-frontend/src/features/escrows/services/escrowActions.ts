@@ -5,6 +5,7 @@ import {
   ESCROW_TERMINAL_STATES,
   getEscrowActionDefinition,
 } from "@/features/escrows/config/escrowContract";
+import { getProductionEscrowActionDisabledReason } from "@/features/escrows/config/environment";
 import type {
   EscrowActionAvailability,
   EscrowActionKey,
@@ -243,6 +244,13 @@ function createInitiateDisputeAction(
   actionKey: EscrowActionKey,
   context: ActionAvailabilityContext
 ): EscrowActionAvailability {
+  const productionDisabledReason =
+    getProductionEscrowActionDisabledReason(actionKey);
+
+  if (productionDisabledReason) {
+    return createDisabledAction(actionKey, true, productionDisabledReason);
+  }
+
   const disabled = isTerminalState(context.dbState);
 
   return createDisabledAction(

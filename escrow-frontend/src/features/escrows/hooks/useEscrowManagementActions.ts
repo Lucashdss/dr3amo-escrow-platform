@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAccount } from "wagmi";
 
+import { getProductionEscrowActionDisabledReason } from "@/features/escrows/config/environment";
 import {
   deriveEscrowActionAvailability,
   validateEscrowActionInput,
@@ -145,6 +146,14 @@ export function useEscrowManagementActions(
   async function submitSelectedAction(): Promise<void> {
     if (!input.escrow || !selectedAction) {
       setActionError("Escrow detail is not ready.");
+      return;
+    }
+
+    const productionDisabledReason =
+      getProductionEscrowActionDisabledReason(selectedAction);
+
+    if (productionDisabledReason) {
+      setActionError(productionDisabledReason);
       return;
     }
 

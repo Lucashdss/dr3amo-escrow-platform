@@ -158,4 +158,42 @@ describe("ClientManagementDetailScreenContent", () => {
     expect(html).toContain("Minimum price");
     expect(html).toContain("Modifications requested");
   });
+
+  it("renders the dispute development message in the action menu", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ClientManagementDetailScreenContent, {
+        ...contentProps,
+        actions: [
+          {
+            description: "Start a dispute for this contract.",
+            disabled: true,
+            disabledReason: "on development",
+            inputKind: "none",
+            key: "initiateDispute",
+            label: "Initiate Dispute",
+          },
+        ],
+        escrow: {
+          id: 7,
+          amount: "0",
+          chainId: 1,
+          clientUsername: "client",
+          contractAddress: "0x0000000000000000000000000000000000000010",
+          createdAt: "2026-03-16T00:00:00.000Z",
+          deadline: "2026-03-20",
+          escrowName: "Landing page refresh",
+          freelancerUsername: "freelancer",
+          role: "client",
+          state: "funded",
+          tokenAddress: "0x0000000000000000000000000000000000000020",
+          tokenId: 1,
+        },
+        isActionMenuOpen: true,
+      })
+    );
+
+    expect(html).toContain("Initiate Dispute");
+    expect(html).toContain("on development");
+    expect(html).toContain("Disabled");
+  });
 });

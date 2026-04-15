@@ -98,11 +98,11 @@ function AnalyticsConsentBanner({
   onDecline,
 }: AnalyticsConsentBannerProps) {
   return (
-    <div className="fixed inset-x-4 bottom-4 z-50 md:inset-x-auto md:right-4 md:w-full md:max-w-md">
+    <div className="fixed inset-x-4 bottom-4 z-50 md:left-auto md:right-4 md:w-full md:max-w-md">
       <dialog
         open
         aria-labelledby={ANALYTICS_TITLE_ID}
-        className="rounded-3xl border border-white/10 bg-[#11131d] p-6 text-white shadow-2xl"
+        className="static m-0 w-full rounded-3xl border border-white/10 bg-[#11131d] p-6 text-white shadow-2xl"
       >
         <div className="space-y-3">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">

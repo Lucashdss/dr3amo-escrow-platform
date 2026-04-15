@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -21,9 +22,16 @@ export function DashboardShell({
           <div className="flex flex-1 flex-row items-start gap-4 lg:flex-col">
             <Link
               href="/"
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:opacity-90"
+              className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-black transition hover:opacity-90"
             >
-              <div className="text-3xl font-black tracking-[-0.08em]">D</div>
+              <Image
+                src="/websiteIcon/websiteIcon.png"
+                alt="Dr3amo"
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-full object-cover"
+                priority
+              />
             </Link>
             <DashboardNav activeLabel={activeNavLabel} />
           </div>

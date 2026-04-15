@@ -46,7 +46,7 @@ describe("next.config security headers", () => {
 
   beforeEach(() => {
     environment.NODE_ENV = "production";
-    environment.NEXT_PUBLIC_APP_URL = "https://www.dr3amo.com";
+    environment.NEXT_PUBLIC_APP_URL = "https://dr3amo.com";
     delete environment.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     delete environment.NEXT_PUBLIC_WC_PROJECT_ID;
   });
@@ -105,7 +105,7 @@ describe("next.config security headers", () => {
 
     expect(redirects).toEqual([
       {
-        destination: "https://www.dr3amo.com/:path*",
+        destination: "https://dr3amo.com/:path*",
         has: [
           {
             key: "x-forwarded-proto",
@@ -174,7 +174,7 @@ describe("next.config security headers", () => {
   });
 
   it("rejects a non-https public app url in production", async () => {
-    environment.NEXT_PUBLIC_APP_URL = "http://www.dr3amo.com";
+    environment.NEXT_PUBLIC_APP_URL = "http://dr3amo.com";
 
     await expect(loadHeaders()).rejects.toThrow(
       "NEXT_PUBLIC_APP_URL must use https in production."

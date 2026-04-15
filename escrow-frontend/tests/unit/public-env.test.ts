@@ -8,7 +8,7 @@ describe("public env helpers", () => {
   beforeEach(() => {
     jest.resetModules();
     environment.NODE_ENV = "production";
-    environment.NEXT_PUBLIC_APP_URL = "https://www.dr3amo.com";
+    environment.NEXT_PUBLIC_APP_URL = "https://dr3amo.com";
     delete environment.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     delete environment.NEXT_PUBLIC_WC_PROJECT_ID;
   });
@@ -33,7 +33,7 @@ describe("public env helpers", () => {
   it("returns the configured production app origin", async () => {
     const { getPublicAppUrl } = await import("@/lib/env/public");
 
-    expect(getPublicAppUrl()).toBe("https://www.dr3amo.com");
+    expect(getPublicAppUrl()).toBe("https://dr3amo.com");
   });
 
   it("returns the WalletConnect project id when configured", async () => {

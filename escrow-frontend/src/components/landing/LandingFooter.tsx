@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { useAnalyticsSettings } from "@/features/analytics/components/AnalyticsProvider";
 import {
   LANDING_NAV_SECTIONS,
   getProtectedLandingRoute,
@@ -57,6 +58,32 @@ function FooterItemRow({
   return <span className={className}>{item.label}</span>;
 }
 
+function FooterAnalyticsButton() {
+  const { canManageAnalytics, openAnalyticsSettings } = useAnalyticsSettings();
+  const className =
+    "bg-transparent text-left text-lg text-white/50 transition duration-200 hover:text-white/78";
+
+  if (!canManageAnalytics) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={openAnalyticsSettings}
+      className={className}
+    >
+      Analytics Settings
+    </button>
+  );
+}
+
+function shouldShowAnalyticsButton(sectionTitle: string): boolean {
+  const showAnalyticsButton = sectionTitle === "Legal and Privacy";
+
+  return showAnalyticsButton;
+}
+
 export function LandingFooter({ onProtectedNavigation }: LandingFooterProps) {
   return (
     <footer className="relative overflow-hidden bg-black">
@@ -85,6 +112,9 @@ export function LandingFooter({ onProtectedNavigation }: LandingFooterProps) {
                   onProtectedNavigation={onProtectedNavigation}
                 />
               ))}
+              {shouldShowAnalyticsButton(section.title) ? (
+                <FooterAnalyticsButton />
+              ) : null}
             </div>
           </div>
         ))}

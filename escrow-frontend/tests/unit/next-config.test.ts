@@ -39,6 +39,8 @@ async function loadRedirects() {
 
 describe("next.config security headers", () => {
   const environment = process.env as Record<string, string | undefined>;
+  const originalGoogleAnalyticsMeasurementId =
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
   const originalNodeEnv = process.env.NODE_ENV;
   const originalPublicAppUrl = process.env.NEXT_PUBLIC_APP_URL;
   const originalTurnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -47,11 +49,14 @@ describe("next.config security headers", () => {
   beforeEach(() => {
     environment.NODE_ENV = "production";
     environment.NEXT_PUBLIC_APP_URL = "https://dr3amo.com";
+    delete environment.NEXT_PUBLIC_GA_MEASUREMENT_ID;
     delete environment.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     delete environment.NEXT_PUBLIC_WC_PROJECT_ID;
   });
 
   afterEach(() => {
+    environment.NEXT_PUBLIC_GA_MEASUREMENT_ID =
+      originalGoogleAnalyticsMeasurementId;
     environment.NODE_ENV = originalNodeEnv;
     environment.NEXT_PUBLIC_APP_URL = originalPublicAppUrl;
     environment.NEXT_PUBLIC_TURNSTILE_SITE_KEY = originalTurnstileSiteKey;
@@ -96,6 +101,8 @@ describe("next.config security headers", () => {
     expect(contentSecurityPolicy).toContain("https://mainnet.base.org");
     expect(contentSecurityPolicy).toContain("https://sepolia.base.org");
     expect(contentSecurityPolicy).not.toContain("'unsafe-eval'");
+    expect(contentSecurityPolicy).not.toContain("https://www.google-analytics.com");
+    expect(contentSecurityPolicy).not.toContain("https://www.googletagmanager.com");
     expect(contentSecurityPolicy).not.toContain("https://rpc.walletconnect.org");
     expect(contentSecurityPolicy).not.toContain("https://challenges.cloudflare.com");
   });
@@ -135,6 +142,22 @@ describe("next.config security headers", () => {
     expect(contentSecurityPolicy).toContain("wss://*.walletconnect.com");
     expect(contentSecurityPolicy).toContain("frame-src 'self' https://verify.walletconnect.org");
     expect(contentSecurityPolicy).toContain("font-src 'self' data: https://fonts.reown.com");
+  });
+
+  it("includes Google Analytics origins only when configured", async () => {
+    environment.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-TEST123";
+
+    const rules = await loadHeaders();
+    const contentSecurityPolicy = getHeaderValue(
+      rules[0].headers,
+      "Content-Security-Policy"
+    );
+
+    expect(contentSecurityPolicy).toContain("script-src 'self' 'unsafe-inline' https://www.googletagmanager.com");
+    expect(contentSecurityPolicy).toContain("img-src 'self' data: blob: https://www.google-analytics.com");
+    expect(contentSecurityPolicy).toContain("connect-src 'self'");
+    expect(contentSecurityPolicy).toContain("https://www.google-analytics.com");
+    expect(contentSecurityPolicy).toContain("https://region1.google-analytics.com");
   });
 
   it("includes Turnstile origins only when configured", async () => {

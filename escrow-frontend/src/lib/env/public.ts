@@ -2,6 +2,7 @@ const LOCAL_APP_URL = "http://localhost:3000";
 
 export const PUBLIC_ENV_KEYS = [
   "NEXT_PUBLIC_APP_URL",
+  "NEXT_PUBLIC_GA_MEASUREMENT_ID",
   "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
   "NEXT_PUBLIC_WC_PROJECT_ID",
 ] as const;
@@ -47,6 +48,12 @@ export function getWalletConnectProjectId(): string | undefined {
   const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID?.trim();
 
   return projectId || undefined;
+}
+
+export function getGoogleAnalyticsMeasurementId(): string | undefined {
+  const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
+
+  return measurementId || undefined;
 }
 
 export function getTurnstileSiteKey(): string | undefined {

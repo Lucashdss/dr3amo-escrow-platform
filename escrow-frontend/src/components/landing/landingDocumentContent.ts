@@ -92,7 +92,7 @@ export const ABOUT_DR3AMO_CONTENT: LandingDocumentContent = {
 
 export const PRIVACY_POLICY_CONTENT: LandingDocumentContent = {
   title: "Privacy Policy",
-  updatedAtLabel: "Updated 13/04/2026",
+  updatedAtLabel: "Updated 15/04/2026",
   description: "Privacy Policy for Dr3amo.",
   introParagraphs: [
     "Dr3amo (\"we\", \"our\", or \"us\") is committed to protecting your privacy and handling your data transparently in accordance with applicable laws, including the General Data Protection Regulation (GDPR).",
@@ -139,9 +139,9 @@ export const PRIVACY_POLICY_CONTENT: LandingDocumentContent = {
     {
       title: "4. Analytics",
       paragraphs: [
-        "We may use analytics tools such as Google Analytics to understand how users interact with the platform.",
-        "These tools may collect anonymized usage data and use cookies.",
-        "You can opt out through browser settings or relevant consent mechanisms.",
+        "We use Google Analytics only after you explicitly opt in through our analytics consent banner.",
+        "If you consent, Google Analytics may collect pseudonymous usage data and set cookies to help us understand traffic and site interactions.",
+        "You can change your analytics choice later from the Analytics Settings link in the website footer.",
       ],
     },
     {
@@ -158,7 +158,7 @@ export const PRIVACY_POLICY_CONTENT: LandingDocumentContent = {
       paragraphs: ["Cookies may be used to:"],
       items: [
         "Maintain session functionality",
-        "Analyze usage",
+        "Analyze usage after you opt in to analytics cookies",
         "Improve performance",
       ],
     },

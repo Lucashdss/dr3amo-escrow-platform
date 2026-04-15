@@ -40,6 +40,13 @@ jest.mock("@/features/auth/hooks/useWalletAuth", () => ({
   useWalletAuth: () => mockUseWalletAuth(),
 }));
 
+jest.mock("@/features/analytics/components/AnalyticsProvider", () => ({
+  useAnalyticsSettings: () => ({
+    canManageAnalytics: false,
+    openAnalyticsSettings: jest.fn(),
+  }),
+}));
+
 describe("Home page", () => {
   const renderPage = () => renderToStaticMarkup(React.createElement(Home));
 

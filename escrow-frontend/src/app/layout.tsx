@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
+import { AnalyticsProvider } from "@/features/analytics/components/AnalyticsProvider";
 import { getPublicAppUrl } from "@/lib/env/public";
 import { Providers } from "./providers";
 
@@ -18,7 +19,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <Providers>{children}</Providers>
+        <AnalyticsProvider>
+          <Providers>{children}</Providers>
+        </AnalyticsProvider>
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import {
+  getGoogleAnalyticsMeasurementId,
   getPublicAppUrl,
   getTurnstileSiteKey,
   getWalletConnectProjectId,
@@ -24,6 +25,12 @@ const WALLET_CONNECT_SOURCES = [
 ];
 const WALLET_CONNECT_FONT_SOURCES = ["https://fonts.reown.com"];
 const WALLET_CONNECT_FRAME_SOURCES = ["https://verify.walletconnect.org"];
+const GOOGLE_ANALYTICS_CONNECT_SOURCES = [
+  "https://www.google-analytics.com",
+  "https://region1.google-analytics.com",
+];
+const GOOGLE_ANALYTICS_IMAGE_SOURCES = ["https://www.google-analytics.com"];
+const GOOGLE_ANALYTICS_SCRIPT_SOURCES = ["https://www.googletagmanager.com"];
 const TURNSTILE_CONNECT_SOURCES = ["https://challenges.cloudflare.com"];
 const TURNSTILE_FRAME_SOURCES = ["https://challenges.cloudflare.com"];
 const TURNSTILE_SCRIPT_SOURCES = ["https://challenges.cloudflare.com"];
@@ -43,12 +50,20 @@ function hasWalletConnectProjectId(): boolean {
   return Boolean(getWalletConnectProjectId());
 }
 
+function hasGoogleAnalyticsMeasurementId(): boolean {
+  return Boolean(getGoogleAnalyticsMeasurementId());
+}
+
 function hasTurnstileSiteKey(): boolean {
   return Boolean(getTurnstileSiteKey());
 }
 
 function createScriptSources(): string[] {
   const sources = ["'self'", "'unsafe-inline'"];
+
+  if (hasGoogleAnalyticsMeasurementId()) {
+    sources.push(...GOOGLE_ANALYTICS_SCRIPT_SOURCES);
+  }
 
   if (hasTurnstileSiteKey()) {
     sources.push(...TURNSTILE_SCRIPT_SOURCES);
@@ -64,6 +79,10 @@ function createScriptSources(): string[] {
 function createConnectSources(): string[] {
   const sources = [...BASE_CONNECT_SOURCES];
 
+  if (hasGoogleAnalyticsMeasurementId()) {
+    sources.push(...GOOGLE_ANALYTICS_CONNECT_SOURCES);
+  }
+
   if (hasWalletConnectProjectId()) {
     sources.push(...WALLET_CONNECT_SOURCES);
   }
@@ -74,6 +93,16 @@ function createConnectSources(): string[] {
 
   if (!isProduction()) {
     sources.push(...DEVELOPMENT_CONNECT_SOURCES);
+  }
+
+  return sources;
+}
+
+function createImageSources(): string[] {
+  const sources = ["'self'", "data:", "blob:"];
+
+  if (hasGoogleAnalyticsMeasurementId()) {
+    sources.push(...GOOGLE_ANALYTICS_IMAGE_SOURCES);
   }
 
   return sources;
@@ -116,7 +145,7 @@ function createContentSecurityPolicy(): string {
     createDirective("frame-ancestors", ["'none'"]),
     createDirective("frame-src", createFrameSources()),
     createDirective("manifest-src", ["'self'"]),
-    createDirective("img-src", ["'self'", "data:", "blob:"]),
+    createDirective("img-src", createImageSources()),
     createDirective("font-src", createFontSources()),
     createDirective("media-src", ["'self'"]),
     createDirective("worker-src", ["'self'", "blob:"]),

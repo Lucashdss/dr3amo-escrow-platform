@@ -57,6 +57,7 @@ declare global {
 }
 
 const ANALYTICS_CONTEXT = createContext<AnalyticsContextValue | null>(null);
+const ANALYTICS_BOOTSTRAP_SCRIPT_ID = "google-analytics-bootstrap";
 const ANALYTICS_SCRIPT_ID = "google-analytics-script";
 const ANALYTICS_STORAGE_KEY = "dr3amo-analytics-consent";
 
@@ -144,12 +145,21 @@ function AnalyticsScript({
   onReady: () => void;
 }>) {
   return (
-    <Script
-      id={ANALYTICS_SCRIPT_ID}
-      src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
-      strategy="afterInteractive"
-      onReady={onReady}
-    />
+    <>
+      <Script id={ANALYTICS_BOOTSTRAP_SCRIPT_ID} strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          window.gtag = gtag;
+        `}
+      </Script>
+      <Script
+        id={ANALYTICS_SCRIPT_ID}
+        src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
+        strategy="afterInteractive"
+        onReady={onReady}
+      />
+    </>
   );
 }
 

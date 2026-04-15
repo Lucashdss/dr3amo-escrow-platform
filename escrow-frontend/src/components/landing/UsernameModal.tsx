@@ -1,13 +1,13 @@
 import { MAX_USERNAME_LENGTH } from "@/features/auth/types/user";
 
-type UsernameModalProps = {
+type UsernameModalProps = Readonly<{
   isOpen: boolean;
   username: string;
   usernameError: string | null;
   isCreatingUser: boolean;
   onUsernameChange: (value: string) => void;
   onSubmit: () => void | Promise<void>;
-};
+}>;
 
 export function UsernameModal({
   isOpen,

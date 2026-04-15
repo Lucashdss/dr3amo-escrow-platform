@@ -20,12 +20,12 @@ function FaqRow({
   isOpen,
   onToggle,
   question,
-}: {
+}: Readonly<{
   answer: string;
   isOpen: boolean;
   onToggle: () => void;
   question: string;
-}) {
+}>) {
   return (
     <div className="border-b border-white/10 py-5 last:border-b-0">
       <button

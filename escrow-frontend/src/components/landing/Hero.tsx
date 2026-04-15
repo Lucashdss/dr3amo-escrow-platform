@@ -1,8 +1,8 @@
 import DecryptedText from "@/components/DecryptedText";
 
-type HeroProps = {
+type HeroProps = Readonly<{
   isFreelancerView: boolean;
-};
+}>;
 
 const CLIENT_STEPS = [
   "Create a contract",

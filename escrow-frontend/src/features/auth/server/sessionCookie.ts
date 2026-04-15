@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { NextResponse } from "next/server";
 
 export const AUTH_SESSION_COOKIE_NAME = "dr3amo_session";

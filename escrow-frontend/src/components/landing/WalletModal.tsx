@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { Connector } from "wagmi";
 
-type WalletModalProps = {
+type WalletModalProps = Readonly<{
   isConnectModalOpen: boolean;
   isDisconnectOpen: boolean;
   authError: string | null;
@@ -17,7 +17,7 @@ type WalletModalProps = {
   onCloseConnectModal: () => void;
   onCloseDisconnectModal: () => void;
   onDisconnect: () => void;
-};
+}>;
 
 const wallets = [
   {

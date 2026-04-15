@@ -2,9 +2,9 @@ import Link from "next/link";
 
 import { navItems } from "@/features/dashboard/data/dashboardData";
 
-type DashboardNavProps = {
+type DashboardNavProps = Readonly<{
   activeLabel: string;
-};
+}>;
 
 function getNavClassName(isActive: boolean): string {
   return `flex h-16 w-16 items-center justify-center rounded-[1.6rem] border transition ${

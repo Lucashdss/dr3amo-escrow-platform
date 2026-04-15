@@ -154,7 +154,7 @@ function createContentSecurityPolicy(): string {
     createDirective("connect-src", createConnectSources()),
   ];
 
-  return directives.join("; ").replace(/\s{2,}/g, " ").trim();
+  return directives.join("; ").replaceAll(/\s{2,}/g, " ").trim();
 }
 
 function createPermissionsPolicy(): string {

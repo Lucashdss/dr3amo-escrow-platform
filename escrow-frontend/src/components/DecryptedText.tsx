@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import type { HTMLMotionProps } from "motion/react";
 
-interface DecryptedTextProps extends HTMLMotionProps<"span"> {
+type DecryptedTextProps = Readonly<HTMLMotionProps<"span"> & {
   text: string;
   speed?: number;
   maxIterations?: number;
@@ -16,7 +16,7 @@ interface DecryptedTextProps extends HTMLMotionProps<"span"> {
   encryptedClassName?: string;
   parentClassName?: string;
   animateOn?: "view" | "hover" | "both";
-}
+}>;
 
 export default function DecryptedText({
   text,
@@ -38,6 +38,7 @@ export default function DecryptedText({
   const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
   const [hasAnimated, setHasAnimated] = useState<boolean>(false);
   const containerRef = useRef<HTMLSpanElement>(null);
+  const textCharacterKeys = useMemo(() => createTextCharacterKeys(text), [text]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -219,13 +220,14 @@ export default function DecryptedText({
       <span className="sr-only">{displayText}</span>
 
       <span aria-hidden="true">
-        {displayText.split("").map((char, index) => {
+        {textCharacterKeys.map((characterKey, index) => {
+          const char = displayText[index] ?? "";
           const isRevealedOrDone =
             revealedIndices.has(index) || !isScrambling || !isHovering;
 
           return (
             <span
-              key={index}
+              key={characterKey}
               className={isRevealedOrDone ? className : encryptedClassName}
             >
               {char}
@@ -254,4 +256,16 @@ function getRandomIndex(maxExclusive: number): number {
   }
 
   return randomIndex;
+}
+
+function createTextCharacterKeys(text: string): string[] {
+  const characterCounts = new Map<string, number>();
+
+  return text.split("").map((character) => {
+    const characterCount = (characterCounts.get(character) ?? 0) + 1;
+
+    characterCounts.set(character, characterCount);
+
+    return `${character}-${characterCount}`;
+  });
 }

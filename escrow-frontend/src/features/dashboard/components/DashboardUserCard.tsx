@@ -1,11 +1,11 @@
 import { UserCircle2 } from "lucide-react";
 
-type DashboardUserCardProps = {
+type DashboardUserCardProps = Readonly<{
   displayName: string;
   hasUser: boolean;
   profileInitial: string;
   trimmedAddress: string;
-};
+}>;
 
 export function DashboardUserCard({
   displayName,

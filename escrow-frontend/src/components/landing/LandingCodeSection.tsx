@@ -7,10 +7,10 @@ import { useLandingCodePreview } from "@/features/landing-code/hooks/useLandingC
 function CodeStatus({
   errorMessage,
   isLoading,
-}: {
+}: Readonly<{
   errorMessage: string | null;
   isLoading: boolean;
-}) {
+}>) {
   if (errorMessage) {
     return (
       <p className="px-6 py-8 text-sm text-[#ffb8b8]">
@@ -32,9 +32,9 @@ function CodeStatus({
 
 function CodeLines({
   lines,
-}: {
+}: Readonly<{
   lines: { content: string; number: number }[];
-}) {
+}>) {
   return (
     <div className="grid min-w-[900px] gap-2 px-6 py-6 font-mono text-sm text-white/82">
       {lines.map((line) => (

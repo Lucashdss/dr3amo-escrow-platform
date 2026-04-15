@@ -32,14 +32,16 @@ declare global {
   }
 }
 
-type TurnstileWidgetProps = {
+type TurnstileWidgetProps = Readonly<{
   onTokenChange: (token: string | null) => void;
   resetKey: number;
-};
+}>;
 
 function resetWidget(widgetId: TurnstileWidgetId | null): void {
-  if (widgetId !== null && window.turnstile) {
-    window.turnstile.reset(widgetId);
+  const turnstile = globalThis.window?.turnstile;
+
+  if (widgetId !== null && turnstile) {
+    turnstile.reset(widgetId);
   }
 }
 
@@ -53,7 +55,7 @@ export function TurnstileWidget({
   const siteKey = getTurnstileSiteKey();
 
   useEffect(() => {
-    if (typeof window === "undefined" || !window.turnstile) {
+    if (!globalThis.window?.turnstile) {
       return;
     }
 
@@ -61,17 +63,19 @@ export function TurnstileWidget({
   }, []);
 
   useEffect(() => {
+    const turnstile = globalThis.window?.turnstile;
+
     if (
       !siteKey ||
       !isScriptReady ||
       !containerRef.current ||
-      !window.turnstile ||
+      !turnstile ||
       widgetIdRef.current !== null
     ) {
       return;
     }
 
-    widgetIdRef.current = window.turnstile.render(containerRef.current, {
+    widgetIdRef.current = turnstile.render(containerRef.current, {
       callback: (token) => onTokenChange(token),
       "error-callback": () => onTokenChange(null),
       "expired-callback": () => onTokenChange(null),

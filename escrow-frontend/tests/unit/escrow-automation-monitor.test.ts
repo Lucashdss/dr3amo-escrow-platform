@@ -93,7 +93,7 @@ describe("escrowAutomationMonitor", () => {
     jest.spyOn(console, "error").mockImplementation(() => undefined);
     jest.spyOn(console, "info").mockImplementation(() => undefined);
     jest
-      .spyOn(global, "setInterval")
+      .spyOn(globalThis, "setInterval")
       .mockReturnValue(0 as unknown as NodeJS.Timeout);
   });
 

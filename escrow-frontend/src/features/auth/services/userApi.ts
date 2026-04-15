@@ -48,4 +48,4 @@ export type {
   UserLookupProfile,
   UserLookupResponse,
   UserRecord,
-};
+} from "@/features/auth/types/user";

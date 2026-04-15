@@ -3,11 +3,11 @@ import { ArrowUpRight } from "lucide-react";
 import { toneClasses } from "@/features/dashboard/data/dashboardData";
 import type { ActivityItem } from "@/features/dashboard/types/dashboard";
 
-type DashboardActivityFeedProps = {
+type DashboardActivityFeedProps = Readonly<{
   errorMessage: string | null;
   isLoading: boolean;
   items: ActivityItem[];
-};
+}>;
 
 function renderActivityContent(
   items: ActivityItem[],

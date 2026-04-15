@@ -3,11 +3,11 @@ import type { ReactNode } from "react";
 
 import { DashboardNav } from "@/features/dashboard/components/DashboardNav";
 
-type DashboardShellProps = {
+type DashboardShellProps = Readonly<{
   activeNavLabel: string;
   children: ReactNode;
   sideAction?: ReactNode;
-};
+}>;
 
 export function DashboardShell({
   activeNavLabel,

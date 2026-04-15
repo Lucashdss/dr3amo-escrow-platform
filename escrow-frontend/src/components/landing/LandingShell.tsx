@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -146,22 +148,25 @@ export function LandingShell({
     setPendingProtectedRoute(null);
   }, [hasUser, isCheckingUser, isConnected, pendingProtectedRoute, router]);
 
-  function navigateToProtectedRoute(route: ProtectedLandingRoute): void {
-    if (!isMounted) {
-      return;
-    }
+  const navigateToProtectedRoute = useCallback(
+    (route: ProtectedLandingRoute): void => {
+      if (!isMounted) {
+        return;
+      }
 
-    if (isConnected && hasUser) {
-      router.push(route);
-      return;
-    }
+      if (isConnected && hasUser) {
+        router.push(route);
+        return;
+      }
 
-    setPendingProtectedRoute(route);
+      setPendingProtectedRoute(route);
 
-    if (!isConnected) {
-      openLoginModal();
-    }
-  }
+      if (!isConnected) {
+        openLoginModal();
+      }
+    },
+    [hasUser, isConnected, isMounted, openLoginModal, router]
+  );
 
   function handleConnectClick(): void {
     if (!isMounted) {
@@ -181,10 +186,13 @@ export function LandingShell({
     closeLoginModal();
   }
 
-  const landingShellContextValue: LandingShellContextValue = {
-    isMounted,
-    navigateToProtectedRoute,
-  };
+  const landingShellContextValue = useMemo<LandingShellContextValue>(
+    () => ({
+      isMounted,
+      navigateToProtectedRoute,
+    }),
+    [isMounted, navigateToProtectedRoute]
+  );
   const resolvedAccentTextClassName =
     getAccentTextClassName(accentTextClassName);
   const resolvedBackgroundClassName =

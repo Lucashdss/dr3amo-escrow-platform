@@ -1,10 +1,10 @@
 import { createMessage } from "@/features/messages/services/messageApi";
 
 describe("createMessage", () => {
-  const originalFetch = global.fetch;
+  const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = jest.fn().mockResolvedValue({
       json: jest.fn().mockResolvedValue({
         success: true,
         data: {
@@ -18,7 +18,7 @@ describe("createMessage", () => {
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
   });
 
   it("sends the normalized message payload including the turnstile token", async () => {
@@ -29,7 +29,7 @@ describe("createMessage", () => {
       turnstileToken: " token ",
     });
 
-    expect(global.fetch).toHaveBeenCalledWith("/api/messages", {
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

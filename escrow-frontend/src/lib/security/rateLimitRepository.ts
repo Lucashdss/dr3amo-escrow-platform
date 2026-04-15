@@ -1,5 +1,4 @@
-import type { RowDataPacket } from "mysql2";
-import type { ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import pool from "@/lib/db";
 

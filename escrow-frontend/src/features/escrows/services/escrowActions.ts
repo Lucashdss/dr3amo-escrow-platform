@@ -275,13 +275,7 @@ export function parseFundAmount(amount: string, tokenId: number): bigint | null 
 }
 
 export function parseMinimumPriceUsdAmount(value: string): bigint | null {
-  const trimmedValue = value.trim();
-
-  if (!isPositiveWholeNumber(trimmedValue)) {
-    return null;
-  }
-
-  return BigInt(trimmedValue);
+  return parsePositiveWholeNumberAmount(value);
 }
 
 export function parseModificationExtensionDays(value: string): bigint | null {

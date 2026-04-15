@@ -11,9 +11,9 @@ import {
   LANDING_SHOWCASE_ITEMS,
 } from "@/components/landing/landingShowcase";
 
-type LandingShowcaseSectionProps = {
+type LandingShowcaseSectionProps = Readonly<{
   onCreateContract: () => void;
-};
+}>;
 
 function ShowcaseDots({
   activeIndex,
@@ -76,11 +76,11 @@ function LandingShowcaseContent({
   );
 }
 
-type LandingShowcaseBodyProps = {
+type LandingShowcaseBodyProps = Readonly<{
   activeIndex: number;
   onCreateContract: () => void;
   onSelect?: (index: number) => void;
-};
+}>;
 
 function LandingShowcaseBody({
   activeIndex,

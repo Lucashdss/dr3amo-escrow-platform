@@ -1,11 +1,11 @@
-type EscrowSubmissionFooterProps = {
+type EscrowSubmissionFooterProps = Readonly<{
   handleSwitchChain: () => Promise<void>;
   isLoadingClientUser: boolean;
   isSubmitting: boolean;
   isSwitchingChain: boolean;
   isWrongNetwork: boolean;
   selectedChainDisplayName: string;
-};
+}>;
 
 export function EscrowSubmissionFooter({
   handleSwitchChain,

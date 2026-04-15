@@ -1,9 +1,9 @@
-type EscrowStatusBannerProps = {
+type EscrowStatusBannerProps = Readonly<{
   createdEscrowAddress: string | null;
   errorMessage: string | null;
   submittedHash: string | null;
   successMessage: string | null;
-};
+}>;
 
 export function EscrowStatusBanner({
   createdEscrowAddress,

@@ -17,26 +17,26 @@ import {
 } from "@/features/escrows/services/managementDisplay";
 import type { EscrowManagementItem } from "@/features/escrows/types/escrow";
 
-type ManagementDisplayValues = {
+type ManagementDisplayValues = Readonly<{
   displayName: string;
   profileInitial: string;
   trimmedAddress: string;
-};
+}>;
 
-type EscrowContentState = {
+type EscrowContentState = Readonly<{
   errorMessage: string | null;
   escrows: EscrowManagementItem[];
   hasUser: boolean;
   isLoading: boolean;
-};
+}>;
 
-export type ClientManagementScreenContentProps = {
+export type ClientManagementScreenContentProps = Readonly<{
   displayValues: ManagementDisplayValues;
   errorMessage: string | null;
   escrows: EscrowManagementItem[];
   hasUser: boolean;
   isLoading: boolean;
-};
+}>;
 
 const ESCROWS_PER_PAGE = 6;
 
@@ -125,11 +125,11 @@ function EscrowPaginationControls({
   currentPage,
   pageCount,
   onPageChange,
-}: {
+}: Readonly<{
   currentPage: number;
   pageCount: number;
   onPageChange: (page: number) => void;
-}) {
+}>) {
   if (pageCount <= 1) {
     return null;
   }
@@ -161,7 +161,9 @@ function EscrowPaginationControls({
   );
 }
 
-function EscrowCardGrid({ escrows }: { escrows: EscrowManagementItem[] }) {
+function EscrowCardGrid({
+  escrows,
+}: Readonly<{ escrows: EscrowManagementItem[] }>) {
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       {escrows.map((escrow) => (

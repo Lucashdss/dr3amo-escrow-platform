@@ -6,7 +6,7 @@ import {
 } from "@/features/escrows/services/validation";
 import type { EscrowChainKey, TokenSymbol } from "@/features/escrows/types/escrow";
 
-type EscrowFormFieldsProps = {
+type EscrowFormFieldsProps = Readonly<{
   deliveryDaysInput: string;
   escrowName: string;
   freelancerInput: string;
@@ -19,7 +19,7 @@ type EscrowFormFieldsProps = {
   setUpfrontPercentage: (value: string) => void;
   tokenSymbol: TokenSymbol;
   upfrontPercentage: string;
-};
+}>;
 
 export function EscrowFormFields({
   deliveryDaysInput,

@@ -8,9 +8,9 @@ import type {
   KpiValueOption,
 } from "@/features/dashboard/types/dashboard";
 
-type DashboardKpiGridProps = {
+type DashboardKpiGridProps = Readonly<{
   items: KpiItem[];
-};
+}>;
 
 const KPI_VALUE_OPTIONS: KpiValueOption[] = ["USDC", "ETH"];
 

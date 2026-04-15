@@ -6,9 +6,9 @@ import { WagmiProvider } from "wagmi";
 
 import { config } from "@/lib/web3/wagmi";
 
-type ProvidersProps = {
+type ProvidersProps = Readonly<{
   children: React.ReactNode;
-};
+}>;
 
 export function Providers({ children }: ProvidersProps) {
   const [queryClient] = useState(() => new QueryClient());

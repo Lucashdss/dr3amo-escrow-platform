@@ -16,12 +16,12 @@ import { useDashboardActivity } from "@/features/dashboard/hooks/useDashboardAct
 import { useClientEscrowFunds } from "@/features/dashboard/hooks/useClientEscrowFunds";
 import { useFreelancerEscrowFunds } from "@/features/dashboard/hooks/useFreelancerEscrowFunds";
 
-type DashboardOverviewScreenProps = {
+type DashboardOverviewScreenProps = Readonly<{
   switchDashboardHref: string;
   switchDashboardLabel: string;
   title: string;
   variant: "client" | "freelancer";
-};
+}>;
 
 function getDisplayValues(address: string | undefined, username: string | undefined) {
   const trimmedAddress = address

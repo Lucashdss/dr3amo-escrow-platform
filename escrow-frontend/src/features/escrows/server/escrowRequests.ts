@@ -103,7 +103,11 @@ function parseTxHash(value: unknown): ValidationResult<string> {
 
 function parseDeliveryDays(value: unknown): ValidationResult<number> {
   const parsedValue =
-    typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseInt(value, 10)
+        : Number.NaN;
 
   if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
     return createValidationError("deliveryDays must be a positive integer.");

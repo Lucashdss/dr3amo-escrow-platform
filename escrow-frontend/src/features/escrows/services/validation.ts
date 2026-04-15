@@ -7,7 +7,6 @@ import {
 } from "@/features/escrows/config/deployment";
 import type { UserRecord } from "@/features/auth/types/user";
 import {
-  TOKEN_SYMBOLS,
   type EscrowChainKey,
   type TokenSymbol,
 } from "@/features/escrows/types/escrow";
@@ -23,7 +22,7 @@ import {
 } from "@/lib/validation";
 
 export const CHAIN_OPTIONS = getAvailableEscrowChainKeys();
-export const TOKEN_OPTIONS = TOKEN_SYMBOLS;
+export { TOKEN_SYMBOLS as TOKEN_OPTIONS } from "@/features/escrows/types/escrow";
 export const MAX_ESCROW_NAME_LENGTH = 50;
 export const MAX_MODIFICATION_EXTENSION_DAYS = 183;
 

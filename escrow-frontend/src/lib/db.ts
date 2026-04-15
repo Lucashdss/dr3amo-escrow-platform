@@ -22,7 +22,7 @@ function getMysqlPort(): number {
   }
 
   if (Number.isNaN(port)) {
-    throw new Error("MYSQL_PORT must be a valid number.");
+    throw new TypeError("MYSQL_PORT must be a valid number.");
   }
 
   return port;

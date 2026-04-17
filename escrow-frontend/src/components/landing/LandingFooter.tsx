@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 import { useAnalyticsSettings } from "@/features/analytics/components/AnalyticsProvider";
@@ -21,8 +22,15 @@ type FooterItemRowProps = Readonly<{
 
 function FooterLogo() {
   return (
-    <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-white text-3xl font-black text-[#101010] shadow-[0_0_0_8px_rgba(255,255,255,0.05)]">
-      D
+    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white shadow-[0_0_0_8px_rgba(255,255,255,0.05)]">
+      <Image
+        src="/websiteIcon/websiteIcon.png"
+        alt="Dr3amo"
+        width={64}
+        height={64}
+        className="h-16 w-16 rounded-full object-cover"
+        priority
+      />
     </div>
   );
 }

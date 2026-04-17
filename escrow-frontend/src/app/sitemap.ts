@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { getPublicAppUrl } from "@/lib/env/public";
+import { createCanonicalUrl } from "@/lib/seo/metadata";
 
 type SitemapEntry = {
   path: string;
@@ -16,8 +16,7 @@ const PUBLIC_SITEMAP_ENTRIES: SitemapEntry[] = [
 ];
 
 function createSitemapUrl(path: string): string {
-  const publicAppUrl = getPublicAppUrl();
-  const sitemapUrl = path === "/" ? publicAppUrl : `${publicAppUrl}${path}`;
+  const sitemapUrl = createCanonicalUrl(path);
 
   return sitemapUrl;
 }

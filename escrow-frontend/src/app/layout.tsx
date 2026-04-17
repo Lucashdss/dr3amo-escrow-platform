@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import "@/styles/globals.css";
 import { AnalyticsProvider } from "@/features/analytics/components/AnalyticsProvider";
 import { getPublicAppUrl } from "@/lib/env/public";
+import { SITE_NAME } from "@/lib/seo/metadata";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   metadataBase: new URL(getPublicAppUrl()),
-  title: "Dr3amo | Secure Escrow Platform for Buyers and Sellers",
-  description:
-    "A decentralized escrow platform for buyers and sellers to protect payments and reduce risk in online transactions.",
+  title: SITE_NAME,
+  applicationName: SITE_NAME,
   icons: {
     icon: [
       {

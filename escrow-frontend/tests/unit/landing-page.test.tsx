@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import Home from "@/app/page";
+import { LandingHomePage as Home } from "@/components/landing/LandingHomePage";
 
 const mockUseWalletAuth = jest.fn();
 const mockPush = jest.fn();

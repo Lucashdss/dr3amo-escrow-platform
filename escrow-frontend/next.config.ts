@@ -207,6 +207,7 @@ function createSecurityHeaders(): HeaderDefinition[] {
 }
 
 const nextConfig: NextConfig = {
+  trailingSlash: false,
   async headers() {
     validateProductionAppUrl();
 
@@ -224,7 +225,20 @@ const nextConfig: NextConfig = {
       return [];
     }
 
+    const publicAppUrl = getPublicAppUrl();
+
     return [
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "www.dr3amo.com",
+          },
+        ],
+        destination: `${publicAppUrl}/:path*`,
+        permanent: true,
+      },
       {
         source: "/:path*",
         has: [
@@ -234,7 +248,22 @@ const nextConfig: NextConfig = {
             value: "http",
           },
         ],
-        destination: `${getPublicAppUrl()}/:path*`,
+        destination: `${publicAppUrl}/:path*`,
+        permanent: true,
+      },
+      {
+        source: "/home",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/index",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/index.html",
+        destination: "/",
         permanent: true,
       },
     ];

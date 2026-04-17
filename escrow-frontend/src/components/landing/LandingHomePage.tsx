@@ -5,7 +5,7 @@ import { useState } from "react";
 import { LandingHomeContent } from "@/components/landing/LandingHomeContent";
 import { LandingShell } from "@/components/landing/LandingShell";
 
-export default function Home() {
+export function LandingHomePage() {
   const [isFreelancerView, setIsFreelancerView] = useState(false);
   const backgroundClass = isFreelancerView ? "bg-[#22007C]" : "bg-[#04052E]";
   const accentTextClass = isFreelancerView

@@ -107,10 +107,21 @@ describe("next.config security headers", () => {
     expect(contentSecurityPolicy).not.toContain("https://challenges.cloudflare.com");
   });
 
-  it("redirects production http requests to the configured https origin", async () => {
+  it("redirects production traffic to the canonical origin and homepage path", async () => {
     const redirects = await loadRedirects();
 
     expect(redirects).toEqual([
+      {
+        destination: "https://dr3amo.com/:path*",
+        has: [
+          {
+            type: "host",
+            value: "www.dr3amo.com",
+          },
+        ],
+        permanent: true,
+        source: "/:path*",
+      },
       {
         destination: "https://dr3amo.com/:path*",
         has: [
@@ -122,6 +133,21 @@ describe("next.config security headers", () => {
         ],
         permanent: true,
         source: "/:path*",
+      },
+      {
+        destination: "/",
+        permanent: true,
+        source: "/home",
+      },
+      {
+        destination: "/",
+        permanent: true,
+        source: "/index",
+      },
+      {
+        destination: "/",
+        permanent: true,
+        source: "/index.html",
       },
     ]);
   });

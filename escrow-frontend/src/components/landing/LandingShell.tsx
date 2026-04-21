@@ -69,7 +69,7 @@ function LandingHeader({
 }: LandingHeaderProps) {
   return (
     <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-5 md:px-10">
-      <Link href="/" className="shrink-0 text-3xl font-bold tracking-tight">
+      <Link href="/" className="shrink-0 text-[2.34375rem] font-bold tracking-tight">
         Dr3amo
       </Link>
       <LandingHeaderNav onProtectedNavigation={onProtectedNavigation} />
@@ -121,6 +121,7 @@ function HeaderCtaEffect({
         />
       ) : null}
       <LightPillar
+        as="span"
         bottomColor="#22007C"
         className="pointer-events-none -z-10"
         glowAmount={0.01}

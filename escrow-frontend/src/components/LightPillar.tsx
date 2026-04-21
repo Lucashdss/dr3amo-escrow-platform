@@ -10,8 +10,10 @@ import {
 import * as THREE from "three";
 
 type LightPillarQuality = "low" | "medium" | "high";
+type LightPillarElement = "div" | "span";
 
 type LightPillarProps = Readonly<{
+  as?: LightPillarElement;
   bottomColor?: string;
   className?: string;
   glowAmount?: number;
@@ -51,7 +53,7 @@ type LightPillarRuntime = {
   time: number;
 };
 
-type LightPillarConfig = Required<Omit<LightPillarProps, "className">>;
+type LightPillarConfig = Required<Omit<LightPillarProps, "as" | "className">>;
 
 const DEFAULT_TOP_COLOR = "#22007C";
 const DEFAULT_BOTTOM_COLOR = "#FFFFFF";
@@ -68,6 +70,7 @@ void main() {
 `;
 
 export function LightPillar({
+  as: Element = "div",
   bottomColor = DEFAULT_BOTTOM_COLOR,
   className = "",
   glowAmount = 0.004,
@@ -82,7 +85,7 @@ export function LightPillar({
   rotationSpeed = 0.26,
   topColor = DEFAULT_TOP_COLOR,
 }: LightPillarProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
   const mouseRef = useRef(new THREE.Vector2(0, 0));
   const runtimeRef = useRef<LightPillarRuntime>({
     animationFrame: 0,
@@ -153,19 +156,19 @@ export function LightPillar({
 
   if (!webGLSupported) {
     return (
-      <div
+      <Element
         aria-hidden="true"
-        className={`absolute inset-0 h-full w-full bg-white/10 ${className}`}
+        className={`absolute inset-0 block h-full w-full bg-white/10 ${className}`}
         style={{ mixBlendMode }}
       />
     );
   }
 
   return (
-    <div
+    <Element
       ref={containerRef}
       aria-hidden="true"
-      className={`absolute inset-0 h-full w-full ${className}`}
+      className={`absolute inset-0 block h-full w-full ${className}`}
       style={{ mixBlendMode }}
     />
   );
@@ -230,7 +233,7 @@ function getQualitySettings(quality: LightPillarQuality): QualitySettings {
 }
 
 function createLightPillarInstance(
-  container: HTMLDivElement,
+  container: HTMLElement,
   config: LightPillarConfig,
   settings: QualitySettings,
   mouseRef: RefObject<THREE.Vector2>
@@ -246,7 +249,7 @@ function createLightPillarInstance(
 }
 
 function createRenderer(
-  container: HTMLDivElement,
+  container: HTMLElement,
   config: LightPillarConfig,
   settings: QualitySettings
 ): THREE.WebGLRenderer {
@@ -265,7 +268,7 @@ function createRenderer(
 }
 
 function createMaterial(
-  container: HTMLDivElement,
+  container: HTMLElement,
   config: LightPillarConfig,
   settings: QualitySettings,
   mouseRef: RefObject<THREE.Vector2>
@@ -281,7 +284,7 @@ function createMaterial(
 }
 
 function createUniforms(
-  container: HTMLDivElement,
+  container: HTMLElement,
   config: LightPillarConfig,
   mouseRef: RefObject<THREE.Vector2>
 ): Record<string, THREE.IUniform> {
@@ -416,7 +419,7 @@ void main() {
 }
 
 function createMouseMoveHandler(
-  container: HTMLDivElement,
+  container: HTMLElement,
   config: LightPillarConfig,
   mouseRef: RefObject<THREE.Vector2>
 ): (event: MouseEvent) => void {
@@ -434,7 +437,7 @@ function createMouseMoveHandler(
 }
 
 function createResizeHandler(
-  container: HTMLDivElement,
+  container: HTMLElement,
   instance: LightPillarInstance,
   runtimeRef: RefObject<LightPillarRuntime>
 ): () => void {
@@ -497,7 +500,7 @@ function updateAnimationUniforms(
 }
 
 function attachListeners(
-  container: HTMLDivElement,
+  container: HTMLElement,
   config: LightPillarConfig,
   handleMouseMove: (event: MouseEvent) => void,
   handleResize: () => void
@@ -510,7 +513,7 @@ function attachListeners(
 }
 
 function detachListeners(
-  container: HTMLDivElement,
+  container: HTMLElement,
   config: LightPillarConfig,
   handleMouseMove: (event: MouseEvent) => void,
   handleResize: () => void
@@ -523,7 +526,7 @@ function detachListeners(
 }
 
 function destroyRuntime(
-  container: HTMLDivElement,
+  container: HTMLElement,
   runtimeRef: RefObject<LightPillarRuntime>
 ): void {
   cancelAnimationFrame(runtimeRef.current.animationFrame);
@@ -533,7 +536,7 @@ function destroyRuntime(
 }
 
 function destroyInstance(
-  container: HTMLDivElement,
+  container: HTMLElement,
   instance: LightPillarInstance | null
 ): void {
   if (!instance) {
@@ -559,7 +562,7 @@ function clearPendingResize(
 }
 
 function updateMousePosition(
-  container: HTMLDivElement,
+  container: HTMLElement,
   mouseRef: RefObject<THREE.Vector2>,
   event: MouseEvent
 ): void {
@@ -570,7 +573,7 @@ function updateMousePosition(
 }
 
 function updateSize(
-  container: HTMLDivElement,
+  container: HTMLElement,
   instance: LightPillarInstance
 ): void {
   const width = getWidth(container);
@@ -579,11 +582,11 @@ function updateSize(
   instance.material.uniforms.uResolution.value.set(width, height);
 }
 
-function getWidth(container: HTMLDivElement): number {
+function getWidth(container: HTMLElement): number {
   return Math.max(1, container.clientWidth);
 }
 
-function getHeight(container: HTMLDivElement): number {
+function getHeight(container: HTMLElement): number {
   return Math.max(1, container.clientHeight);
 }
 

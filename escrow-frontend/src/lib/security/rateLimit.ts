@@ -3,7 +3,7 @@ import type { NextResponse } from "next/server";
 import { createErrorResponse } from "@/lib/api/responses";
 import { incrementRateLimitCounter } from "@/lib/security/rateLimitRepository";
 
-export type RateLimitScope =
+type RateLimitScope =
   | "message_submit"
   | "user_create"
   | "user_lookup"
@@ -25,7 +25,7 @@ type RateLimitDependencies = {
   now: () => Date;
 };
 
-export type RateLimitResult = {
+type RateLimitResult = {
   allowed: boolean;
   retryAfterSeconds: number;
 };

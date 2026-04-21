@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { NextResponse } from "next/server";
 
-export const AUTH_SESSION_COOKIE_NAME = "dr3amo_session";
+const AUTH_SESSION_COOKIE_NAME = "dr3amo_session";
 export const NONCE_TTL_MS = 5 * 60 * 1000;
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SESSION_MAX_AGE_SECONDS = SESSION_TTL_MS / 1000;

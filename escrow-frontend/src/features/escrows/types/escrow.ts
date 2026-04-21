@@ -65,10 +65,6 @@ export type CreateEscrowResult = {
   txHash: string;
 };
 
-export type EscrowListResult = {
-  escrows: EscrowRecord[];
-};
-
 export const ESCROW_MANAGEMENT_ROLES = ["client", "freelancer"] as const;
 
 export type EscrowManagementRole = (typeof ESCROW_MANAGEMENT_ROLES)[number];
@@ -161,12 +157,4 @@ export type FreelancerEscrowStateGroups = {
   deadlinesExcluded: readonly string[];
   receivableExcluded: readonly string[];
   waitingDeliveryExcluded: readonly string[];
-};
-
-export type EscrowSummary = {
-  id: string;
-  client: string;
-  freelancer: string;
-  amount: string;
-  released: boolean;
 };

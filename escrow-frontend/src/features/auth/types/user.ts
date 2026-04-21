@@ -25,7 +25,3 @@ export type CreateUserResult = {
   message: string;
   user: UserRecord | null;
 };
-
-export type UserListResult = {
-  users: UserRecord[];
-};

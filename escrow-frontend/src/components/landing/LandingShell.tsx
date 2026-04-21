@@ -51,11 +51,11 @@ type HeaderCtaEffectProps = Readonly<{
 const DEFAULT_ACCENT_TEXT_CLASS_NAME = "text-white";
 const DEFAULT_BACKGROUND_CLASS_NAME = "bg-[#04052E]";
 const HEADER_CTA_CLASS_NAME =
-  "relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-8 py-2.5 text-base font-semibold text-white transition hover:bg-white/10";
+  "group relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-8 py-2.5 text-base font-semibold text-white transition hover:bg-white/10";
 const HEADER_CONNECT_CTA_CLASS_NAME =
-  "relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-8 py-2.5 text-base font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70";
+  "group relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-8 py-2.5 text-base font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70";
 const HEADER_WALLET_ADDRESS_CTA_CLASS_NAME =
-  "relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70";
+  "group relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70";
 
 const LandingShellContext = createContext<LandingShellContextValue | null>(null);
 
@@ -137,7 +137,7 @@ function HeaderCtaEffect({
       />
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-black/12"
+        className="pointer-events-none absolute inset-0 -z-10 bg-black/12 transition-colors duration-200 group-hover:bg-white/10"
       />
     </>
   );

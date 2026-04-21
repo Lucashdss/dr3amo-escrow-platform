@@ -17,7 +17,7 @@ type PublicPageMetadataInput = Readonly<{
 const PUBLIC_APP_URL = getPublicAppUrl();
 
 function normalizePublicPath(path: string): string {
-  const trimmedPath = path.replace(/^\/+|\/+$/g, "");
+  const trimmedPath = path.replaceAll(/^\/+|\/+$/g, "");
   const normalizedPath = trimmedPath ? `/${trimmedPath}` : "/";
 
   return normalizedPath;

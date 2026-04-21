@@ -88,7 +88,7 @@ type EscrowActionVerificationInput = {
   txHash: string;
 };
 
-export type RefundCandidate = {
+type RefundCandidate = {
   contractAddress: string;
   txHash: string;
 };
@@ -1049,7 +1049,7 @@ export async function verifyRefundTransaction(
   return normalizeSnapshotState(snapshot);
 }
 
-export function mapEscrowLiveStateToDatabaseState(
+function mapEscrowLiveStateToDatabaseState(
   liveEscrowState: EscrowLiveState | null
 ): string | null {
   if (!liveEscrowState) {
@@ -1199,7 +1199,7 @@ export async function waitForEscrowActionReceipt(
   return waitForChainReceipt(databaseChainId, txHash);
 }
 
-export function decodeEscrowReceiptEventNames(logs: readonly Log[]): string[] {
+function decodeEscrowReceiptEventNames(logs: readonly Log[]): string[] {
   const parsedLogs = parseEventLogs({
     abi: ESCROW_ABI,
     logs: [...logs],
@@ -1278,7 +1278,7 @@ function getUpdatedStateFromLogs(
   return currentState;
 }
 
-export async function readEscrowSyncSnapshot(
+async function readEscrowSyncSnapshot(
   escrow: EscrowManagementItem
 ): Promise<EscrowSyncSnapshot> {
   const chainId = getSupportedChainId(escrow.chainId);
@@ -1313,7 +1313,7 @@ export async function readEscrowSyncSnapshot(
   };
 }
 
-export async function getEscrowSyncReceipt(
+async function getEscrowSyncReceipt(
   databaseChainId: number,
   txHash: string
 ) {
@@ -1333,7 +1333,7 @@ export async function getEscrowSyncReceipt(
   }
 }
 
-export async function getFundReceiptUpdate(
+async function getFundReceiptUpdate(
   escrow: EscrowManagementItem,
   txHash: string,
   logs: readonly Log[]

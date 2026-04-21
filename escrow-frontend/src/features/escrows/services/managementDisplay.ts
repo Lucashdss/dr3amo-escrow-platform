@@ -64,7 +64,7 @@ export function getEscrowTokenLabel(tokenId: number): string {
   return ESCROW_TOKEN_LABELS[tokenId] ?? `Token ${tokenId}`;
 }
 
-export function getCounterpartyLabel(escrow: EscrowManagementItem): string {
+function getCounterpartyLabel(escrow: EscrowManagementItem): string {
   if (escrow.role === "client") {
     return escrow.freelancerUsername;
   }
@@ -72,7 +72,7 @@ export function getCounterpartyLabel(escrow: EscrowManagementItem): string {
   return escrow.clientUsername;
 }
 
-export function getCounterpartyTitle(role: EscrowManagementRole): string {
+function getCounterpartyTitle(role: EscrowManagementRole): string {
   if (role === "client") {
     return "Seller";
   }

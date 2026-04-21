@@ -5,13 +5,13 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type MutableRefObject,
+  type RefObject,
 } from "react";
 import * as THREE from "three";
 
-export type LightPillarQuality = "low" | "medium" | "high";
+type LightPillarQuality = "low" | "medium" | "high";
 
-export type LightPillarProps = Readonly<{
+type LightPillarProps = Readonly<{
   bottomColor?: string;
   className?: string;
   glowAmount?: number;
@@ -218,7 +218,7 @@ function getQualitySettings(quality: LightPillarQuality): QualitySettings {
     },
     high: {
       iterations: 80,
-      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+      pixelRatio: Math.min(globalThis.devicePixelRatio || 1, 2),
       precision: "highp",
       stepMultiplier: 1,
       targetFps: 60,
@@ -233,7 +233,7 @@ function createLightPillarInstance(
   container: HTMLDivElement,
   config: LightPillarConfig,
   settings: QualitySettings,
-  mouseRef: MutableRefObject<THREE.Vector2>
+  mouseRef: RefObject<THREE.Vector2>
 ): LightPillarInstance {
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -268,7 +268,7 @@ function createMaterial(
   container: HTMLDivElement,
   config: LightPillarConfig,
   settings: QualitySettings,
-  mouseRef: MutableRefObject<THREE.Vector2>
+  mouseRef: RefObject<THREE.Vector2>
 ): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     depthTest: false,
@@ -283,7 +283,7 @@ function createMaterial(
 function createUniforms(
   container: HTMLDivElement,
   config: LightPillarConfig,
-  mouseRef: MutableRefObject<THREE.Vector2>
+  mouseRef: RefObject<THREE.Vector2>
 ): Record<string, THREE.IUniform> {
   const rotation = getRotationValues(config.pillarRotation);
   return {
@@ -418,7 +418,7 @@ void main() {
 function createMouseMoveHandler(
   container: HTMLDivElement,
   config: LightPillarConfig,
-  mouseRef: MutableRefObject<THREE.Vector2>
+  mouseRef: RefObject<THREE.Vector2>
 ): (event: MouseEvent) => void {
   let mouseMoveTimeout = 0;
   return (event) => {
@@ -426,7 +426,7 @@ function createMouseMoveHandler(
       return;
     }
 
-    mouseMoveTimeout = window.setTimeout(() => {
+    mouseMoveTimeout = globalThis.window.setTimeout(() => {
       mouseMoveTimeout = 0;
     }, 16);
     updateMousePosition(container, mouseRef, event);
@@ -436,14 +436,14 @@ function createMouseMoveHandler(
 function createResizeHandler(
   container: HTMLDivElement,
   instance: LightPillarInstance,
-  runtimeRef: MutableRefObject<LightPillarRuntime>
+  runtimeRef: RefObject<LightPillarRuntime>
 ): () => void {
   return () => {
     if (runtimeRef.current.resizeTimeout) {
       clearTimeout(runtimeRef.current.resizeTimeout);
     }
 
-    runtimeRef.current.resizeTimeout = window.setTimeout(() => {
+    runtimeRef.current.resizeTimeout = globalThis.window.setTimeout(() => {
       updateSize(container, instance);
       runtimeRef.current.resizeTimeout = null;
     }, 150);
@@ -451,8 +451,8 @@ function createResizeHandler(
 }
 
 function startAnimationLoop(
-  runtimeRef: MutableRefObject<LightPillarRuntime>,
-  rotationSpeedRef: MutableRefObject<number>,
+  runtimeRef: RefObject<LightPillarRuntime>,
+  rotationSpeedRef: RefObject<number>,
   settings: QualitySettings
 ): void {
   let lastTime = performance.now();
@@ -470,8 +470,8 @@ function renderFrame(
   currentTime: number,
   lastTime: number,
   frameTime: number,
-  runtimeRef: MutableRefObject<LightPillarRuntime>,
-  rotationSpeedRef: MutableRefObject<number>
+  runtimeRef: RefObject<LightPillarRuntime>,
+  rotationSpeedRef: RefObject<number>
 ): number {
   const instance = runtimeRef.current.instance;
   const deltaTime = currentTime - lastTime;
@@ -487,8 +487,8 @@ function renderFrame(
 
 function updateAnimationUniforms(
   material: THREE.ShaderMaterial,
-  runtimeRef: MutableRefObject<LightPillarRuntime>,
-  rotationSpeedRef: MutableRefObject<number>
+  runtimeRef: RefObject<LightPillarRuntime>,
+  rotationSpeedRef: RefObject<number>
 ): void {
   runtimeRef.current.time += 0.016 * rotationSpeedRef.current;
   material.uniforms.uTime.value = runtimeRef.current.time;
@@ -506,7 +506,7 @@ function attachListeners(
     container.addEventListener("mousemove", handleMouseMove, { passive: true });
   }
 
-  window.addEventListener("resize", handleResize, { passive: true });
+  globalThis.addEventListener("resize", handleResize, { passive: true });
 }
 
 function detachListeners(
@@ -519,12 +519,12 @@ function detachListeners(
     container.removeEventListener("mousemove", handleMouseMove);
   }
 
-  window.removeEventListener("resize", handleResize);
+  globalThis.removeEventListener("resize", handleResize);
 }
 
 function destroyRuntime(
   container: HTMLDivElement,
-  runtimeRef: MutableRefObject<LightPillarRuntime>
+  runtimeRef: RefObject<LightPillarRuntime>
 ): void {
   cancelAnimationFrame(runtimeRef.current.animationFrame);
   clearPendingResize(runtimeRef);
@@ -545,14 +545,10 @@ function destroyInstance(
   instance.renderer.dispose();
   instance.renderer.forceContextLoss();
   instance.renderer.domElement.remove();
-
-  if (container.contains(instance.renderer.domElement)) {
-    container.removeChild(instance.renderer.domElement);
-  }
 }
 
 function clearPendingResize(
-  runtimeRef: MutableRefObject<LightPillarRuntime>
+  runtimeRef: RefObject<LightPillarRuntime>
 ): void {
   if (!runtimeRef.current.resizeTimeout) {
     return;
@@ -564,7 +560,7 @@ function clearPendingResize(
 
 function updateMousePosition(
   container: HTMLDivElement,
-  mouseRef: MutableRefObject<THREE.Vector2>,
+  mouseRef: RefObject<THREE.Vector2>,
   event: MouseEvent
 ): void {
   const rect = container.getBoundingClientRect();
@@ -611,5 +607,3 @@ function getWaveValues(operation: "cos" | "sin"): Float32Array {
 
   return values;
 }
-
-export default LightPillar;

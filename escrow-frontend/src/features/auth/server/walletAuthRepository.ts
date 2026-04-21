@@ -2,7 +2,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import pool, { type DatabaseQueryValues } from "@/lib/db";
 
-export type WalletAuthNonceRecord = RowDataPacket & {
+type WalletAuthNonceRecord = RowDataPacket & {
   challenge_nonce: string;
   created_at: Date | string;
   expires_at: Date | string;
@@ -11,7 +11,7 @@ export type WalletAuthNonceRecord = RowDataPacket & {
   wallet_address: string;
 };
 
-export type WalletSessionRecord = RowDataPacket & {
+type WalletSessionRecord = RowDataPacket & {
   created_at: Date | string;
   expires_at: Date | string;
   id: number;

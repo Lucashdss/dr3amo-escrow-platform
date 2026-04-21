@@ -39,9 +39,3 @@ export async function createUser({
     }),
   });
 }
-
-export type {
-  CreateUserRequest,
-  CreateUserResult,
-  UserLookupResponse,
-} from "@/features/auth/types/user";

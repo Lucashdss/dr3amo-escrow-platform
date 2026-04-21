@@ -41,7 +41,7 @@ const ESCROW_CREATED_EVENT_ABI_VARIANTS = [
   ],
 ] as const;
 
-export type EscrowCreatedLogArgs = {
+type EscrowCreatedLogArgs = {
   bps: bigint;
   client: Address;
   dataFeed: Address;

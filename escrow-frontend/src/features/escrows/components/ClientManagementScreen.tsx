@@ -30,7 +30,7 @@ type EscrowContentState = Readonly<{
   isLoading: boolean;
 }>;
 
-export type ClientManagementScreenContentProps = Readonly<{
+type ClientManagementScreenContentProps = Readonly<{
   displayValues: ManagementDisplayValues;
   errorMessage: string | null;
   escrows: EscrowManagementItem[];

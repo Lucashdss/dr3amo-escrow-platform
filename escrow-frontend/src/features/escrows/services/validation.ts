@@ -26,7 +26,7 @@ export { TOKEN_SYMBOLS as TOKEN_OPTIONS } from "@/features/escrows/types/escrow"
 export const MAX_ESCROW_NAME_LENGTH = 50;
 export const MAX_MODIFICATION_EXTENSION_DAYS = 183;
 
-export type EscrowSubmissionInput = {
+type EscrowSubmissionInput = {
   clientUser: UserRecord | null;
   deliveryDays: string;
   escrowName: string;
@@ -80,7 +80,7 @@ export function parseDeliveryDays(value: string): number | null {
   return deliveryDays > 0 ? deliveryDays : null;
 }
 
-export function calculateDeliveryDays(
+function calculateDeliveryDays(
   deadline: string,
   now = new Date()
 ): number | null {
@@ -97,7 +97,7 @@ export function calculateDeliveryDays(
   );
 }
 
-export function validateEscrowDeadline(
+function validateEscrowDeadline(
   deadline: string,
   now = new Date()
 ): ValidationResult<string> {

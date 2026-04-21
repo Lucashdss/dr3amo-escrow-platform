@@ -6,7 +6,7 @@ import {
 } from "@/features/auth/services/userApi";
 import type { UserLookupProfile } from "@/features/auth/types/user";
 
-export type ResolvedFreelancer = {
+type ResolvedFreelancer = {
   address: Address;
   user: UserLookupProfile;
 };

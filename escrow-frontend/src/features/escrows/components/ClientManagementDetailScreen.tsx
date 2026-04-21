@@ -34,7 +34,7 @@ type ManagementDetailDisplayValues = {
   trimmedAddress: string;
 };
 
-export type ClientManagementDetailScreenContentProps = Readonly<{
+type ClientManagementDetailScreenContentProps = Readonly<{
   actionError: string | null;
   actionStatus: string | null;
   actionSuccess: string | null;

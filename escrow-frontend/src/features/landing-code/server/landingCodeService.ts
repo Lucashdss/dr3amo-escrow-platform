@@ -49,5 +49,3 @@ export async function getLandingCodePreview(
     throw new AppError("Failed to load GitHub source.", 502);
   }
 }
-
-export { createLandingCodeLines };

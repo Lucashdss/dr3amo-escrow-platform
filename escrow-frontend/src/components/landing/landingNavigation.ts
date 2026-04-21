@@ -6,7 +6,7 @@ export type LandingNavItem = {
   requiresWalletAuth?: boolean;
 };
 
-export type LandingNavSection = {
+type LandingNavSection = {
   items: LandingNavItem[];
   title: string;
 };

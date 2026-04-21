@@ -2,7 +2,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import pool from "@/lib/db";
 
-export type RateLimitCounterInput = {
+type RateLimitCounterInput = {
   identifier: string;
   now: Date;
   scope: string;

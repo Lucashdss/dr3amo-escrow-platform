@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType } from "react";
 
 export type DashboardTone = "amber" | "lime" | "white";
 export type KpiValueOption = "ETH" | "USDC";
@@ -34,9 +34,3 @@ export type ToneClasses = Record<
     text: string;
   }
 >;
-
-export type DashboardHeroProps = {
-  badge: ReactNode;
-  description: string;
-  title: string;
-};

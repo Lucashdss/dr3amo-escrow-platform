@@ -4,7 +4,7 @@ export type ProtectedLandingRoute =
   | "/contracts"
   | "/management";
 
-export type LandingShowcaseItem = {
+type LandingShowcaseItem = {
   description: string;
   label: string;
   slug: string;

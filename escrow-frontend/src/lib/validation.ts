@@ -2,7 +2,7 @@ export type ValidationResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-export const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function createValidationSuccess<T>(data: T): ValidationResult<T> {
   return { success: true, data };
@@ -50,7 +50,7 @@ export function formatDateOnlyUtc(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
-export function getStartOfTodayUtc(now = new Date()): Date {
+function getStartOfTodayUtc(now = new Date()): Date {
   return new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
   );

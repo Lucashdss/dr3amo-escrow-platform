@@ -1,8 +1,8 @@
 import type { EscrowActionKey } from "@/features/escrows/types/escrow";
 
-export const DISPUTE_DEVELOPMENT_MESSAGE = "on development";
+const DISPUTE_DEVELOPMENT_MESSAGE = "on development";
 
-export function isEscrowProductionEnvironment(): boolean {
+function isEscrowProductionEnvironment(): boolean {
   const isProductionEnvironment = process.env.NODE_ENV === "production";
 
   return isProductionEnvironment;

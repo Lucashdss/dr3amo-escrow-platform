@@ -18,6 +18,7 @@ import {
   type ProtectedLandingRoute,
   shouldRedirectToPendingRoute,
 } from "@/components/landing/landingShowcase";
+import { LightPillar } from "@/components/LightPillar";
 import { UsernameModal } from "@/components/landing/UsernameModal";
 import { WalletModal } from "@/components/landing/WalletModal";
 import { useWalletAuth } from "@/features/auth/hooks/useWalletAuth";
@@ -42,8 +43,19 @@ type LandingShellContextValue = Readonly<{
   navigateToProtectedRoute: (route: ProtectedLandingRoute) => void;
 }>;
 
+type HeaderCtaEffectProps = Readonly<{
+  backgroundClassName?: string;
+  isVisible: boolean;
+}>;
+
 const DEFAULT_ACCENT_TEXT_CLASS_NAME = "text-white";
 const DEFAULT_BACKGROUND_CLASS_NAME = "bg-[#04052E]";
+const HEADER_CTA_CLASS_NAME =
+  "relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-8 py-2.5 text-base font-semibold text-white transition hover:bg-white/10";
+const HEADER_CONNECT_CTA_CLASS_NAME =
+  "relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-8 py-2.5 text-base font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70";
+const HEADER_WALLET_ADDRESS_CTA_CLASS_NAME =
+  "relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70";
 
 const LandingShellContext = createContext<LandingShellContextValue | null>(null);
 
@@ -65,21 +77,69 @@ function LandingHeader({
         {isMounted && isConnected ? (
           <Link
             href="/client"
-            className={`rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10 ${accentTextClassName}`}
+            className={`${HEADER_CTA_CLASS_NAME} ${accentTextClassName}`}
           >
-            Manage Escrows
+            <HeaderCtaEffect isVisible={isConnected} />
+            <span className="relative z-10">Manage Escrows</span>
           </Link>
         ) : null}
         <button
           type="button"
           onClick={onConnectClick}
           disabled={!isMounted}
-          className="rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+          className={
+            isConnected
+              ? HEADER_WALLET_ADDRESS_CTA_CLASS_NAME
+              : HEADER_CONNECT_CTA_CLASS_NAME
+          }
         >
-          {headerLabel}
+          <HeaderCtaEffect
+            backgroundClassName="bg-black"
+            isVisible={!isConnected}
+          />
+          <span className="relative z-10">{headerLabel}</span>
         </button>
       </div>
     </header>
+  );
+}
+
+function HeaderCtaEffect({
+  backgroundClassName,
+  isVisible,
+}: HeaderCtaEffectProps) {
+  if (!isVisible) {
+    return null;
+  }
+
+  return (
+    <>
+      {backgroundClassName ? (
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 -z-20 ${backgroundClassName}`}
+        />
+      ) : null}
+      <LightPillar
+        bottomColor="#22007C"
+        className="pointer-events-none -z-10"
+        glowAmount={0.01}
+        intensity={1.5}
+        interactive={false}
+        mixBlendMode={backgroundClassName ? "normal" : "screen"}
+        noiseIntensity={0.2}
+        pillarHeight={0.7}
+        pillarRotation={100}
+        pillarWidth={10}
+        quality="medium"
+        rotationSpeed={1}
+        topColor="#e4aaff"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-black/12"
+      />
+    </>
   );
 }
 

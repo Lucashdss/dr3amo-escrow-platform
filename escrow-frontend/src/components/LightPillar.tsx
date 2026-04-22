@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -11,6 +12,7 @@ import * as THREE from "three";
 
 type LightPillarQuality = "low" | "medium" | "high";
 type LightPillarElement = "div" | "span";
+type LightPillarContainer = HTMLDivElement | HTMLSpanElement;
 
 type LightPillarProps = Readonly<{
   as?: LightPillarElement;
@@ -86,6 +88,9 @@ export function LightPillar({
   topColor = DEFAULT_TOP_COLOR,
 }: LightPillarProps) {
   const containerRef = useRef<HTMLElement | null>(null);
+  const setContainerRef = useCallback((node: LightPillarContainer | null): void => {
+    containerRef.current = node;
+  }, []);
   const mouseRef = useRef(new THREE.Vector2(0, 0));
   const runtimeRef = useRef<LightPillarRuntime>({
     animationFrame: 0,
@@ -166,7 +171,7 @@ export function LightPillar({
 
   return (
     <Element
-      ref={containerRef}
+      ref={setContainerRef}
       aria-hidden="true"
       className={`absolute inset-0 block h-full w-full ${className}`}
       style={{ mixBlendMode }}

@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "check": "npm run lint && npm run typecheck && npm test -- --runInBand && npm run build",
+    "check": "npm run lint && npm run typecheck && npm run knip && npm test -- --runInBand && npm run build",
     "knip": "knip"
   },
   "dependencies": {
@@ -28,7 +28,7 @@
     "server-only": "^0.0.1",
     "three": "^0.167.1",
     "viem": "^2.45.1",
-    "wagmi": "^3.6.0"
+    "wagmi": "^3.5.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -39,6 +39,7 @@
     "@types/react-dom": "^19",
     "@types/three": "^0.184.0",
     "eslint": "^10.0.0",
+    "fast-check": "^4.7.0",
     "jest": "^30.2.0",
     "knip": "^6.6.0",
     "tailwindcss": "^4.1.18",

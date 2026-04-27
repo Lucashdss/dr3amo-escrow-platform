@@ -18,9 +18,20 @@ jest.mock("next/link", () => ({
     React.createElement("a", { href }, children),
 }));
 
-jest.mock("lucide-react", () => ({
-  ExternalLink: () => React.createElement("span", null, "ExternalLink"),
-}));
+jest.mock("lucide-react", () => {
+  const react = jest.requireActual<typeof React>("react");
+  const createMockIcon = (name: string) => () =>
+    react.createElement("span", null, name);
+
+  return {
+    ArrowUpRight: createMockIcon("ArrowUpRight"),
+    BriefcaseBusiness: createMockIcon("BriefcaseBusiness"),
+    ExternalLink: createMockIcon("ExternalLink"),
+    Menu: createMockIcon("Menu"),
+    Wallet: createMockIcon("Wallet"),
+    X: createMockIcon("X"),
+  };
+});
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({

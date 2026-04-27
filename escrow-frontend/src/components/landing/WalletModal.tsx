@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import type { Connector } from "wagmi";
 
 type WalletModalProps = Readonly<{
@@ -25,14 +26,22 @@ const wallets = [
     icon: "/wallets/metamaskIcon.svg",
     connectorIds: ["metaMaskSDK", "metaMask"],
     connectorNames: ["MetaMask"],
+    useWalletConnectOnMobile: true,
   },
   {
     name: "WalletConnect",
     icon: "/wallets/walletConnectIcon.svg",
     connectorIds: ["walletConnect"],
     connectorNames: ["WalletConnect"],
+    useWalletConnectOnMobile: false,
   },
 ];
+
+type WalletDefinition = (typeof wallets)[number];
+
+type EthereumProvider = Readonly<{
+  isMetaMask?: boolean;
+}>;
 
 export function WalletModal({
   isConnectModalOpen,
@@ -51,6 +60,8 @@ export function WalletModal({
   onCloseDisconnectModal,
   onDisconnect,
 }: WalletModalProps) {
+  const isMobileBrowser = useIsMobileBrowser();
+
   return (
     <>
       {isConnectModalOpen ? (
@@ -68,11 +79,11 @@ export function WalletModal({
             </div>
 
             <div className="mx-auto grid max-w-md grid-cols-2 gap-3">
-              {wallets.map(({ name, icon, connectorIds, connectorNames }) => {
-                const connector = connectors.find(
-                  (item) =>
-                    connectorIds.includes(item.id) ||
-                    connectorNames.includes(item.name),
+              {wallets.map((wallet) => {
+                const connector = getWalletConnector(
+                  wallet,
+                  connectors,
+                  isMobileBrowser
                 );
 
                 if (!connector) {
@@ -81,16 +92,16 @@ export function WalletModal({
 
                 return (
                   <button
-                    key={name}
+                    key={wallet.name}
                     type="button"
-                    aria-label={name}
+                    aria-label={wallet.name}
                     disabled={isConnecting}
                     onClick={() => onConnect(connector)}
                     className="flex items-center justify-center gap-3 rounded-xl border border-white/15 bg-[#162334] px-3 py-4 text-sm font-semibold text-white/90 transition hover:bg-[#1b2d43] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Image
-                      src={icon}
-                      alt={name}
+                      src={wallet.icon}
+                      alt={wallet.name}
                       width={50}
                       height={50}
                       priority
@@ -157,4 +168,64 @@ export function WalletModal({
       ) : null}
     </>
   );
+}
+
+function useIsMobileBrowser(): boolean {
+  const [isMobileBrowser, setIsMobileBrowser] = useState(matchMobileBrowser);
+
+  useEffect(() => {
+    setIsMobileBrowser(matchMobileBrowser());
+  }, []);
+
+  return isMobileBrowser;
+}
+
+function getWalletConnector(
+  wallet: WalletDefinition,
+  connectors: readonly Connector[],
+  isMobileBrowser: boolean
+): Connector | undefined {
+  const shouldUseWalletConnect =
+    wallet.useWalletConnectOnMobile &&
+    isMobileBrowser &&
+    !isMetaMaskInAppBrowser();
+  const connector = shouldUseWalletConnect
+    ? findWalletConnectConnector(connectors) ?? findDirectWalletConnector(wallet, connectors)
+    : findDirectWalletConnector(wallet, connectors);
+
+  return connector;
+}
+
+function findDirectWalletConnector(
+  wallet: WalletDefinition,
+  connectors: readonly Connector[]
+): Connector | undefined {
+  return connectors.find(
+    (connector) =>
+      wallet.connectorIds.includes(connector.id) ||
+      wallet.connectorNames.includes(connector.name)
+  );
+}
+
+function findWalletConnectConnector(
+  connectors: readonly Connector[]
+): Connector | undefined {
+  return connectors.find((connector) => connector.id === "walletConnect");
+}
+
+function matchMobileBrowser(): boolean {
+  const userAgent = globalThis.navigator?.userAgent ?? "";
+  const touchPoints = globalThis.navigator?.maxTouchPoints ?? 0;
+  const mobilePattern = /Android|iPhone|iPad|iPod|Mobile/i;
+  const isDesktopModeIpad = /Macintosh/i.test(userAgent) && touchPoints > 1;
+
+  return mobilePattern.test(userAgent) || isDesktopModeIpad;
+}
+
+function isMetaMaskInAppBrowser(): boolean {
+  const ethereum = (globalThis as typeof globalThis & {
+    ethereum?: EthereumProvider;
+  }).ethereum;
+
+  return Boolean(ethereum?.isMetaMask);
 }

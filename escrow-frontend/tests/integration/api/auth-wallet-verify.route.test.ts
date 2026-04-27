@@ -20,6 +20,7 @@ jest.mock("@/features/auth/server/userRepository", () => ({
 import { privateKeyToAccount } from "viem/accounts";
 
 import { POST } from "@/app/api/auth/wallet/verify/route";
+import { getPublicAppUrl } from "@/lib/env/public";
 
 function createChallengeMessage(
   walletAddress: string,
@@ -32,7 +33,7 @@ function createChallengeMessage(
     "",
     `Address: ${walletAddress}`,
     `Nonce: ${challengeNonce}`,
-    "URI: http://localhost:3000",
+    `URI: ${getPublicAppUrl()}`,
     "Version: 1",
     `Issued At: ${createdAt}`,
     `Expiration Time: ${expiresAt}`,

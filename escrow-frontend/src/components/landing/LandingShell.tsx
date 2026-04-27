@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  ArrowUpRight,
+  BriefcaseBusiness,
+  Menu,
+  Wallet,
+  X,
+} from "lucide-react";
+import {
   createContext,
   useCallback,
   useContext,
@@ -14,6 +21,11 @@ import {
 
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { LandingHeaderNav } from "@/components/landing/LandingHeaderNav";
+import {
+  LANDING_NAV_SECTIONS,
+  getProtectedLandingRoute,
+  type LandingNavItem,
+} from "@/components/landing/landingNavigation";
 import {
   type ProtectedLandingRoute,
   shouldRedirectToPendingRoute,
@@ -38,6 +50,22 @@ type LandingHeaderProps = Readonly<{
   onProtectedNavigation: (route: ProtectedLandingRoute) => void;
 }>;
 
+type MobileHeaderMenuProps = Readonly<{
+  headerLabel: string;
+  isConnected: boolean;
+  isMounted: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  onConnectClick: () => void;
+  onProtectedNavigation: (route: ProtectedLandingRoute) => void;
+}>;
+
+type MobileHeaderNavItemProps = Readonly<{
+  item: LandingNavItem;
+  onClose: () => void;
+  onProtectedNavigation: (route: ProtectedLandingRoute) => void;
+}>;
+
 type LandingShellContextValue = Readonly<{
   isMounted: boolean;
   navigateToProtectedRoute: (route: ProtectedLandingRoute) => void;
@@ -51,11 +79,11 @@ type HeaderCtaEffectProps = Readonly<{
 const DEFAULT_ACCENT_TEXT_CLASS_NAME = "text-white";
 const DEFAULT_BACKGROUND_CLASS_NAME = "bg-[#04052E]";
 const HEADER_CTA_CLASS_NAME =
-  "group relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-8 py-2.5 text-base font-semibold text-white transition hover:bg-white/10";
+  "group relative isolate inline-flex min-h-12 min-w-0 items-center justify-center overflow-hidden rounded-full border border-white/70 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 sm:px-8 sm:text-base";
 const HEADER_CONNECT_CTA_CLASS_NAME =
-  "group relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-8 py-2.5 text-base font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70";
+  "group relative isolate inline-flex min-h-12 min-w-0 items-center justify-center overflow-hidden rounded-full border border-white/70 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70 sm:px-8 sm:text-base";
 const HEADER_WALLET_ADDRESS_CTA_CLASS_NAME =
-  "group relative isolate inline-flex items-center justify-center overflow-hidden rounded-full border border-white/70 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70";
+  "group relative isolate inline-flex min-h-12 max-w-32 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70 sm:max-w-none sm:px-6";
 
 const LandingShellContext = createContext<LandingShellContextValue | null>(null);
 
@@ -67,19 +95,30 @@ function LandingHeader({
   onConnectClick,
   onProtectedNavigation,
 }: LandingHeaderProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isDesktopViewport = useDesktopViewport();
+
+  function closeMobileMenu(): void {
+    setIsMobileMenuOpen(false);
+  }
+
+  function openMobileMenu(): void {
+    setIsMobileMenuOpen(true);
+  }
+
   return (
-    <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-5 md:px-10">
+    <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-5 py-5 md:px-10">
       <Link href="/" className="shrink-0 text-[2.34375rem] font-bold tracking-tight">
         Dr3amo
       </Link>
       <LandingHeaderNav onProtectedNavigation={onProtectedNavigation} />
-      <div className="flex items-center gap-3">
+      <div className="hidden items-center gap-3 lg:flex">
         {isMounted && isConnected ? (
           <Link
             href="/client"
             className={`${HEADER_CTA_CLASS_NAME} ${accentTextClassName}`}
           >
-            <HeaderCtaEffect isVisible={isConnected} />
+            <HeaderCtaEffect isVisible={isDesktopViewport && isConnected} />
             <span className="relative z-10">Manage Escrows</span>
           </Link>
         ) : null}
@@ -95,13 +134,208 @@ function LandingHeader({
         >
           <HeaderCtaEffect
             backgroundClassName="bg-black"
-            isVisible={!isConnected}
+            isVisible={isDesktopViewport && !isConnected}
           />
-          <span className="relative z-10">{headerLabel}</span>
+          <span className="relative z-10 truncate">{headerLabel}</span>
         </button>
       </div>
+      <button
+        type="button"
+        aria-label="Open navigation menu"
+        aria-expanded={isMobileMenuOpen}
+        onClick={openMobileMenu}
+        className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/8 text-white transition active:scale-95 lg:hidden"
+      >
+        <Menu aria-hidden="true" size={24} strokeWidth={2.4} />
+      </button>
+      <MobileHeaderMenu
+        headerLabel={headerLabel}
+        isConnected={isConnected}
+        isMounted={isMounted}
+        isOpen={isMobileMenuOpen}
+        onClose={closeMobileMenu}
+        onConnectClick={onConnectClick}
+        onProtectedNavigation={onProtectedNavigation}
+      />
     </header>
   );
+}
+
+function useDesktopViewport(): boolean {
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+
+  useEffect(() => {
+    const desktopMedia = window.matchMedia("(min-width: 1024px)");
+    const updateDesktopViewport = (): void => {
+      setIsDesktopViewport(desktopMedia.matches);
+    };
+
+    updateDesktopViewport();
+    desktopMedia.addEventListener("change", updateDesktopViewport);
+    return () => {
+      desktopMedia.removeEventListener("change", updateDesktopViewport);
+    };
+  }, []);
+
+  return isDesktopViewport;
+}
+
+function MobileHeaderMenu({
+  headerLabel,
+  isConnected,
+  isMounted,
+  isOpen,
+  onClose,
+  onConnectClick,
+  onProtectedNavigation,
+}: MobileHeaderMenuProps) {
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function closeOnEscape(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  function handleWalletClick(): void {
+    onClose();
+    onConnectClick();
+  }
+
+  function handleManageClick(): void {
+    onClose();
+    onProtectedNavigation("/client");
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mobile navigation"
+      className="fixed inset-0 z-50 overflow-y-auto bg-[#04052E] px-6 py-6 text-white lg:hidden"
+    >
+      <div className="mb-14 flex items-center justify-between">
+        <Link href="/" onClick={onClose} className="text-4xl font-bold tracking-tight">
+          Dr3amo
+        </Link>
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={onClose}
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white/8 transition active:scale-95"
+        >
+          <X aria-hidden="true" size={26} strokeWidth={2.4} />
+        </button>
+      </div>
+
+      <div className="space-y-9 pb-12">
+        <section className="space-y-3">
+          <button
+            type="button"
+            disabled={!isMounted}
+            onClick={handleWalletClick}
+            className="flex w-full items-center gap-4 rounded-[1.75rem] border border-white/10 bg-white/8 p-4 text-left transition active:scale-[0.99] disabled:opacity-60"
+          >
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-[#04052E]">
+              <Wallet aria-hidden="true" size={25} />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-lg font-semibold">
+                {isConnected ? headerLabel : "Connect Wallet"}
+              </span>
+              <span className="mt-1 block text-sm text-white/55">
+                {isConnected ? "Manage your connection" : "Sign in with your wallet"}
+              </span>
+            </span>
+          </button>
+
+          {isConnected ? (
+            <button
+              type="button"
+              onClick={handleManageClick}
+              className="flex w-full items-center gap-4 rounded-[1.75rem] border border-white/10 bg-white/8 p-4 text-left transition active:scale-[0.99]"
+            >
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/12 text-white">
+                <BriefcaseBusiness aria-hidden="true" size={25} />
+              </span>
+              <span>
+                <span className="block text-lg font-semibold">Manage Escrows</span>
+                <span className="mt-1 block text-sm text-white/55">
+                  Open your active contract workspace
+                </span>
+              </span>
+            </button>
+          ) : null}
+        </section>
+
+        {LANDING_NAV_SECTIONS.map((section) => (
+          <section key={section.title}>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-white/45">
+              {section.title}
+            </h2>
+            <div className="space-y-2">
+              {section.items.map((item) => (
+                <MobileHeaderNavItem
+                  key={`${section.title}-${item.label}`}
+                  item={item}
+                  onClose={onClose}
+                  onProtectedNavigation={onProtectedNavigation}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MobileHeaderNavItem({
+  item,
+  onClose,
+  onProtectedNavigation,
+}: MobileHeaderNavItemProps) {
+  const protectedRoute = getProtectedLandingRoute(item);
+  const className =
+    "flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 text-left text-base font-semibold text-white transition active:scale-[0.99]";
+
+  if (protectedRoute) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          onProtectedNavigation(protectedRoute);
+        }}
+        className={className}
+      >
+        <span>{item.label}</span>
+        <ArrowUpRight aria-hidden="true" size={18} />
+      </button>
+    );
+  }
+
+  if (item.href) {
+    return (
+      <Link href={item.href} onClick={onClose} className={className}>
+        <span>{item.label}</span>
+        <ArrowUpRight aria-hidden="true" size={18} />
+      </Link>
+    );
+  }
+
+  return <span className={className}>{item.label}</span>;
 }
 
 function HeaderCtaEffect({
@@ -113,17 +347,19 @@ function HeaderCtaEffect({
   }
 
   return (
-    <>
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]"
+    >
       {backgroundClassName ? (
         <span
-          aria-hidden="true"
-          className={`pointer-events-none absolute inset-0 -z-20 ${backgroundClassName}`}
+          className={`pointer-events-none absolute inset-0 ${backgroundClassName}`}
         />
       ) : null}
       <LightPillar
         as="span"
         bottomColor="#22007C"
-        className="pointer-events-none -z-10"
+        className="pointer-events-none"
         glowAmount={0.01}
         intensity={1.5}
         interactive={false}
@@ -137,10 +373,9 @@ function HeaderCtaEffect({
         topColor="#e4aaff"
       />
       <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-black/12 transition-colors duration-200 group-hover:bg-white/10"
+        className="pointer-events-none absolute inset-0 bg-black/12 transition-colors duration-200 group-hover:bg-white/10"
       />
-    </>
+    </span>
   );
 }
 
@@ -262,7 +497,7 @@ export function LandingShell({
   return (
     <LandingShellContext.Provider value={landingShellContextValue}>
       <div
-        className={`flex min-h-screen flex-col text-white ${resolvedBackgroundClassName}`}
+        className={`flex min-h-screen flex-col overflow-x-hidden text-white ${resolvedBackgroundClassName}`}
       >
         <LandingHeader
           accentTextClassName={resolvedAccentTextClassName}

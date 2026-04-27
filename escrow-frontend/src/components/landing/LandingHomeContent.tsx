@@ -19,14 +19,14 @@ function ViewToggle({
   onViewChange,
 }: LandingHomeContentProps) {
   return (
-    <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/80 p-1 text-sm font-semibold">
+    <div className="mb-8 grid w-full max-w-sm grid-cols-2 items-center gap-2 rounded-full border border-white/80 p-1 text-sm font-semibold">
       <button
         type="button"
         onClick={() => onViewChange(false)}
-        className={`w-36 rounded-full px-5 py-2 text-center transition duration-300 ${
+        className={`rounded-full px-5 py-2 text-center transition duration-300 ${
           isFreelancerView
             ? "text-white/90 hover:bg-white/10"
-            : "scale-125 bg-white text-[#04052E]"
+            : "bg-white text-[#04052E]"
         }`}
       >
         Buyer
@@ -34,9 +34,9 @@ function ViewToggle({
       <button
         type="button"
         onClick={() => onViewChange(true)}
-        className={`w-36 rounded-full px-5 py-2 text-center transition duration-300 ${
+        className={`rounded-full px-5 py-2 text-center transition duration-300 ${
           isFreelancerView
-            ? "scale-125 bg-white text-[#22007C]"
+            ? "bg-white text-[#22007C]"
             : "text-white/90 hover:bg-white/10"
         }`}
       >
@@ -48,18 +48,18 @@ function ViewToggle({
 
 function ViewToggleSkeleton() {
   return (
-    <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/80 p-1 text-sm font-semibold">
+    <div className="mb-8 grid w-full max-w-sm grid-cols-2 items-center gap-2 rounded-full border border-white/80 p-1 text-sm font-semibold">
       <button
         type="button"
         disabled
-        className="w-36 rounded-full bg-white px-5 py-2 text-center text-[#04052E] opacity-90"
+        className="rounded-full bg-white px-5 py-2 text-center text-[#04052E] opacity-90"
       >
         Buyer
       </button>
       <button
         type="button"
         disabled
-        className="w-36 rounded-full px-5 py-2 text-center text-white/70 opacity-80"
+        className="rounded-full px-5 py-2 text-center text-white/70 opacity-80"
       >
         Seller
       </button>

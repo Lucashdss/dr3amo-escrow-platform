@@ -21,9 +21,17 @@ export function Hero({ isFreelancerView }: HeroProps) {
 
   return (
     <>
-      <h1 className="max-w-4xl text-5xl font-extrabold leading-tight tracking-tight md:text-7xl">
+      <h1 className="w-full max-w-full text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl md:max-w-4xl md:text-7xl">
         <DecryptedText
           key={isFreelancerView ? "freelancer" : "client"}
+          parentClassName="block w-full max-w-full whitespace-normal"
+          style={{
+            display: "block",
+            overflowWrap: "normal",
+            wordBreak: "normal",
+            whiteSpace: "normal",
+            width: "100%",
+          }}
           text={
             isFreelancerView
               ? "Be sure that your money is waiting for you."
@@ -32,7 +40,7 @@ export function Hero({ isFreelancerView }: HeroProps) {
           animateOn="view"
         />
       </h1>
-      <p className="mt-6 max-w-2xl text-lg text-white/80 md:text-xl">
+      <p className="mt-6 w-full max-w-2xl text-lg text-white/80 md:text-xl">
         Secure escrow payments for any service. Fund milestones, approve
         deliveries, and release with confidence.
       </p>

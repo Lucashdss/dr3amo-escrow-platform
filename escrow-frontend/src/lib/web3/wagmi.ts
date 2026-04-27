@@ -19,6 +19,9 @@ const createConnectors = (): CreateConnectorFn[] => {
         name: "Dr3amo",
         url: appUrl,
       },
+      mobile: {
+        useDeeplink: false,
+      },
     }),
   ];
 

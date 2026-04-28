@@ -1,6 +1,6 @@
-# Escrow Freelance Frontend
+# Dr3amo Escrow Platform
 
-Escrow Freelance is a web application for managing freelance escrow agreements. It helps clients and freelancers create escrow deals, connect a wallet, track agreement status, and handle blockchain-backed payment flows through a clean Next.js interface.
+dr3amo is a web application for managing buyers and sellers escrow agreements. It helps buyers and sellers create escrow deals, connect a wallet, track agreement status, and handle blockchain-backed payment flows through a clean Next.js interface.
 
 Access the website at [dr3amo.com](https://dr3amo.com).
 

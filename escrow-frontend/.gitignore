@@ -1,5 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+docs/
+
 # dependencies
 /node_modules
 /.pnp
@@ -23,6 +25,20 @@
 # misc
 .DS_Store
 *.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.keystore
+*.crt
+*.cert
+.npmrc
+.yarnrc.yml
+.sentryclirc
+credentials.json
+token.json
+*credentials*.json
+*service*account*.json
 .codex/
 .vscode/
 
@@ -43,6 +59,7 @@ yarn-error.log*
 *.sqlite3
 *.db
 *.db-*
+*.sql
 *.sql.gz
 *.sql.zip
 *.dump
@@ -78,6 +95,20 @@ next-env.d.ts
 /escrow-frontend/build/
 /escrow-frontend/.DS_Store
 /escrow-frontend/*.pem
+/escrow-frontend/*.key
+/escrow-frontend/*.p8
+/escrow-frontend/*.p12
+/escrow-frontend/*.jks
+/escrow-frontend/*.keystore
+/escrow-frontend/*.crt
+/escrow-frontend/*.cert
+/escrow-frontend/.npmrc
+/escrow-frontend/.yarnrc.yml
+/escrow-frontend/.sentryclirc
+/escrow-frontend/credentials.json
+/escrow-frontend/token.json
+/escrow-frontend/*credentials*.json
+/escrow-frontend/*service*account*.json
 /escrow-frontend/.codex/
 /escrow-frontend/.agents/
 /escrow-frontend/.vscode/
@@ -93,6 +124,7 @@ next-env.d.ts
 /escrow-frontend/*.sqlite3
 /escrow-frontend/*.db
 /escrow-frontend/*.db-*
+/escrow-frontend/*.sql
 /escrow-frontend/*.sql.gz
 /escrow-frontend/*.sql.zip
 /escrow-frontend/*.dump

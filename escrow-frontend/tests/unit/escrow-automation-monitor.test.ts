@@ -44,12 +44,12 @@ function mockAutomationMonitorDependencies({
   syncAutomatedRefundEscrow: jest.Mock;
   upsertMonitorState: jest.Mock;
 }) {
-  jest.doMock("@/features/escrows/services/escrowContract", () => ({
+  jest.doMock("@/features/escrows/server/escrowAutomationChain", () => ({
     getLatestEscrowBlockNumber: (...args: unknown[]) =>
       getLatestEscrowBlockNumber(...args),
     listRefundCandidates: (...args: unknown[]) => listRefundCandidates(...args),
   }));
-  jest.doMock("@/features/escrows/server/escrowService", () => ({
+  jest.doMock("@/features/escrows/server/escrowAutomationService", () => ({
     listActiveEscrowMonitoringTargets: (...args: unknown[]) =>
       listActiveEscrowMonitoringTargets(...args),
     reconcileActiveEscrows: (...args: unknown[]) => reconcileActiveEscrows(...args),
@@ -70,6 +70,14 @@ async function startMonitor() {
 
   startEscrowAutomationMonitor();
   await flushTasks();
+}
+
+async function runAutomationOnce() {
+  const { runEscrowAutomationOnce } = await import(
+    "@/features/escrows/server/escrowAutomationMonitor"
+  );
+
+  return runEscrowAutomationOnce();
 }
 
 function getPollCallback(): () => void {
@@ -214,6 +222,162 @@ describe("escrowAutomationMonitor", () => {
     expect(mockUpsertMonitorState).toHaveBeenCalledWith(1, BigInt(210));
     expect(mockListRefundCandidates).not.toHaveBeenCalled();
     expect(mockSyncAutomatedRefundEscrow).not.toHaveBeenCalled();
+  });
+
+  it("runs automation once and returns completed step results", async () => {
+    const mockFindMonitorStateByChainId = jest
+      .fn()
+      .mockResolvedValueOnce(createMonitorState(BigInt(210)));
+    const mockGetLatestEscrowBlockNumber = jest.fn().mockResolvedValue(BigInt(210));
+    const mockListRefundCandidates = jest.fn();
+    const mockListActiveEscrowMonitoringTargets = jest
+      .fn()
+      .mockResolvedValue([createTarget()]);
+    const mockReconcileActiveEscrows = jest.fn().mockResolvedValue(2);
+    const mockSyncAutomatedRefundEscrow = jest.fn();
+    const mockUpsertMonitorState = jest.fn();
+
+    mockAutomationMonitorDependencies({
+      findMonitorStateByChainId: mockFindMonitorStateByChainId,
+      getLatestEscrowBlockNumber: mockGetLatestEscrowBlockNumber,
+      listActiveEscrowMonitoringTargets: mockListActiveEscrowMonitoringTargets,
+      listRefundCandidates: mockListRefundCandidates,
+      reconcileActiveEscrows: mockReconcileActiveEscrows,
+      syncAutomatedRefundEscrow: mockSyncAutomatedRefundEscrow,
+      upsertMonitorState: mockUpsertMonitorState,
+    });
+
+    const result = await runAutomationOnce();
+
+    expect(result).toEqual({
+      steps: [
+        { status: "completed", step: "refundPolling" },
+        { status: "completed", step: "reconciliation" },
+      ],
+      success: true,
+    });
+    expect(setInterval).not.toHaveBeenCalled();
+    expect(mockReconcileActiveEscrows).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps reconciliation running when one-shot refund polling fails", async () => {
+    const mockFindMonitorStateByChainId = jest.fn();
+    const mockGetLatestEscrowBlockNumber = jest.fn();
+    const mockListRefundCandidates = jest.fn();
+    const mockListActiveEscrowMonitoringTargets = jest
+      .fn()
+      .mockRejectedValue(new Error("database unavailable"));
+    const mockReconcileActiveEscrows = jest.fn().mockResolvedValue(1);
+    const mockSyncAutomatedRefundEscrow = jest.fn();
+    const mockUpsertMonitorState = jest.fn();
+
+    mockAutomationMonitorDependencies({
+      findMonitorStateByChainId: mockFindMonitorStateByChainId,
+      getLatestEscrowBlockNumber: mockGetLatestEscrowBlockNumber,
+      listActiveEscrowMonitoringTargets: mockListActiveEscrowMonitoringTargets,
+      listRefundCandidates: mockListRefundCandidates,
+      reconcileActiveEscrows: mockReconcileActiveEscrows,
+      syncAutomatedRefundEscrow: mockSyncAutomatedRefundEscrow,
+      upsertMonitorState: mockUpsertMonitorState,
+    });
+
+    const result = await runAutomationOnce();
+
+    expect(result).toEqual({
+      steps: [
+        {
+          errorMessage: "database unavailable",
+          status: "failed",
+          step: "refundPolling",
+        },
+        { status: "completed", step: "reconciliation" },
+      ],
+      success: false,
+    });
+    expect(mockReconcileActiveEscrows).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a failed one-shot refund step when candidate retries are pending", async () => {
+    const mockFindMonitorStateByChainId = jest
+      .fn()
+      .mockResolvedValue(createMonitorState(BigInt(300)));
+    const mockGetLatestEscrowBlockNumber = jest.fn().mockResolvedValue(BigInt(305));
+    const txHash = createTxHash("e");
+    const mockListRefundCandidates = jest.fn().mockResolvedValue([
+      {
+        contractAddress: "0x0000000000000000000000000000000000000010",
+        txHash,
+      },
+    ]);
+    const mockListActiveEscrowMonitoringTargets = jest
+      .fn()
+      .mockResolvedValue([createTarget()]);
+    const mockReconcileActiveEscrows = jest.fn().mockResolvedValue(0);
+    const mockSyncAutomatedRefundEscrow = jest
+      .fn()
+      .mockRejectedValue(new Error("sync failed"));
+    const mockUpsertMonitorState = jest.fn().mockResolvedValue(undefined);
+
+    mockAutomationMonitorDependencies({
+      findMonitorStateByChainId: mockFindMonitorStateByChainId,
+      getLatestEscrowBlockNumber: mockGetLatestEscrowBlockNumber,
+      listActiveEscrowMonitoringTargets: mockListActiveEscrowMonitoringTargets,
+      listRefundCandidates: mockListRefundCandidates,
+      reconcileActiveEscrows: mockReconcileActiveEscrows,
+      syncAutomatedRefundEscrow: mockSyncAutomatedRefundEscrow,
+      upsertMonitorState: mockUpsertMonitorState,
+    });
+
+    const result = await runAutomationOnce();
+
+    expect(result).toEqual({
+      steps: [
+        {
+          errorMessage: "Refund polling has pending retry failures.",
+          status: "failed",
+          step: "refundPolling",
+        },
+        { status: "completed", step: "reconciliation" },
+      ],
+      success: false,
+    });
+    expect(mockUpsertMonitorState).not.toHaveBeenCalledWith(1, BigInt(305));
+  });
+
+  it("returns a failed one-shot reconciliation step", async () => {
+    const mockFindMonitorStateByChainId = jest.fn();
+    const mockGetLatestEscrowBlockNumber = jest.fn();
+    const mockListRefundCandidates = jest.fn();
+    const mockListActiveEscrowMonitoringTargets = jest.fn().mockResolvedValue([]);
+    const mockReconcileActiveEscrows = jest
+      .fn()
+      .mockRejectedValue(new Error("reconcile failed"));
+    const mockSyncAutomatedRefundEscrow = jest.fn();
+    const mockUpsertMonitorState = jest.fn();
+
+    mockAutomationMonitorDependencies({
+      findMonitorStateByChainId: mockFindMonitorStateByChainId,
+      getLatestEscrowBlockNumber: mockGetLatestEscrowBlockNumber,
+      listActiveEscrowMonitoringTargets: mockListActiveEscrowMonitoringTargets,
+      listRefundCandidates: mockListRefundCandidates,
+      reconcileActiveEscrows: mockReconcileActiveEscrows,
+      syncAutomatedRefundEscrow: mockSyncAutomatedRefundEscrow,
+      upsertMonitorState: mockUpsertMonitorState,
+    });
+
+    const result = await runAutomationOnce();
+
+    expect(result).toEqual({
+      steps: [
+        { status: "completed", step: "refundPolling" },
+        {
+          errorMessage: "reconcile failed",
+          status: "failed",
+          step: "reconciliation",
+        },
+      ],
+      success: false,
+    });
   });
 
   it("retries failed candidates without advancing the cursor until they succeed", async () => {

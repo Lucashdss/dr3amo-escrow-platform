@@ -279,7 +279,7 @@ export const ESCROW_TERMINAL_STATES = [
   "released",
   "refunded",
   "dispute",
-  "canceled",
+  "cancelled",
 ] as const;
 
 const ESCROW_STATE_INDEX: Record<number, EscrowLiveState> = {
@@ -290,7 +290,7 @@ const ESCROW_STATE_INDEX: Record<number, EscrowLiveState> = {
   4: "released",
   5: "refunded",
   6: "dispute",
-  7: "canceled",
+  7: "cancelled",
 };
 
 export function getEscrowActionDefinition(

@@ -29,6 +29,13 @@ import {
   getTokenAddress,
 } from "@/features/escrows/services/validation";
 import { extractEscrowCreatedLogArgs } from "@/features/escrows/services/escrowLogDecoder";
+import {
+  canReachEscrowState,
+  getEscrowTokenDecimals,
+  getEscrowTokenSymbol,
+  isKnownEscrowDatabaseState,
+  normalizeEscrowDatabaseState,
+} from "@/features/escrows/services/escrowShared";
 import type {
   ActiveEscrowMonitorState,
   EscrowChainKey,
@@ -88,11 +95,6 @@ type EscrowActionVerificationInput = {
   txHash: string;
 };
 
-type RefundCandidate = {
-  contractAddress: string;
-  txHash: string;
-};
-
 type EscrowSyncSnapshot = {
   amount: string;
   deadline: string;
@@ -128,39 +130,14 @@ const RELEVANT_ESCROW_EVENTS = new Set([
   "StateChanged",
   "UpfrontPaymentSent",
 ]);
-const REFUNDED_STATE_INDEX = 5;
-const ESCROW_STATE_ALIASES: Record<string, string> = {
-  cancelled: "canceled",
-};
 const ACTION_RESULT_STATES: Record<EscrowActionKey, readonly string[]> = {
-  cancelEscrow: ["canceled"],
+  cancelEscrow: ["cancelled"],
   confirmDelivery: ["released"],
   fund: ["funded"],
   initiateDispute: ["dispute"],
   markWorkSubmitted: ["work submitted"],
   requestModificationAndUpdateDeadline: ["pending modification"],
   setMinimumPriceUSD: ["created"],
-};
-const ESCROW_STATE_TRANSITIONS: Record<string, readonly string[]> = {
-  created: ["funded", "canceled"],
-  funded: ["funded", "work submitted", "dispute", "refunded"],
-  "work submitted": [
-    "work submitted",
-    "pending modification",
-    "released",
-    "dispute",
-    "refunded",
-  ],
-  "pending modification": [
-    "pending modification",
-    "work submitted",
-    "dispute",
-    "refunded",
-  ],
-  released: [],
-  refunded: [],
-  dispute: [],
-  canceled: [],
 };
 
 const ERC20_ABI = [
@@ -207,84 +184,14 @@ export function getSupportedChainIdForEscrow(
   return getSupportedChainId(databaseChainId);
 }
 
-export function normalizeEscrowDatabaseState(state: string): string {
-  const normalizedState = state.trim().toLowerCase();
-
-  return ESCROW_STATE_ALIASES[normalizedState] ?? normalizedState;
-}
-
-function isKnownEscrowDatabaseState(state: string): boolean {
-  return normalizeEscrowDatabaseState(state) in ESCROW_STATE_TRANSITIONS;
-}
-
-function getNextEscrowStates(state: string): readonly string[] {
-  return ESCROW_STATE_TRANSITIONS[normalizeEscrowDatabaseState(state)] ?? [];
-}
-
-export function canReachEscrowState(
-  currentState: string,
-  nextState: string
-): boolean {
-  const normalizedCurrentState = normalizeEscrowDatabaseState(currentState);
-  const normalizedNextState = normalizeEscrowDatabaseState(nextState);
-
-  if (
-    !isKnownEscrowDatabaseState(normalizedCurrentState) ||
-    !isKnownEscrowDatabaseState(normalizedNextState)
-  ) {
-    return false;
-  }
-
-  if (normalizedCurrentState === normalizedNextState) {
-    return true;
-  }
-
-  const statesToVisit = [normalizedCurrentState];
-  const visitedStates = new Set<string>();
-
-  while (statesToVisit.length > 0) {
-    const state = statesToVisit.shift();
-
-    if (!state || visitedStates.has(state)) {
-      continue;
-    }
-
-    visitedStates.add(state);
-
-    for (const candidateState of getNextEscrowStates(state)) {
-      if (candidateState === normalizedNextState) {
-        return true;
-      }
-
-      statesToVisit.push(candidateState);
-    }
-  }
-
-  return false;
-}
-
-export function getEscrowTokenSymbol(tokenId: number): TokenSymbol {
-  if (tokenId === 3) {
-    return "ETH";
-  }
-
-  return "USDC";
-}
-
-function getEscrowTokenDecimals(tokenId: number): number {
-  return getEscrowTokenSymbol(tokenId) === "USDC" ? 6 : 18;
-}
+export {
+  canReachEscrowState,
+  getEscrowTokenSymbol,
+  normalizeEscrowDatabaseState,
+};
 
 function getContractAddress(address: string): Address {
   return getAddress(address);
-}
-
-function createContractAddressList(addresses: readonly string[]): Address[] {
-  return addresses.map((address) => getContractAddress(address));
-}
-
-function hasValues<T>(values: readonly T[]): boolean {
-  return values.length > 0;
 }
 
 function isSameAddress(left: string, right: string): boolean {
@@ -765,7 +672,8 @@ function assertActionReceiptEvidence(
   const nextState = getStateChangeName(logs, contractAddress);
   const evidenceByAction: Record<EscrowActionKey, boolean> = {
     cancelEscrow:
-      nextState === "canceled" || hasEscrowEvent(logs, contractAddress, "FundsRefunded"),
+      nextState === "cancelled" ||
+      hasEscrowEvent(logs, contractAddress, "FundsRefunded"),
     confirmDelivery:
       nextState === "released" ||
       hasEscrowEvent(logs, contractAddress, "DeliveryConfirmed") ||
@@ -783,37 +691,6 @@ function assertActionReceiptEvidence(
 
   if (!evidenceByAction[action]) {
     throw new AppError("The escrow receipt does not contain the expected action evidence.", 400);
-  }
-}
-
-function createRefundCandidateKey(
-  databaseChainId: number,
-  txHash: string,
-  contractAddress: string
-): string {
-  return `${databaseChainId}:${txHash}:${contractAddress.toLowerCase()}`;
-}
-
-function createEmptyCandidates(): RefundCandidate[] {
-  return [];
-}
-
-function pushRefundCandidate(
-  candidates: RefundCandidate[],
-  keySet: Set<string>,
-  contractAddress: string,
-  txHash: string,
-  databaseChainId: number
-): void {
-  const candidateKey = createRefundCandidateKey(
-    databaseChainId,
-    txHash,
-    contractAddress
-  );
-
-  if (!keySet.has(candidateKey)) {
-    keySet.add(candidateKey);
-    candidates.push({ contractAddress, txHash });
   }
 }
 
@@ -966,61 +843,6 @@ export function isAutomationMonitoringState(state: string): boolean {
   return ACTIVE_ESCROW_MONITOR_STATES.includes(
     state.toLowerCase() as ActiveEscrowMonitorState
   );
-}
-
-export async function listRefundCandidates(
-  databaseChainId: number,
-  contractAddresses: readonly string[],
-  fromBlock: bigint,
-  toBlock: bigint
-): Promise<RefundCandidate[]> {
-  const publicClient = getEscrowClient(databaseChainId);
-  const logs = hasValues(contractAddresses)
-    ? await publicClient.getLogs({
-        address: createContractAddressList(contractAddresses),
-        fromBlock,
-        toBlock,
-      })
-    : [];
-  const candidates = createEmptyCandidates();
-  const keySet = new Set<string>();
-  const parsedLogs = parseEventLogs({
-    abi: ESCROW_ABI,
-    logs: [...logs],
-    strict: false,
-  });
-
-  parsedLogs.forEach((log) => {
-    const nextState =
-      log.eventName === "StateChanged"
-        ? (log.args as { newState?: bigint | number }).newState
-        : undefined;
-    const isRefundedState =
-      log.eventName === "StateChanged" &&
-      ((typeof nextState === "number" && nextState === REFUNDED_STATE_INDEX) ||
-        (typeof nextState === "bigint" &&
-          nextState === BigInt(REFUNDED_STATE_INDEX)));
-    const isFundsRefunded = log.eventName === "FundsRefunded";
-
-    if (isRefundedState || isFundsRefunded) {
-      pushRefundCandidate(
-        candidates,
-        keySet,
-        log.address,
-        log.transactionHash,
-        databaseChainId
-      );
-    }
-  });
-
-  return candidates;
-}
-
-export async function getLatestEscrowBlockNumber(
-  databaseChainId: number
-): Promise<bigint> {
-  const publicClient = getEscrowClient(databaseChainId);
-  return publicClient.getBlockNumber();
 }
 
 export async function verifyRefundTransaction(

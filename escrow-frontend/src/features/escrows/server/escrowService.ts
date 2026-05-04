@@ -63,14 +63,14 @@ const TOKEN_IDS: Record<EscrowChainKey, Record<TokenSymbol, number>> = {
 };
 
 const CLIENT_ESCROW_STATE_GROUPS: ClientEscrowStateGroups = {
-  activeExcluded: ["canceled", "released", "refunded"],
-  completed: ["canceled", "released", "refunded"],
+  activeExcluded: ["cancelled", "released", "refunded"],
+  completed: ["cancelled", "released", "refunded"],
   pendingReview: ["work submitted"],
 };
 const FREELANCER_ESCROW_STATE_GROUPS: FreelancerEscrowStateGroups = {
   completed: ["released"],
-  deadlinesExcluded: ["work submitted", "canceled", "released", "refunded"],
-  receivableExcluded: ["canceled", "released", "refunded"],
+  deadlinesExcluded: ["work submitted", "cancelled", "released", "refunded"],
+  receivableExcluded: ["cancelled", "released", "refunded"],
   waitingDeliveryExcluded: ["work submitted"],
 };
 const ACTIVE_MONITOR_STATES: typeof ACTIVE_ESCROW_MONITOR_STATES = [

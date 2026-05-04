@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "automation:run": "tsx src/scripts/runEscrowAutomation.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
@@ -28,6 +29,7 @@
     "react-dom": "19.2.3",
     "server-only": "^0.0.1",
     "three": "^0.167.1",
+    "tsx": "^4.21.0",
     "viem": "^2.45.1",
     "wagmi": "^3.5.0"
   },

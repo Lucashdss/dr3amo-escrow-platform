@@ -39,4 +39,8 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
+export async function closeDatabasePool(): Promise<void> {
+  await pool.end();
+}
+
 export default pool;

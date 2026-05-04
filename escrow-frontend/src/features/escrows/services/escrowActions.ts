@@ -19,6 +19,7 @@ import {
   type ValidationResult,
 } from "@/lib/validation";
 import { MAX_MODIFICATION_EXTENSION_DAYS } from "@/features/escrows/services/validation";
+import { normalizeEscrowDatabaseState } from "@/features/escrows/services/escrowShared";
 
 type DeriveEscrowActionsInput = {
   escrow: EscrowManagementItem;
@@ -45,7 +46,7 @@ const MAX_USDC_FUND_AMOUNT = "1000000";
 const MAX_MINIMUM_PRICE_USD = BigInt(1000000);
 
 function normalizeState(state: string): string {
-  return state.trim().toLowerCase();
+  return normalizeEscrowDatabaseState(state);
 }
 
 function isTerminalState(state: string): boolean {
@@ -151,7 +152,7 @@ function createCancelEscrowAction(
   return createDisabledAction(
     actionKey,
     disabled,
-    disabled ? "Escrow can only be canceled while still created." : null
+    disabled ? "Escrow can only be cancelled while still created." : null
   );
 }
 
@@ -172,7 +173,7 @@ function createFundAction(
   actionKey: EscrowActionKey,
   context: ActionAvailabilityContext
 ): EscrowActionAvailability {
-  const disabled = ["canceled", "dispute", "refunded", "released"].includes(
+  const disabled = ["cancelled", "dispute", "refunded", "released"].includes(
     context.liveState
   );
 

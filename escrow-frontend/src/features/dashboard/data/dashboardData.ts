@@ -18,6 +18,7 @@ import type {
 } from "@/features/dashboard/types/dashboard";
 import type { EscrowManagementItem } from "@/features/escrows/types/escrow";
 import { formatEscrowState } from "@/features/escrows/services/managementDisplay";
+import { normalizeEscrowDatabaseState } from "@/features/escrows/services/escrowShared";
 
 export const navItems: NavItem[] = [
   { href: "/client", icon: LayoutDashboard, label: "Overview" },
@@ -141,7 +142,7 @@ function formatActivityTime(value: string | null | undefined): string {
 }
 
 function getActivityTone(state: string): ActivityItem["tone"] {
-  const normalizedState = state.trim().toLowerCase();
+  const normalizedState = normalizeEscrowDatabaseState(state);
 
   if (normalizedState === "released" || normalizedState === "funded") {
     return "lime";
@@ -150,7 +151,7 @@ function getActivityTone(state: string): ActivityItem["tone"] {
   if (
     normalizedState === "pending modification" ||
     normalizedState === "dispute" ||
-    normalizedState === "canceled"
+    normalizedState === "cancelled"
   ) {
     return "amber";
   }

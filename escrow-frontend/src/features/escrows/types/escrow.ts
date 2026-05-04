@@ -17,7 +17,7 @@ export const ESCROW_LIVE_STATES = [
   "released",
   "refunded",
   "dispute",
-  "canceled",
+  "cancelled",
 ] as const;
 export const ACTIVE_ESCROW_MONITOR_STATES = [
   "funded",

@@ -239,7 +239,7 @@ describe("/api/escrows/[id]/sync route", () => {
     const refreshedEscrow = {
       ...escrow,
       modificationsRequested: 0,
-      state: "canceled",
+      state: "cancelled",
     };
 
     mockRequireAuthenticatedUser.mockResolvedValueOnce(getAuthenticatedUser(11));
@@ -250,7 +250,7 @@ describe("/api/escrows/[id]/sync route", () => {
       amount: "0",
       deadline: "2026-03-20",
       modificationsRequested: 0,
-      state: "canceled",
+      state: "cancelled",
     });
 
     const response = await POST(
@@ -273,7 +273,7 @@ describe("/api/escrows/[id]/sync route", () => {
       id: 7,
       lastTxHash: createTxHash("5"),
       modificationsRequested: 0,
-      state: "canceled",
+      state: "cancelled",
     });
     expect(body).toEqual({
       success: true,

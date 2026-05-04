@@ -289,8 +289,8 @@ describe("getModificationReceiptUpdate", () => {
 });
 
 describe("escrow state helpers", () => {
-  it("normalizes cancelled to canceled", () => {
-    expect(normalizeEscrowDatabaseState("cancelled")).toBe("canceled");
+  it("normalizes canceled to cancelled", () => {
+    expect(normalizeEscrowDatabaseState("canceled")).toBe("cancelled");
   });
 
   it("allows forward reachable states only", () => {

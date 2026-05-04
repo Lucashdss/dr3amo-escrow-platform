@@ -8,12 +8,21 @@ jest.mock("@/components/DecryptedText", () => ({
   default: ({ text }: { text: string }) => React.createElement("span", null, text),
 }));
 
+const handleCreateEscrow = jest.fn();
+
 describe("Hero", () => {
   it("renders the client step flow by default", () => {
     const html = renderToStaticMarkup(
-      React.createElement(Hero, { isFreelancerView: false }),
+      React.createElement(Hero, {
+        isFreelancerView: false,
+        onCreateEscrow: handleCreateEscrow,
+      }),
     );
 
+    expect(html).toContain("Create an escrow");
+    expect(html).toContain("Talk to us");
+    expect(html).toContain("Built on Base");
+    expect(html).toContain("No marketplace middleman");
     expect(html).toContain("Create a contract");
     expect(html).toContain("Fund your milestone");
     expect(html).toContain("Release when approved");
@@ -22,7 +31,10 @@ describe("Hero", () => {
 
   it("renders a freelancer-specific step flow", () => {
     const html = renderToStaticMarkup(
-      React.createElement(Hero, { isFreelancerView: true }),
+      React.createElement(Hero, {
+        isFreelancerView: true,
+        onCreateEscrow: handleCreateEscrow,
+      }),
     );
 
     expect(html).toContain("Set your minimum price");

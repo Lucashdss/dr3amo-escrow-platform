@@ -111,7 +111,7 @@ function LandingShowcaseBody({
                 onClick={onCreateContract}
                 className="rounded-full bg-white px-6 py-3 text-base font-semibold text-[#2f3136] transition hover:bg-white/90"
               >
-                Create a contract
+                Create escrow deal
               </button>
               <Link
                 href="/#landing-contact"

@@ -9,9 +9,34 @@ type FaqItem = {
 
 const FAQ_ITEMS: FaqItem[] = [
   {
+    question: "What is Dr3amo?",
+    answer:
+      "Dr3amo is an escrow platform that helps buyers and sellers work with on-chain payments, clear contract terms, and transparent release flows.",
+  },
+  {
     question: "How do fees work?",
     answer:
       "Dr3amo withdraws a 1% fee from the contract price on-chain, so the fee handling happens transparently as part of the escrow flow.",
+  },
+  {
+    question: "How does escrow protect both sides?",
+    answer:
+      "The client funds the escrow before work begins. The freelancer can see that payment is locked, and the client only releases funds once the agreed work is completed.",
+  },
+  {
+    question: "Who holds the funds?",
+    answer:
+      "Funds are held by the escrow smart contract during the project flow. Dr3amo does not manually hold or move project funds outside the contract rules.",
+  },
+  {
+    question: "Do I need a crypto wallet?",
+    answer:
+      "Yes. You need a supported wallet to create, fund, release, or receive escrow payments on-chain.",
+  },
+  {
+    question: "Are there network gas fees?",
+    answer:
+      "Yes. Blockchain transactions may require gas fees from the connected network. These are separate from Dr3amo's platform fee.",
   },
 ];
 

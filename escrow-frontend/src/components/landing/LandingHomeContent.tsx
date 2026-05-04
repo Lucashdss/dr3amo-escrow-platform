@@ -29,7 +29,7 @@ function ViewToggle({
             : "bg-white text-[#04052E]"
         }`}
       >
-        Buyer
+        I’m buying / hiring
       </button>
       <button
         type="button"
@@ -40,7 +40,7 @@ function ViewToggle({
             : "text-white/90 hover:bg-white/10"
         }`}
       >
-        Seller
+        I’m selling / working
       </button>
     </div>
   );
@@ -54,14 +54,14 @@ function ViewToggleSkeleton() {
         disabled
         className="rounded-full bg-white px-5 py-2 text-center text-[#04052E] opacity-90"
       >
-        Buyer
+        I’m buying / hiring
       </button>
       <button
         type="button"
         disabled
         className="rounded-full px-5 py-2 text-center text-white/70 opacity-80"
       >
-        Seller
+        I’m selling / working
       </button>
     </div>
   );
@@ -81,7 +81,10 @@ export function LandingHomeContent({
           isFreelancerView={isFreelancerView}
           onViewChange={onViewChange}
         />
-        <Hero isFreelancerView={isFreelancerView} />
+        <Hero
+          isFreelancerView={isFreelancerView}
+          onCreateEscrow={() => navigateToProtectedRoute(CREATE_CONTRACT_ROUTE)}
+        />
       </main>
 
       <LandingSectionDivider />

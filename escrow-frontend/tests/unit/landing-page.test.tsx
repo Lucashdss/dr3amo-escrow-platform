@@ -28,6 +28,7 @@ jest.mock("lucide-react", () => {
     BriefcaseBusiness: createMockIcon("BriefcaseBusiness"),
     ExternalLink: createMockIcon("ExternalLink"),
     Menu: createMockIcon("Menu"),
+    ShieldCheck: createMockIcon("ShieldCheck"),
     Wallet: createMockIcon("Wallet"),
     X: createMockIcon("X"),
   };
@@ -101,8 +102,10 @@ describe("Home page", () => {
     const html = renderPage();
 
     expect(html).toContain("Dr3amo");
-    expect(html).toContain("Pay the way your project needs.");
-    expect(html).toContain("Secure escrow payments for any service.");
+    expect(html).toContain("Pay safely when hiring online");
+    expect(html).toContain(
+      "Lock your payment in escrow before work starts."
+    );
     expect(html).toContain("Stay in control of every buyer-side milestone.");
     expect(html).toContain(
       "See every active agreement, track approvals, and move projects forward from a buyer workspace built for fast decisions."
@@ -115,7 +118,7 @@ describe("Home page", () => {
     expect(html).toContain("GitHub");
     expect(html).toContain("FAQs");
     expect(html).toContain("How do fees work?");
-    expect(html).toContain("1% fee");
+    expect(html).toContain("1% withdrawal fee");
     expect(html).toContain("How can we help?");
     expect(html).toContain("Enter your name");
     expect(html).toContain("Enter your email");
